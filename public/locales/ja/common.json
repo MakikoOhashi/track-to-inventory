@@ -1,0 +1,172 @@
+{
+  "title": {
+    "shipmentsByOwner": "オーナーごとの出荷一覧",
+    "arrivalStatus": "入荷ステータス一覧",
+    "upcomingArrivals": "近日入荷予定の出荷",
+    "detailDisplay": "詳細表示セクション（例：クリックで情報表示）",
+    "productArrivals": "商品別の入荷予定（全出荷分）",
+    "statusChart": "ステータスごとの入荷予定",
+    "siSearch": "SI番号で検索（前方一致・上位10件）"
+  },
+  "label": {
+    "shopId": "Shop ID（オーナーID）",
+    "siNumber": "SI番号",
+    "productName": "商品名",
+    "totalQuantity": "合計個数",
+    "quantity": "数量",
+    "eta": "ETA",
+    "supplier": "仕入れ先",
+    "status": "ステータス"
+  },
+  "button": {
+    "switch": "切り替え",
+    "cardView": "カード表示",
+    "tableView": "テーブル表示",
+    "searchBySi": "SI番号で検索",
+    "productArrivals": "商品別の入荷予定",
+    "statusChart": "ステータスごとのチャート",
+    "productNameOrder": "商品名順",
+    "productNameAsc": "▲ 商品名順",
+    "productNameDesc": "▼ 商品名順"
+  },
+  "placeholder": {
+    "shopId": "例: test-owner",
+    "siNumber": "SI番号を入力"
+  },
+  "message": {
+    "noData": "データがありません",
+    "upcomingArrivals": "近日入荷予定",
+    "noMatchingSi": "該当するSIがありません",
+    "clickForDetails": "クリックで詳細",
+    "siListWith": "「{{productName}}」積載SI一覧"
+  },
+  "status": {
+    "siIssued": "SI発行済",
+    "scheduleConfirmed": "船積スケジュール確定",
+    "shipping": "船積中",
+    "customsClearance": "輸入通関中",
+    "warehouseArrived": "倉庫着",
+    "notSet": "未設定"
+  },
+  "sort": {
+    "ascending": "▲ {{field}}",
+    "descending": "▼ {{field}}"
+  },
+  "language": {
+    "switch": "言語切り替え",
+    "japanese": "日本語",
+    "english": "English"
+  },
+  "statusTable": {
+    "siNumber": "SI番号",
+    "status": "ステータス",
+    "eta": "ETA",
+    "showArchived": "アーカイブも表示"
+  },
+  "statusCard": {
+    "siLabel": "SI:",
+    "siNumber": "SI番号：",
+    "status": "ステータス：",
+    "eta": "到着予定日："
+  },
+  "modal": {
+    "title": "SI詳細",
+    "buttons": {
+      "save": "保存",
+      "edit": "編集",
+      "cancel": "キャンセル",
+      "close": "閉じる",
+      "delete": "削除",
+      "addItem": "商品追加",
+      "viewFile": "アップロード済み{{fileType}}を見る",
+      "viewFileType": "{{fileType}}ファイルを見る"
+    },
+    "fields": {
+      "status": "ステータス",
+      "transportType": "輸送手段",
+      "etd": "ETD",
+      "eta": "ETA",
+      "delayed": "遅延",
+      "clearanceDate": "通関日",
+      "arrivalDate": "倉庫着日",
+      "supplier": "仕入れ先",
+      "memo": "メモ",
+      "archive": "アーカイブ",
+      "itemName": "商品名",
+      "quantity": "数量"
+    },
+    "sections": {
+      "itemList": "積載商品リスト",
+      "relatedFiles": "関連ファイル"
+    },
+    "fileTypes": {
+      "invoice": "インボイスファイル",
+      "pl": "PLファイル",
+      "si": "SIファイル",
+      "other": "その他ファイル"
+    },
+    "status": {
+      "siIssued": "SI発行済",
+      "scheduleConfirmed": "船積スケジュール確定",
+      "shipping": "船積中",
+      "customsClearance": "輸入通関中",
+      "warehouseArrival": "倉庫着"
+    },
+    "options": {
+      "yes": "あり",
+      "no": "なし"
+    },
+    "labels": {
+      "tbd": "未定",
+      "none": "なし",
+      "pieces": "個"
+    },
+    "messages": {
+      "saveFailed": "保存に失敗しました",
+      "saveSuccess": "保存しました！",
+      "uploadFailed": "アップロード失敗",
+      "uploadSuccess": "アップロード完了！",
+      "deleteFailed": "削除に失敗しました",
+      "deleteSuccess": "削除しました",
+      "deleteConfirm": "本当に削除してよろしいですか？"
+    }
+  },
+  "ocrUploader": {
+    "title": "画像アップロード & OCR",
+    "dropzoneText": "ここに画像をドロップ、またはクリックして選択",
+    "ocrButton": "OCR実行",
+    "uploadedImage": "アップロード画像",
+    "ocrResultTitle": "OCR認識テキスト（編集可）",
+    "ocrResultPlaceholder": "ここにOCR認識結果が表示されます",
+    "siNumber": "SI番号",
+    "supplierName": "仕入先",
+    "transportType": "輸送手段",
+    "productList": "商品リスト",
+    "productName": "商品名",
+    "quantity": "数量",
+    "delete": "削除",
+    "noProductData": "商品データがありません",
+    "addProduct": "＋商品追加",
+    "aiButton": "AIで未入力項目を補完",
+    "saveButton": "この内容で登録",
+    "emptyOcrText": "OCRテキストが空です",
+    "ocrFail": "PDFの読み込みまたはOCRに失敗しました",
+    "unsupportedFileType": "対応していないファイル形式です（画像またはPDFのみ）",
+    "convertError": "画像変換に失敗しました",
+    "aiFail": "AI補完に失敗しました: {{message}}",
+    "aiParseFail": "AIの応答を解析できませんでした",
+    "noShopId": "店舗が選択されていません",
+    "siRequired": "SI番号は必須項目です",
+    "initialStatus": "SI発行済",
+    "apiFail": "APIリクエストが失敗しました",
+    "apiJsonFail": "APIレスポンスのJSON解析に失敗しました",
+    "apiLogicFail": "API処理エラー",
+    "saveSuccess": "データが正常に保存されました！",
+    "saveFail": "保存に失敗しました: {{message}}"
+  },
+  "tabs": {
+    "search": "SI番号で検索",
+    "product": "商品別の入荷予定",
+    "status": "ステータスごとのチャート"
+  }
+}

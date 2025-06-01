@@ -1,0 +1,172 @@
+{
+  "title": {
+    "shipmentsByOwner": "Shipment List by Owner",
+    "arrivalStatus": "Arrival Status List",
+    "upcomingArrivals": "Upcoming Arrivals",
+    "detailDisplay": "Detail Display Section (Click for Information)",
+    "productArrivals": "Product-wise Arrival Schedule (All Shipments)",
+    "statusChart": "Arrival Schedule by Status",
+    "siSearch": "Search by SI Number (Forward Match, Top 10)"
+  },
+  "label": {
+    "shopId": "Shop ID (Owner ID)",
+    "siNumber": "SI Number",
+    "productName": "Product Name",
+    "totalQuantity": "Total Quantity",
+    "quantity": "Quantity",
+    "eta": "ETA",
+    "supplier": "Supplier",
+    "status": "Status"
+  },
+  "button": {
+    "switch": "Switch",
+    "cardView": "Card View",
+    "tableView": "Table View",
+    "searchBySi": "Search by SI Number",
+    "productArrivals": "Product-wise Arrivals",
+    "statusChart": "Status Chart",
+    "productNameOrder": "Product Name Order",
+    "productNameAsc": "▲ Product Name Asc",
+    "productNameDesc": "▼ Product Name Desc"
+  },
+  "placeholder": {
+    "shopId": "e.g.: test-owner",
+    "siNumber": "Enter SI Number"
+  },
+  "message": {
+    "noData": "No data available",
+    "upcomingArrivals": "Upcoming Arrivals",
+    "noMatchingSi": "No matching SI found",
+    "clickForDetails": "Click for details",
+    "siListWith": "SI List containing \"{{productName}}\""
+  },
+  "status": {
+    "siIssued": "SI Issued",
+    "scheduleConfirmed": "Shipping Schedule Confirmed",
+    "shipping": "Shipping",
+    "customsClearance": "Import Customs Clearance",
+    "warehouseArrived": "Warehouse Arrived",
+    "notSet": "Not Set"
+  },
+  "sort": {
+    "ascending": "▲ {{field}}",
+    "descending": "▼ {{field}}"
+  },
+  "language": {
+    "switch": "Language Switch",
+    "japanese": "日本語",
+    "english": "English"
+  },
+  "statusTable": {
+    "siNumber": "SI Number",
+    "status": "Status", 
+    "eta": "ETA",
+    "showArchived": "Show archived"
+  },
+  "statusCard": {
+    "siLabel": "SI:",
+    "siNumber": "SI Number: ",
+    "status": "Status: ",
+    "eta": "ETA: "
+  },
+  "modal": {
+    "title": "SI Details",
+    "buttons": {
+      "save": "Save",
+      "edit": "Edit",
+      "cancel": "Cancel",
+      "close": "Close",
+      "delete": "Delete",
+      "addItem": "Add Item",
+      "viewFile": "View uploaded {{fileType}}",
+      "viewFileType": "View {{fileType}} file"
+    },
+    "fields": {
+      "status": "Status",
+      "transportType": "Transport Type",
+      "etd": "ETD",
+      "eta": "ETA",
+      "delayed": "Delayed",
+      "clearanceDate": "Clearance Date",
+      "arrivalDate": "Arrival Date",
+      "supplier": "Supplier",
+      "memo": "Memo",
+      "archive": "Archive",
+      "itemName": "Item Name",
+      "quantity": "Quantity"
+    },
+    "sections": {
+      "itemList": "Item List",
+      "relatedFiles": "Related Files"
+    },
+    "fileTypes": {
+      "invoice": "Invoice File",
+      "pl": "PL File",
+      "si": "SI File",
+      "other": "Other File"
+    },
+    "status": {
+      "siIssued": "SI Issued",
+      "scheduleConfirmed": "Shipping Schedule Confirmed",
+      "shipping": "Shipping",
+      "customsClearance": "Import Customs Clearance",
+      "warehouseArrival": "Warehouse Arrival"
+    },
+    "options": {
+      "yes": "Yes",
+      "no": "No"
+    },
+    "labels": {
+      "tbd": "TBD",
+      "none": "None",
+      "pieces": " pcs"
+    },
+    "messages": {
+      "saveFailed": "Save failed",
+      "saveSuccess": "Saved successfully!",
+      "uploadFailed": "Upload failed",
+      "uploadSuccess": "Upload completed!",
+      "deleteFailed": "Delete failed",
+      "deleteSuccess": "Deleted successfully",
+      "deleteConfirm": "Are you sure you want to delete?"
+    }
+  },
+  "ocrUploader": {
+    "title": "Image Upload & OCR",
+    "dropzoneText": "Drop an image here or click to select",
+    "ocrButton": "Run OCR",
+    "uploadedImage": "Uploaded Image",
+    "ocrResultTitle": "OCR Recognized Text (editable)",
+    "ocrResultPlaceholder": "OCR result will be displayed here",
+    "siNumber": "SI Number",
+    "supplierName": "Supplier",
+    "transportType": "Transport Type",
+    "productList": "Product List",
+    "productName": "Product Name",
+    "quantity": "Quantity",
+    "delete": "Delete",
+    "noProductData": "No product data available",
+    "addProduct": "+ Add Product",
+    "aiButton": "Auto-fill missing fields with AI",
+    "saveButton": "Register this information",
+    "emptyOcrText": "OCR text is empty",
+    "ocrFail": "Failed to load PDF or run OCR",
+    "unsupportedFileType": "Unsupported file type (only images or PDFs allowed)",
+    "convertError": "Failed to convert image",
+    "aiFail": "AI auto-fill failed: {{message}}",
+    "aiParseFail": "Could not parse AI response",
+    "noShopId": "No shop selected",
+    "siRequired": "SI Number is required",
+    "initialStatus": "SI Issued",
+    "apiFail": "API request failed",
+    "apiJsonFail": "Failed to parse API response as JSON",
+    "apiLogicFail": "API processing error",
+    "saveSuccess": "Data was saved successfully!",
+    "saveFail": "Failed to save: {{message}}"
+  },
+  "tabs": {
+    "search": "Search by SI Number",
+    "product": "Planned arrivals by product",
+    "status": "Status-wise chart"
+  }
+}
