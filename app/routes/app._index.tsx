@@ -1,57 +1,87 @@
 //app/routes/_index.tsx
 
-
-// src/App.jsxからの移植
-import React, { useEffect, useState, useRef } from 'react';
-import { AppProvider,Page, Card, Button, ButtonGroup, DataTable, TextField, Tabs, Banner, InlineStack, BlockStack, TextContainer, Text } from '@shopify/polaris';
-//import { useTranslation } from 'next-i18next';
-//import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import React, { useEffect, useState, useRef, MouseEvent } from 'react';
+import {
+  Page,
+  Card,
+  BlockStack,
+  Button,
+  ButtonGroup,
+  DataTable,
+  TextField,
+  Banner,
+  InlineStack,
+  Text,
+} from '@shopify/polaris';
 import CustomModal from '../components/Modal';
 import StatusCard from '../components/StatusCard';
 import StatusTable from '../components/StatusTable';
 import OCRUploader from "../components/OCRUploader";
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
+
+// 型定義
+type ShipmentItem = {
+  name: string;
+  quantity: number;
+};
+
+type Shipment = {
+  si_number: string;
+  eta: string;
+  supplier_name: string;
+  // 他に必要なプロパティも追加
+  items: ShipmentItem[];
+  status?: string;
+};
+
+type StatusStats = Record<string, Shipment[]>;
+
+type PopupPos = { x: number; y: number };
+
 // i18n（仮対応、Remixでの正式なi18n構成に合わせて修正要）
-const t = (key) => key; // 仮: すべてkey返す
+const t = (key: string, _opt?: any) => key; // 仮: すべてkey返す
 
 export default function Index() {
-  const [shopIdInput, setShopIdInput] = useState("test-owner");
-  const [shopId, setShopId] = useState("test-owner");
-  const [viewMode, setViewMode] = useState('card');
-  const [selectedShipment, setSelectedShipment] = useState(null);
-  const [shipments, setShipments] = useState([]);
-  const [hoveredProduct, setHoveredProduct] = useState(null); // { name, x, y }
-  const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
-  const [productStatsSort, setProductStatsSort] = useState('name-asc'); // 'name-asc' or 'name-desc'
-  const [detailViewMode, setDetailViewMode] = useState('product'); // 'product', 'status', 'search'
-  const [siQuery, setSiQuery] = useState('');
+  const [shopIdInput, setShopIdInput] = useState<string>("test-owner");
+  const [shopId, setShopId] = useState<string>("test-owner");
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
+  const [popupPos, setPopupPos] = useState<PopupPos>({ x: 0, y: 0 });
+  const [productStatsSort, setProductStatsSort] = useState<'name-asc' | 'name-desc'>('name-asc');
+  const [detailViewMode, setDetailViewMode] = useState<'product' | 'status' | 'search'>('product');
+  const [siQuery, setSiQuery] = useState<string>('');
 
-  const popupTimeout = useRef(null);
+
+  const popupTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const POPUP_WIDTH = 320;
   const POPUP_HEIGHT = 180;
 
   // ステータスの翻訳マッピング
-  const statusTranslationMap = {
+  const statusTranslationMap: Record<string, string> = {
     "SI発行済": t('status.siIssued'),
     "船積スケジュール確定": t('status.scheduleConfirmed'),
     "船積中": t('status.shipping'),
     "輸入通関中": t('status.customsClearance'),
     "倉庫着": t('status.warehouseArrived'),
-    "未設定": t('status.notSet')
+    "未設定": t('status.notSet'),
   };
 
+
   const statusOrder = ["SI発行済", "船積スケジュール確定", "船積中", "輸入通関中", "倉庫着"];
+  const [lang, setLang] = useState("ja"); // 例: 最初は日本語
 
   // 修正1: supabaseで直接取得→API経由に変更
-  const fetchShipments = async (shopIdValue) => {
+  const fetchShipments = async (shopIdValue: string) => {
     const res = await fetch(`/api/shipments?shop_id=${encodeURIComponent(shopIdValue)}`);
     if (!res.ok) {
       setShipments([]);
       return;
     }
     const json = await res.json();
-    setShipments(json.data || []);
+    setShipments(Array.isArray(json.data) ? json.data : []);
   };
 
   // --- 修正2: useEffectでshopIdが変わった時だけfetchShipments実行 ---
@@ -65,20 +95,21 @@ export default function Index() {
     fetchShipments(shopId); // ← 閉じたあともshopIdで絞り込んだデータを取得
   };
 
-  const handleInputChange = (value) => setShopIdInput(value);
+  const handleInputChange = (value: string) => setShopIdInput(value);
   const handleShopIdApply = () => setShopId(shopIdInput);
 
   // SI番号で検索用（前方一致・上位10件）
   const filteredShipments = shipments
-  .filter(s =>
-    !siQuery ||
-    (s.si_number && s.si_number.toLowerCase().startsWith(siQuery.toLowerCase())) 
-  )
-  .slice(0, 10);
+    .filter(
+      (s) =>
+        !siQuery ||
+        (s.si_number && s.si_number.toLowerCase().startsWith(siQuery.toLowerCase()))
+    )
+    .slice(0, 10);
   // ステータスごとグループ化関数
-  const getStatusStats = (shipments) => {
-    const stats = {};
-    shipments.forEach(s => {
+  const getStatusStats = (shipments: Shipment[]): StatusStats => {
+    const stats: StatusStats = {};
+    shipments.forEach((s) => {
       const status = s.status || "未設定";
       if (!stats[status]) stats[status] = [];
       stats[status].push(s);
@@ -86,11 +117,12 @@ export default function Index() {
     return stats;
   };
 
-  const handleProductMouseEnter = (e, name) => {
+  const handleProductMouseEnter = (e: MouseEvent<HTMLElement>, name: string) => {
     if (popupTimeout.current) clearTimeout(popupTimeout.current);
-    const rect = e.target.getBoundingClientRect();
+    const rect = e.currentTarget.getBoundingClientRect();
     let x = rect.right + window.scrollX + 10;
     let y = rect.top + window.scrollY + 10;
+
 
     // 右端はみ出し防止
     if (x + POPUP_WIDTH > window.innerWidth) {
@@ -125,49 +157,46 @@ export default function Index() {
     }, 200);
   };
 
-  const getProductStats = (shipments, sort = 'name-asc') => {
-    const stats = {};
-    shipments.forEach(s => {
-      (s.items || []).forEach(item => {
+  const getProductStats = (
+    shipments: Shipment[],
+    sort: 'name-asc' | 'name-desc' = 'name-asc'
+  ): [string, number][] => {
+    const stats: Record<string, number> = {};
+    shipments.forEach((s) => {
+      (s.items || []).forEach((item) => {
         if (!item.name) return;
         stats[item.name] = (stats[item.name] || 0) + Number(item.quantity || 0);
       });
     });
-   // 数字→アルファベット→その他
-    const naturalSort = (a, b, order) => {
-      // 1. 数字から始まるものを最優先
+    const naturalSort = (a: string, b: string, order: 'asc' | 'desc') => {
       const aIsNum = /^\d/.test(a);
       const bIsNum = /^\d/.test(b);
       if (aIsNum && !bIsNum) return order === 'asc' ? -1 : 1;
       if (!aIsNum && bIsNum) return order === 'asc' ? 1 : -1;
       if (aIsNum && bIsNum) {
-        // どちらも数字で始まる場合、数値として比較
-        const aNum = parseInt(a.match(/^\d+/)[0], 10);
-        const bNum = parseInt(b.match(/^\d+/)[0], 10);
+        const aNum = parseInt(a.match(/^\d+/)?.[0] ?? '0', 10);
+        const bNum = parseInt(b.match(/^\d+/)?.[0] ?? '0', 10);
         if (aNum !== bNum) return order === 'asc' ? aNum - bNum : bNum - aNum;
-        // 数字部分が同じ場合は文字列比較
         return order === 'asc' ? a.localeCompare(b, "ja") : b.localeCompare(a, "ja");
       }
-      // 2. アルファベットで始まるものを次に
       const aIsAlpha = /^[a-zA-Z]/.test(a);
       const bIsAlpha = /^[a-zA-Z]/.test(b);
       if (aIsAlpha && !bIsAlpha) return order === 'asc' ? -1 : 1;
       if (!aIsAlpha && bIsAlpha) return order === 'asc' ? 1 : -1;
-      // 3. その他はlocaleCompare
       return order === 'asc'
         ? a.localeCompare(b, "ja")
         : b.localeCompare(a, "ja");
     };
-
     return Object.entries(stats).sort((a, b) =>
       naturalSort(a[0], b[0], sort === 'name-asc' ? 'asc' : 'desc')
     );
   };
 
+
   // ETAの早い順でソートして上位2件を抽出
   const upcomingShipments = shipments
     .slice()
-    .sort((a, b) => new Date(a.eta) - new Date(b.eta))
+    .sort((a, b) => new Date(a.eta).getTime() - new Date(b.eta).getTime())
     .slice(0, 2);
     
   // Polaris用タブ
@@ -183,16 +212,39 @@ export default function Index() {
     fetchShipments(shopId);
   };
 
+  const filteredAndSortedShipments = shipments
+    .filter(s => (s.items || []).some(item => item.name === hoveredProduct))
+    .sort((a, b) => {
+      // まずstatus順
+      const statusDiff = statusOrder.indexOf(a.status ?? "未設定") - statusOrder.indexOf(b.status ?? "未設定");
+      if (statusDiff !== 0) return statusDiff;
+      // 同じstatusならETA順
+      return new Date(a.eta).getTime() - new Date(b.eta).getTime();
+    });
+
+  const rows = filteredAndSortedShipments.map(s => {
+    const item = (s.items || []).find(item => item.name === hoveredProduct);
+    return [
+      s.si_number,
+      item?.name ?? '',         // itemがundefinedのとき空文字に
+      item?.quantity ?? '',     // itemがundefinedのとき空文字に
+      s.status
+    ];
+  });
 
   // --- JSX ---
   return (
     <>
       <Page title={t('title.shipmentsByOwner')}>
         
-        <Card sectioned>
+        <Card>
+        <BlockStack>
           {/* 言語切り替え */}
           <div style={{ marginBottom: 16 }}>
-            <LanguageSwitcher />
+            <LanguageSwitcher 
+              value={lang}
+              onChange={setLang}
+            />
           </div>
           
           <TextField
@@ -202,15 +254,17 @@ export default function Index() {
             autoComplete="off"
             placeholder={t('placeholder.shopId')}
           />
-          <Button primary onClick={handleShopIdApply} style={{ marginTop: 16 }}>
+          <Button variant="primary" onClick={handleShopIdApply} style={{ marginTop: 16 }}>
           {t('button.switch')}
           </Button>
-          
+          </BlockStack> 
         </Card>
        
         {/* ETAが近い上位2件のリスト表示 */}     
-        <Card title={t('title.upcomingArrivals')} sectioned>
+        <Card>
         
+          <BlockStack> 
+          <Text as="h2" variant="headingLg">{t('title.upcomingArrivals')}</Text>
         <p>{t('message.upcomingArrivals')}</p>
         {shipments.length === 0 ? (
             <p>{t('message.noData')}</p>
@@ -225,7 +279,7 @@ export default function Index() {
           ))}
         </ul>)
           }
-          
+          </BlockStack>
         </Card>
         
       </Page>
@@ -240,18 +294,28 @@ export default function Index() {
         />
       
       {/* 表示切り替えボタン */}
-       <Card sectioned>
+       <Card>
+       <BlockStack>
         
         <ButtonGroup>
-          <Button primary={viewMode === 'card'} onClick={() => setViewMode('card')}>{t('button.cardView')}</Button>
-          <Button primary={viewMode === 'table'} onClick={() => setViewMode('table')}>{t('button.tableView')}</Button>
+          <Button 
+          variant={viewMode === 'card' ? 'primary' : 'secondary'} 
+          onClick={() => setViewMode('card')}>
+            {t('button.cardView')}
+          </Button>
+          <Button
+            variant={viewMode === 'table' ? 'primary' : 'secondary'}
+            onClick={() => setViewMode('table')}
+          >
+    {t('button.tableView')}
+  </Button>
         </ButtonGroup>
       
 
       {/* 表示形式に応じて切り替え */}
       
       {viewMode === 'card' ? (
-        <InlineStack gap="loose">
+        <InlineStack gap="400">
           {shipments.map((s) => (
              <StatusCard
              key={s.si_number}
@@ -266,6 +330,7 @@ export default function Index() {
         onSelectShipment={(shipment) => setSelectedShipment(shipment)}
         />
       )}
+      </BlockStack>
       </Card>
 
 
@@ -273,21 +338,26 @@ export default function Index() {
       
 
 {/* 詳細表示　　セクション */}
-<Card sectioned>
+<Card>
+  <BlockStack gap="400">
+
   <Text as="h2" variant="headingLg">{t('title.detailDisplay')}</Text>
 
   <ButtonGroup>
-    <Button primary={detailViewMode === 'search'}
+    <Button 
+      variant={detailViewMode === 'search' ? "primary" : "secondary"}
       onClick={() => setDetailViewMode('search')}
     >
       {t('button.searchBySi')}
     </Button>
-    <Button primary={detailViewMode === 'product'}
-      onClick={() => setDetailViewMode('product')}
+    <Button 
+       variant={detailViewMode === 'product' ? "primary" : "secondary"}
+       onClick={() => setDetailViewMode('product')}
     >
        {t('button.productArrivals')}
     </Button>
-    <Button primary={detailViewMode === 'status'}
+    <Button 
+      variant={detailViewMode === 'status' ? "primary" : "secondary"}
       onClick={() => setDetailViewMode('status')}
     >
       {t('button.statusChart')}
@@ -319,7 +389,7 @@ export default function Index() {
             )
           }
           size="slim"
-          plain
+          variant="plain"
         >
           {productStatsSort === 'name-asc' ?t('button.productNameAsc') : t('button.productNameDesc')}
         </Button>
@@ -365,39 +435,16 @@ export default function Index() {
           <b>{t('message.siListWith', { productName: hoveredProduct })}</b>
           <DataTable
             columnContentTypes={['text', 'text', 'numeric', 'text']}
-            headings={[t('label.siNumber'), t('label.productName'), t('label.quantity'), t('label.status')]}
-            rows={
-              shipments
-                .filter(s => (s.items || []).some(item => item.name === hoveredProduct))
-                .sort((a, b) => {
-                  // まずstatus順
-                  const statusDiff = statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
-                  if (statusDiff !== 0) return statusDiff;
-                  // 同じstatusならETA順
-                  return new Date(a.eta) - new Date(b.eta);
-                })
-                .map(s => {
-                  const item = (s.items || []).find(item => item.name === hoveredProduct);
-                  return [
-                    s.si_number,
-                    item.name,
-                    item.quantity,
-                    s.status
-                  ];
-                })
-                }
-                onRowClick={(_row, index) => {
-                const siShipments = shipments
-                    .filter(s => (s.items || []).some(item => item.name === hoveredProduct))
-                    .sort((a, b) => {
-                        // まずstatus順
-                    const statusDiff = statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
-                    if (statusDiff !== 0) return statusDiff;
-                    // 同じstatusならETA順
-                    return new Date(a.eta) - new Date(b.eta);
-                    });
-                setSelectedShipment(siShipments[index]);
-                }}
+            headings={[
+              t('label.siNumber'),
+              t('label.productName'),
+              t('label.quantity'),
+              t('label.status')
+            ]}
+            rows={rows}
+            onRowClick={(_row, index) => {
+              setSelectedShipment(filteredAndSortedShipments[index]);
+            }}
           />
         </div>
       )}
@@ -474,7 +521,7 @@ export default function Index() {
                 ])}
               />
               {siQuery && filteredShipments.length === 0 && (
-                <Banner status="info">{t('message.noMatchingSi')}</Banner>
+                <Banner tone="info">{t('message.noMatchingSi')}</Banner>
               )}
             </>
             )}
@@ -485,6 +532,7 @@ export default function Index() {
         shipment={selectedShipment}
         onClose={handleModalClose}
       />
+      </BlockStack>
     </Card>  
     </Page>
   </>

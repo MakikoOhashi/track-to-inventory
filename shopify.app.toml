@@ -3,7 +3,7 @@
 client_id = "54d683ca896f499d837fee84e21f76a3"
 name = "TrackToInventory"
 handle = "tracktoinventory"
-application_url = "https://coaches-av-position-turned.trycloudflare.com"
+application_url = "https://sensor-adaptive-frequently-placing.trycloudflare.com"
 embedded = true
 
 [build]
@@ -27,9 +27,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://coaches-av-position-turned.trycloudflare.com/auth/callback",
-  "https://coaches-av-position-turned.trycloudflare.com/auth/shopify/callback",
-  "https://coaches-av-position-turned.trycloudflare.com/api/auth/callback"
+  "https://sensor-adaptive-frequently-placing.trycloudflare.com/auth/callback",
+  "https://sensor-adaptive-frequently-placing.trycloudflare.com/auth/shopify/callback",
+  "https://sensor-adaptive-frequently-placing.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

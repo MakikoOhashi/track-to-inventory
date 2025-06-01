@@ -1,20 +1,16 @@
 //my-next-app>pages>api>shipments.js
 
 import { createClient } from '@supabase/supabase-js';
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { json, type LoaderFunctionArgs } from "@remix-run/node";
 
-// サーバーサイド環境変数からキーを取得
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-  process.env.SUPABASE_SERVICE_ROLE_KEY as string
-);
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // クエリパラメータからshop_idを取得
-  const { shop_id } = req.query;
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const url = new URL(request.url);
+  const shop_id = url.searchParams.get("shop_id");
+
   if (!shop_id) {
-    res.status(400).json({ error: 'shop_id is required' });
-    return;
+    return json({ error: "shop_id is required" }, { status: 400 });
   }
 
   // Supabaseでデータ取得
@@ -23,9 +19,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .select('*')
     .eq('shop_id', shop_id);
 
-  if (error) {
-    res.status(500).json({ error: error.message });
-    return;
-  }
-  res.status(200).json({ data });
+    if (error) {
+      return json({ error: error.message }, { status: 500 });
+    }
+    return json({ data });
 }
