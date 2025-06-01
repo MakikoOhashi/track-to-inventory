@@ -1,11 +1,12 @@
 //my-next-app/components/StatusTable.jsx
 
 import React, { useState } from 'react';
-import { useTranslation } from 'next-i18next';
+//import { useTranslation } from 'next-i18next';
 import { Checkbox, DataTable, Text } from '@shopify/polaris';
 
 function StatusTable({ shipments, onSelectShipment }) {
-  const { t } = useTranslation('common');
+  //const { t } = useTranslation('common');
+  const t = (key) => key; //ダミー関数
   const [showArchived, setShowArchived] = useState(false);
 
   const filteredShipments = showArchived

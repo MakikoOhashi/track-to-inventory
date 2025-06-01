@@ -1,6 +1,6 @@
 // my-next-app/components/Modal.jsx
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'next-i18next';
+//import { useTranslation } from 'next-i18next';
 import {
   Modal,
   Button,
@@ -13,7 +13,8 @@ import {
 } from '@shopify/polaris';
 
 const CustomModal = ({ shipment, onClose }) => {
-  const { t } = useTranslation('common');
+  //const { t } = useTranslation('common');
+  const t = (key) => key; //ダミー関数
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState(shipment);
 

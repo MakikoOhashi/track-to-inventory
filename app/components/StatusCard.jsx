@@ -1,11 +1,12 @@
 // my-next-app/components/StatusCard.jsx
 
 import React from 'react';
-import { useTranslation } from 'next-i18next';
+//import { useTranslation } from 'next-i18next';
 import { Card, Text } from '@shopify/polaris';
 
 function StatusCard({ si_number, status, eta, onSelectShipment }) {
-  const { t } = useTranslation('common');  
+  //const { t } = useTranslation('common');  
+  const t = (key) => key; //ダミー関数
   
   return (
     <Card sectioned>

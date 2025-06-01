@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, DropZone, Text, Spinner, TextField, Button, Banner } from "@shopify/polaris";
-import { useTranslation } from "next-i18next";
+//import { useTranslation } from "next-i18next";
 import Tesseract from "tesseract.js";
 
 
 export default function OCRUploader({ shopId, onSaveSuccess }) {
-  const { t } = useTranslation("common");
+  //const { t } = useTranslation("common");
+  const t = (key) => key; //ダミー関数
   const [file, setFile] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
   const [ocrText, setOcrText] = useState("");
