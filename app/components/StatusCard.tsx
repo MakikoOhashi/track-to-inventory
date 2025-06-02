@@ -1,7 +1,7 @@
 // app/components/StatusCard.tsx
 
 import React from 'react';
-//import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next'; 
 import { Card, Text,BlockStack } from '@shopify/polaris';
 import type { Shipment } from "../../types/Shipment";
 
@@ -31,9 +31,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
   onSelectShipment
 }) => {
 
-// function StatusCard({ si_number, status, eta, onSelectShipment }) {
-//   //const { t } = useTranslation('common');  
-   const t = (key: string) => key; //ダミー関数
+  const { t } = useTranslation('common');
   
   return (
     <Card>

@@ -21,6 +21,13 @@ import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
 import type { Shipment,ShipmentItem } from '../../types/Shipment';
 
+import { json } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import type { LoaderFunctionArgs } from "@remix-run/node";
+import { useTranslation } from "react-i18next";
+import { i18n } from "~/utils/i18n.server";
+
+
 type StatusTableProps = {
   shipments: Shipment[];
   onSelectShipment: (shipment: Shipment) => void;
@@ -30,10 +37,22 @@ type StatusStats = Record<string, Shipment[]>;
 
 type PopupPos = { x: number; y: number };
 
-// i18n（仮対応、Remixでの正式なi18n構成に合わせて修正要）
-const t = (key: string, _opt?: any) => key; // 仮: すべてkey返す
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const locale = await i18n.getLocale(request);
+  return json({ locale });
+};
 
 export default function Index() {
+  const { locale } = useLoaderData<typeof loader>();
+  const { t, i18n } = useTranslation();
+  const [lang, setLang] = useState(locale);
+
+  useEffect(() => {
+    i18n.changeLanguage(lang);
+  }, [lang, i18n]);
+
+
   const [shopIdInput, setShopIdInput] = useState<string>("test-owner");
   const [shopId, setShopId] = useState<string>("test-owner");
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
@@ -62,7 +81,6 @@ export default function Index() {
 
 
   const statusOrder = ["SI発行済", "船積スケジュール確定", "船積中", "輸入通関中", "倉庫着"];
-  const [lang, setLang] = useState("ja"); // 例: 最初は日本語
 
   // 修正1: supabaseで直接取得→API経由に変更
   const fetchShipments = async (shopIdValue: string) => {

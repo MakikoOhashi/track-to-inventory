@@ -1,17 +1,9 @@
 //app/components/StatusTable.tsx
 
 import React, { useState } from 'react';
-//import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next'; 
 import { Checkbox, DataTable, Text } from '@shopify/polaris';
 import type { Shipment } from "../../types/Shipment";
-
-// // Shipment型は他ファイルで定義済みならimportしてもOK
-// type Shipment = {
-//   si_number: string;
-//   status?: string;
-//   eta: string;
-//   is_archived?: boolean; // アーカイブフラグ有無も型に追加
-// };
 
 type StatusTableProps = {
   shipments: Shipment[];
@@ -19,8 +11,7 @@ type StatusTableProps = {
 };
 
 const StatusTable: React.FC<StatusTableProps> = ({ shipments, onSelectShipment }) => {
-  //const { t } = useTranslation('common');
-  const t = (key: string) => key; //ダミー関数
+  const { t } = useTranslation('common');
   const [showArchived, setShowArchived] = useState(false);
 
   const filteredShipments = showArchived

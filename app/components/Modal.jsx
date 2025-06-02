@@ -13,8 +13,7 @@ import {
 } from '@shopify/polaris';
 
 const CustomModal = ({ shipment, onClose }) => {
-  //const { t } = useTranslation('common');
-  const t = (key) => key; //ダミー関数
+  const { t } = useTranslation('common'); // 'common'はnamespace名、必要に応じて変更
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState(shipment);
 
