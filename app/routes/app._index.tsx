@@ -19,20 +19,11 @@ import StatusTable from '../components/StatusTable';
 import OCRUploader from "../components/OCRUploader";
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
+import type { Shipment,ShipmentItem } from '../../types/Shipment';
 
-// 型定義
-type ShipmentItem = {
-  name: string;
-  quantity: number;
-};
-
-type Shipment = {
-  si_number: string;
-  eta: string;
-  supplier_name: string;
-  // 他に必要なプロパティも追加
-  items: ShipmentItem[];
-  status?: string;
+type StatusTableProps = {
+  shipments: Shipment[];
+  onSelectShipment: (shipment: Shipment) => void;
 };
 
 type StatusStats = Record<string, Shipment[]>;
@@ -196,7 +187,11 @@ export default function Index() {
   // ETAの早い順でソートして上位2件を抽出
   const upcomingShipments = shipments
     .slice()
-    .sort((a, b) => new Date(a.eta).getTime() - new Date(b.eta).getTime())
+    .sort((a, b) => {
+      const aEta = a.eta ? new Date(a.eta).getTime() : Infinity;
+      const bEta = b.eta ? new Date(b.eta).getTime() : Infinity;
+      return aEta - bEta;
+    })    
     .slice(0, 2);
     
   // Polaris用タブ
@@ -213,24 +208,36 @@ export default function Index() {
   };
 
   const filteredAndSortedShipments = shipments
-    .filter(s => (s.items || []).some(item => item.name === hoveredProduct))
-    .sort((a, b) => {
-      // まずstatus順
-      const statusDiff = statusOrder.indexOf(a.status ?? "未設定") - statusOrder.indexOf(b.status ?? "未設定");
-      if (statusDiff !== 0) return statusDiff;
-      // 同じstatusならETA順
-      return new Date(a.eta).getTime() - new Date(b.eta).getTime();
-    });
-
-  const rows = filteredAndSortedShipments.map(s => {
-    const item = (s.items || []).find(item => item.name === hoveredProduct);
-    return [
-      s.si_number,
-      item?.name ?? '',         // itemがundefinedのとき空文字に
-      item?.quantity ?? '',     // itemがundefinedのとき空文字に
-      s.status
-    ];
+  .filter(s => (s.items || []).some(item => item.name === hoveredProduct))
+  .sort((a, b) => {
+    // まずstatus順
+    const statusDiff = statusOrder.indexOf(a.status ?? "未設定") - statusOrder.indexOf(b.status ?? "未設定");
+    if (statusDiff !== 0) return statusDiff;
+    // 同じstatusならETA順（undefinedならInfinityで一番後ろへ）
+    const aEta = a.eta ? new Date(a.eta).getTime() : Infinity;
+    const bEta = b.eta ? new Date(b.eta).getTime() : Infinity;
+    return aEta - bEta;
   });
+
+    const rows = filteredAndSortedShipments.map(s => {
+      const item = (s.items || []).find(item => item.name === hoveredProduct);
+      return [
+        <span
+          style={{ color: "#2a5bd7", cursor: "pointer", textDecoration: "underline" }}
+          onClick={() => setSelectedShipment(s)}
+          tabIndex={0}
+          onKeyDown={e => { if (e.key === 'Enter') setSelectedShipment(s); }}
+          title={t('message.clickForDetails')}
+          key={s.si_number}
+          role="button"
+        >
+          {s.si_number}
+        </span>,
+        item?.name ?? '',
+        item?.quantity ?? '',
+        s.status
+      ];
+    });
 
   // --- JSX ---
   return (
@@ -254,9 +261,11 @@ export default function Index() {
             autoComplete="off"
             placeholder={t('placeholder.shopId')}
           />
-          <Button variant="primary" onClick={handleShopIdApply} style={{ marginTop: 16 }}>
+          <BlockStack gap="200">
+          <Button variant="primary" onClick={handleShopIdApply}>
           {t('button.switch')}
           </Button>
+          </BlockStack>
           </BlockStack> 
         </Card>
        
@@ -442,9 +451,6 @@ export default function Index() {
               t('label.status')
             ]}
             rows={rows}
-            onRowClick={(_row, index) => {
-              setSelectedShipment(filteredAndSortedShipments[index]);
-            }}
           />
         </div>
       )}

@@ -1,16 +1,17 @@
-//my-next-app/components/StatusTable.jsx
+//app/components/StatusTable.tsx
 
 import React, { useState } from 'react';
 //import { useTranslation } from 'next-i18next';
 import { Checkbox, DataTable, Text } from '@shopify/polaris';
+import type { Shipment } from "../../types/Shipment";
 
-// Shipment型は他ファイルで定義済みならimportしてもOK
-type Shipment = {
-  si_number: string;
-  status?: string;
-  eta: string;
-  is_archived?: boolean; // アーカイブフラグ有無も型に追加
-};
+// // Shipment型は他ファイルで定義済みならimportしてもOK
+// type Shipment = {
+//   si_number: string;
+//   status?: string;
+//   eta: string;
+//   is_archived?: boolean; // アーカイブフラグ有無も型に追加
+// };
 
 type StatusTableProps = {
   shipments: Shipment[];

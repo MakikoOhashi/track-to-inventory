@@ -1,25 +1,57 @@
-// my-next-app/components/StatusCard.jsx
+// app/components/StatusCard.tsx
 
 import React from 'react';
 //import { useTranslation } from 'next-i18next';
-import { Card, Text } from '@shopify/polaris';
+import { Card, Text,BlockStack } from '@shopify/polaris';
+import type { Shipment } from "../../types/Shipment";
 
-function StatusCard({ si_number, status, eta, onSelectShipment }) {
-  //const { t } = useTranslation('common');  
-  const t = (key) => key; //ダミー関数
+type StatusCardProps = Shipment & {
+  onSelectShipment: () => void;
+};
+
+
+const StatusCard: React.FC<StatusCardProps> = ({
+  si_number,
+  shop_id,
+  status,
+  etd,
+  eta,
+  delayed,
+  transport_type,
+  memo,
+  items,
+  clearance_date,
+  supplier_name,
+  arrival_date,
+  is_archived,
+  invoice_url,
+  pl_url,
+  other_url,
+  si_url,
+  onSelectShipment
+}) => {
+
+// function StatusCard({ si_number, status, eta, onSelectShipment }) {
+//   //const { t } = useTranslation('common');  
+   const t = (key: string) => key; //ダミー関数
   
   return (
-    <Card sectioned>
+    <Card>
+      <BlockStack>
        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <Text 
           variant="headingMd" 
           as="h3"
-          color="interactive"
-          textDecorationLine="underline"
+         >
+          <span
           onClick={onSelectShipment}
-          style={{ cursor: 'pointer' }}
-        >
+          style={{ cursor: 'pointer', textDecoration: 'underline' }}
+          tabIndex={0}
+          onKeyDown={e => { if (e.key === 'Enter') onSelectShipment(); }}
+          role="button"
+          >
           {t('statusCard.siLabel')} {si_number}
+          </span>
         </Text>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -45,6 +77,7 @@ function StatusCard({ si_number, status, eta, onSelectShipment }) {
           </Text>
         </div>
       </div>
+      </BlockStack>
     </Card>
     );
   }
