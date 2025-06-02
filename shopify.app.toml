@@ -3,7 +3,7 @@
 client_id = "54d683ca896f499d837fee84e21f76a3"
 name = "TrackToInventory"
 handle = "tracktoinventory"
-application_url = "https://combines-favor-specialist-laboratory.trycloudflare.com"
+application_url = "https://thank-intelligence-harassment-wildlife.trycloudflare.com"
 embedded = true
 
 [build]
@@ -27,9 +27,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://combines-favor-specialist-laboratory.trycloudflare.com/auth/callback",
-  "https://combines-favor-specialist-laboratory.trycloudflare.com/auth/shopify/callback",
-  "https://combines-favor-specialist-laboratory.trycloudflare.com/api/auth/callback"
+  "https://thank-intelligence-harassment-wildlife.trycloudflare.com/auth/callback",
+  "https://thank-intelligence-harassment-wildlife.trycloudflare.com/auth/shopify/callback",
+  "https://thank-intelligence-harassment-wildlife.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

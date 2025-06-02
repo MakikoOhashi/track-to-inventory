@@ -1,6 +1,6 @@
-// my-next-app/components/Modal.jsx
+// app/components/Modal.jsx
 import React, { useState, useEffect } from 'react';
-//import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 import {
   Modal,
   Button,
@@ -11,6 +11,7 @@ import {
   BlockStack,
   Text
 } from '@shopify/polaris';
+
 
 const CustomModal = ({ shipment, onClose }) => {
   const { t } = useTranslation('common'); // 'common'はnamespace名、必要に応じて変更
