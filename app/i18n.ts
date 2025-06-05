@@ -14,6 +14,9 @@ i18n
     lng: 'ja', // デフォルト言語
     fallbackLng: 'ja',
     interpolation: { escapeValue: false },
+    ns: ['common'],          // namespaceとして"common"を明示
+    defaultNS: 'common',     // デフォルトnamespace
+    react: { useSuspense: false }, // 必要であれば
   });
 
 export default i18n;
