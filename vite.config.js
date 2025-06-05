@@ -39,7 +39,11 @@ if (host === "localhost") {
 
 export default defineConfig({
   server: {
-    allowedHosts: [host],
+    allowedHosts: 
+    [
+      'localhost',
+      'questions-vc-browsing-latest.trycloudflare.com',
+      host],
     cors: {
       preflightContinue: true,
     },
