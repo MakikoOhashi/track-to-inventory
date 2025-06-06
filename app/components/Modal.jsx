@@ -86,8 +86,11 @@ const FILE_TYPES = [
   const handleFileDelete = async (type) => {
     const url = formData[`${type}_url`];
     if (!url) return;
-    if (!window.confirm(t('modal.messages.deleteConfirm'))) return;
-
+    // クライアントのみでconfirmを使う
+    if (typeof window !== "undefined" && !window.confirm(t('modal.messages.deleteConfirm'))) {
+      return;
+    }
+    
     const res = await fetch('/api/deleteShipmentFile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

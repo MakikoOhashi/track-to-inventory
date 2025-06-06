@@ -1,9 +1,17 @@
 //app/components/OCRUploader.jsx
-
-import React, { useState, useEffect } from "react";
-import { Card, DropZone, Text, Spinner, TextField, Button, Banner } from "@shopify/polaris";
-import { useTranslation } from "react-i18next"; 
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  Card,
+  DropZone,
+  Text,
+  Spinner,
+  TextField,
+  Button,
+  Banner,
+} from "@shopify/polaris";
+import { useTranslation } from "react-i18next";
 import Tesseract from "tesseract.js";
+
 
 
 export default function OCRUploader({ shopId, onSaveSuccess }) {
@@ -22,9 +30,17 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     items: []  // JSONBとして保存される配列
   });
   const [error, setError] = useState("");
+  const [isClient, setIsClient] = useState(false);
+
+   // クライアント判定（SSR対策）
+   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 
   // PDFをCanvas画像化→OCR
-  const pdfToImageAndOcr = async (pdfFile) => {
+  const pdfToImageAndOcr = useCallback(
+  async (pdfFile) => {
     try {
       // PDFをFormDataでAPIに送る
       const formData = new FormData();
@@ -38,6 +54,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   
       // 画像URLをプレビュー用にセット
       setImageUrl(data.url);
+      if (typeof window === "undefined") return ""; // SSRでは実行しない
   
       // OCR
       const { data: ocrResult } = await Tesseract.recognize(
@@ -49,17 +66,23 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       setError(t("ocrUploader.convertError"));
       return "";
     }
-  };
+  },
+  [t]
+  );
 
   // 画像ファイル→OCR
-  const imageToOcr = async (imgFile) => {
+  const imageToOcr = useCallback(
+  async (imgFile) => {
     setImageUrl(URL.createObjectURL(imgFile));
     const { data } = await Tesseract.recognize(imgFile, "eng");
     return data.text;
-  };
+  },
+  []
+  );
 
   // 画像アップロードハンドラー
-  const handleDrop = (_dropFiles, acceptedFiles, _rejectedFiles) => {
+  const handleDrop = useCallback(
+    (_dropFiles, acceptedFiles, _rejectedFiles) => {
     const uploadedFile = acceptedFiles[0];
     setFile(uploadedFile);
     //setImageUrl(URL.createObjectURL(uploadedFile));
@@ -68,10 +91,12 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     setFields({ si_number: "", supplier_name: "", transport_type: "", items: []  });
     setError("");
     setImageUrl("");
-  };
+  },
+  []
+  );
 
   // OCR実行
-  const handleOcr = async () => {
+  const handleOcr = useCallback(async () => {
     if (!file) return;
     setLoading(true);
     setError("");
@@ -90,7 +115,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [file, pdfToImageAndOcr, imageToOcr, t]);
 
     // 商品リスト部分の抽出（必要に応じて正規表現を調整）
     function extractItems(text) {
@@ -334,6 +359,15 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       setLoading(false);
     }
   };
+
+// クライアントでのみレンダリング
+  if (!isClient) {
+    return (
+      <Card sectioned title={t("ocrUploader.title")}>
+        <Spinner />
+      </Card>
+    );
+  }
 
   return (
     <Card sectioned title={t("ocrUploader.title")}>

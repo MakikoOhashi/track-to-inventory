@@ -11,17 +11,22 @@ export const headers = () => ({
   "Content-Security-Policy": "frame-ancestors https://admin.shopify.com https://*.myshopify.com"
 });
 
+export function links() {
+  return [
+    { rel: "preconnect", href: "https://cdn.shopify.com/" },
+    { rel: "stylesheet", href: "https://cdn.shopify.com/static/fonts/inter/v4/styles.css" },
+    {
+      rel: "stylesheet",
+      href: "https://unpkg.com/@shopify/polaris@12.27.0/build/esm/styles.css"
+    },
+  ];
+}
+
 export default function App() {
   return (
-    <html>
+    <html lang="ja">
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <link rel="preconnect" href="https://cdn.shopify.com/" />
-        <link
-          rel="stylesheet"
-          href="https://cdn.shopify.com/static/fonts/inter/v4/styles.css"
-        />
         <Meta />
         <Links />
       </head>

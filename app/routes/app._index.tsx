@@ -27,6 +27,9 @@ import type { LoaderFunctionArgs } from "@remix-run/node";
 import { useTranslation } from "react-i18next";
 import { i18n } from "~/utils/i18n.server";
 
+// --- ① LoaderでShopifyセッションからshop（Shop ID）を取得 ---
+import { authenticate } from "~/shopify.server"; // ←例: Shopify Remix SDK
+
 
 type StatusTableProps = {
   shipments: Shipment[];
@@ -39,22 +42,31 @@ type PopupPos = { x: number; y: number };
 
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  // Shopifyセッションからshopドメインを取得
+  const { session } = await authenticate.admin(request);
+  const shop = session.shop; // ここで取得できるかチェック
   const locale = await i18n.getLocale(request);
-  return json({ locale });
+  return json({ shop, locale });
 };
 
+
 export default function Index() {
-  const { locale } = useLoaderData<typeof loader>();
+  // --- ② useLoaderDataでshopを受け取る ---
+  const { shop, locale } = useLoaderData<typeof loader>();
   const { t, i18n } = useTranslation();
   const [lang, setLang] = useState(locale);
+
+  // --- ③ shopId関連のstateを初期化・同期 ---
+  const [shopIdInput, setShopIdInput] = useState<string>(shop); // ←初期値にshopを使う
+  const [shopId, setShopId] = useState<string>(shop);
 
   useEffect(() => {
     i18n.changeLanguage(lang);
   }, [lang, i18n]);
 
 
-  const [shopIdInput, setShopIdInput] = useState<string>("test-owner");
-  const [shopId, setShopId] = useState<string>("test-owner");
+  //const [shopIdInput, setShopIdInput] = useState<string>("test-owner");
+  //const [shopId, setShopId] = useState<string>("test-owner");
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [shipments, setShipments] = useState<Shipment[]>([]);
@@ -278,11 +290,12 @@ export default function Index() {
             onChange={handleInputChange}
             autoComplete="off"
             placeholder={t('placeholder.shopId')}
+            readOnly //
           />
           <BlockStack gap="200">
-          <Button variant="primary" onClick={handleShopIdApply}>
+          {/* <Button variant="primary" onClick={handleShopIdApply}>
           {t('button.switch')}
-          </Button>
+          </Button> */}
           </BlockStack>
           </BlockStack> 
         </Card>

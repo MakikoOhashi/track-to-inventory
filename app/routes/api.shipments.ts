@@ -1,7 +1,6 @@
-//my-next-app>pages>api>shipments.js
-
-import { createClient } from '@supabase/supabase-js';
+//app/routes/api.shipments.ts
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
+import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
 
@@ -13,14 +12,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     return json({ error: "shop_id is required" }, { status: 400 });
   }
 
-  // Supabaseでデータ取得
   const { data, error } = await supabase
     .from('shipments')
     .select('*')
     .eq('shop_id', shop_id);
 
-    if (error) {
-      return json({ error: error.message }, { status: 500 });
-    }
-    return json({ data });
-}
+  if (error) {
+    return json({ error: error.message }, { status: 500 });
+  }
+  return json({ data });
+};
