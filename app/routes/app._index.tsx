@@ -88,11 +88,13 @@ export default function Index() {
     "船積中": t('status.shipping'),
     "輸入通関中": t('status.customsClearance'),
     "倉庫着": t('status.warehouseArrived'),
+    "商品同期": t('status.syncToShopify'),
+    "同期済み": t('status.synced'), 
     "未設定": t('status.notSet'),
   };
 
 
-  const statusOrder = ["SI発行済", "船積スケジュール確定", "船積中", "輸入通関中", "倉庫着"];
+  const statusOrder = ["SI発行済", "船積スケジュール確定", "船積中", "輸入通関中", "倉庫着","商品同期", "同期済み"];
 
   // 修正1: supabaseで直接取得→API経由に変更
   const fetchShipments = async (shopIdValue: string) => {
@@ -568,6 +570,7 @@ export default function Index() {
       <CustomModal
         shipment={selectedShipment}
         onClose={handleModalClose}
+        onUpdated={() => fetchShipments(shopId)}
       />
       </BlockStack>
     </Card>  

@@ -13,10 +13,11 @@ import {
 } from '@shopify/polaris';
 
 
-const CustomModal = ({ shipment, onClose }) => {
+const CustomModal = ({ shipment, onClose, onUpdated }) => {
   const { t } = useTranslation('common'); // 'common'はnamespace名、必要に応じて変更
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState(shipment);
+  const [syncing, setSyncing] = useState(false);
 
 const FILE_TYPES = [
   { label: t('modal.fileTypes.invoice'), key: 'invoice' },
@@ -31,7 +32,8 @@ const FILE_TYPES = [
     { label: t('modal.status.scheduleConfirmed'), value: "船積スケジュール確定" },
     { label: t('modal.status.shipping'), value: "船積中" },
     { label: t('modal.status.customsClearance'), value: "輸入通関中" },
-    { label: t('modal.status.warehouseArrival'), value: "倉庫着" }
+    { label: t('modal.status.warehouseArrival'), value: "倉庫着" },
+    { label: t('modal.status.synced'), value: "同期済み" },
   ];
 
 
@@ -40,6 +42,38 @@ const FILE_TYPES = [
   }, [shipment]);
 
   if (!shipment || !formData) return null;  // 安全確認
+
+  // --- Shopify同期アクション ---
+  const handleSyncShopify = async () => {
+    setSyncing(true);
+    try {
+      // 1. Shopify同期API呼び出し（エンドポイントは適宜変更）
+      const res = await fetch('/api/shopify-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shipmentId: shipment.id }) // id等は型に合わせて
+      });
+      if (!res.ok) throw new Error('Shopify同期に失敗しました');
+      // 2. ステータスを「同期済み」に更新
+      const updateRes = await fetch('/api/updateShipment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shipment: { ...formData, status: "同期済み" }
+        }),
+      });
+      if (!updateRes.ok) throw new Error('ステータス更新に失敗しました');
+      setFormData(prev => ({ ...prev, status: "同期済み" }));
+      alert(t('modal.messages.syncSuccess'));
+      // 3. モーダル閉じる or 親にデータ更新通知
+      setSyncing(false);
+      if (onUpdated) onUpdated();
+      onClose();
+    } catch (e) {
+      setSyncing(false);
+      alert(e.message || "同期に失敗しました");
+    }
+  };
 
   const handleSave = async () => {
     const res = await fetch('/api/updateShipment', {
@@ -54,6 +88,7 @@ const FILE_TYPES = [
     } else {
       alert(t('modal.messages.saveSuccess'));
       setEditMode(false);
+      if (onUpdated) onUpdated();
     }
   };
 
@@ -138,6 +173,7 @@ const FILE_TYPES = [
               value={formData.status || ""}
               options={STATUS_OPTIONS}
               onChange={v => setFormData(prev => ({ ...prev, status: v }))}
+              disabled={formData.status === "同期済み"}
             />
             {/* 輸送手段 */}
             <TextField
@@ -270,6 +306,24 @@ const FILE_TYPES = [
         ) : (
           <BlockStack gap="300">
           <Text><b>{t('modal.fields.status')}:</b> {shipment.status}</Text>
+          {/* --- Shopify同期ボタン表示ロジック --- */}
+          {shipment.status === "倉庫着" && (
+              <Button
+                primary
+                loading={syncing}
+                onClick={handleSyncShopify}
+                disabled={syncing}
+                style={{ marginTop: 12 }}
+              >
+                {t('modal.buttons.syncShopify')}
+              </Button>
+            )}
+            {/* --- 同期済みバナー --- */}
+            {shipment.status === "同期済み" && (
+              <Banner status="success" title={t('modal.messages.alreadySynced')}>
+                {t('modal.messages.alreadySyncedDetail')}
+              </Banner>
+            )}
             <Text><b>{t('modal.fields.transportType')}:</b> {shipment.transport_type}</Text>
             <Text><b>{t('modal.fields.etd')}:</b> {shipment.etd}</Text>
             <Text><b>{t('modal.fields.eta')}:</b> {shipment.eta}</Text>

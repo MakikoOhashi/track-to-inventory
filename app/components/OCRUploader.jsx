@@ -278,7 +278,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         supplier_name: fields.supplier_name,
         transport_type: fields.transport_type || null,
         items: fields.items || [],// ← JSONBカラムにそのまま保存
-        ocr_text: ocrTextEdited,
+        
         status: t("ocrUploader.initialStatus"),
         etd: null,
         eta: null,

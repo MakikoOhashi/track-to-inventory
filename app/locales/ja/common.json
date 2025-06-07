@@ -46,6 +46,7 @@
     "shipping": "船積中",
     "customsClearance": "輸入通関中",
     "warehouseArrived": "倉庫着",
+    "synced": "同期済み",
     "notSet": "未設定"
   },
   "sort": {
@@ -79,7 +80,8 @@
       "delete": "削除",
       "addItem": "商品追加",
       "viewFile": "アップロード済み{{fileType}}を見る",
-      "viewFileType": "{{fileType}}ファイルを見る"
+      "viewFileType": "{{fileType}}ファイルを見る",
+      "syncShopify": "Shopifyと同期"
     },
     "fields": {
       "status": "ステータス",
@@ -110,7 +112,8 @@
       "scheduleConfirmed": "船積スケジュール確定",
       "shipping": "船積中",
       "customsClearance": "輸入通関中",
-      "warehouseArrival": "倉庫着"
+      "warehouseArrival": "倉庫着",
+      "synced": "同期済み" 
     },
     "options": {
       "yes": "あり",
@@ -128,7 +131,10 @@
       "uploadSuccess": "アップロード完了！",
       "deleteFailed": "削除に失敗しました",
       "deleteSuccess": "削除しました",
-      "deleteConfirm": "本当に削除してよろしいですか？"
+      "deleteConfirm": "本当に削除してよろしいですか？",
+      "alreadySynced": "すでにShopifyと同期済みです",
+      "alreadySyncedDetail": "この出荷データはShopifyと同期済みです。再度同期したい場合はステータスを戻してください。",
+      "syncSuccess": "Shopify同期が完了しました"
     }
   },
   "ocrUploader": {

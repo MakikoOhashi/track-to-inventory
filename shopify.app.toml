@@ -3,7 +3,7 @@
 client_id = "54d683ca896f499d837fee84e21f76a3"
 name = "TrackToInventory"
 handle = "tracktoinventory"
-application_url = "https://nickname-latinas-foot-coaching.trycloudflare.com"
+application_url = "https://fair-mn-commander-friend.trycloudflare.com"
 embedded = true
 
 [build]
@@ -27,9 +27,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://nickname-latinas-foot-coaching.trycloudflare.com/auth/callback",
-  "https://nickname-latinas-foot-coaching.trycloudflare.com/auth/shopify/callback",
-  "https://nickname-latinas-foot-coaching.trycloudflare.com/api/auth/callback"
+  "https://fair-mn-commander-friend.trycloudflare.com/auth/callback",
+  "https://fair-mn-commander-friend.trycloudflare.com/auth/shopify/callback",
+  "https://fair-mn-commander-friend.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

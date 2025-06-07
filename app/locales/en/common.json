@@ -46,6 +46,7 @@
     "shipping": "Shipping",
     "customsClearance": "Import Customs Clearance",
     "warehouseArrived": "Warehouse Arrived",
+    "synced": "Synced",
     "notSet": "Not Set"
   },
   "sort": {
@@ -79,7 +80,8 @@
       "delete": "Delete",
       "addItem": "Add Item",
       "viewFile": "View uploaded {{fileType}}",
-      "viewFileType": "View {{fileType}} file"
+      "viewFileType": "View {{fileType}} file",
+      "syncShopify": "Synced to Shopify"
     },
     "fields": {
       "status": "Status",
@@ -110,7 +112,8 @@
       "scheduleConfirmed": "Shipping Schedule Confirmed",
       "shipping": "Shipping",
       "customsClearance": "Import Customs Clearance",
-      "warehouseArrival": "Warehouse Arrival"
+      "warehouseArrival": "Warehouse Arrival",
+      "synced": "Synced"
     },
     "options": {
       "yes": "Yes",
@@ -128,7 +131,10 @@
       "uploadSuccess": "Upload completed!",
       "deleteFailed": "Delete failed",
       "deleteSuccess": "Deleted successfully",
-      "deleteConfirm": "Are you sure you want to delete?"
+      "deleteConfirm": "Are you sure you want to delete?",
+      "alreadySynced": "Alreadt Synced",
+      "alreadySyncedDetail": "This SI has already been synced to Shopify. If you want to re-sync, please change the status to 'SI Issued' or 'Shipping' and try again.",
+      "syncSuccess": "Successfully synced to Shopify!"
     }
   },
   "ocrUploader": {
