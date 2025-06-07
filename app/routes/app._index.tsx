@@ -88,7 +88,6 @@ export default function Index() {
     "船積中": t('status.shipping'),
     "輸入通関中": t('status.customsClearance'),
     "倉庫着": t('status.warehouseArrived'),
-    "商品同期": t('status.syncToShopify'),
     "同期済み": t('status.synced'), 
     "未設定": t('status.notSet'),
   };

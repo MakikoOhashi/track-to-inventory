@@ -11,6 +11,7 @@ import {
   BlockStack,
   Text
 } from '@shopify/polaris';
+import ShopifyVariantSelector from './ShopifyVariantSelector';
 
 
 const CustomModal = ({ shipment, onClose, onUpdated }) => {
@@ -259,6 +260,15 @@ const FILE_TYPES = [
                     setFormData(prev => ({ ...prev, items }));
                   }}
                   min={1}
+                />
+                <ShopifyVariantSelector
+                  value={item.variant_id || ""}
+                  onChange={(v, { product, variant }) => {
+                    const items = [...formData.items];
+                    items[idx].variant_id = v;
+                    // 必要に応じて商品名やSKUもitemにセット可能
+                    setFormData(prev => ({ ...prev, items }));
+                  }}
                 />
                 <Button
                   size="slim"

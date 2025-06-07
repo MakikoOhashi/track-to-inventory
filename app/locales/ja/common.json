@@ -95,7 +95,9 @@
       "memo": "メモ",
       "archive": "アーカイブ",
       "itemName": "商品名",
-      "quantity": "数量"
+      "quantity": "数量",
+      "shopifyVariantId": "ShopifyバリアントID",
+      "sku": "SKU"
     },
     "sections": {
       "itemList": "積載商品リスト",

@@ -95,7 +95,9 @@
       "memo": "Memo",
       "archive": "Archive",
       "itemName": "Item Name",
-      "quantity": "Quantity"
+      "quantity": "Quantity",
+      "shopifyVariantId": "Shopify Variant ID",
+      "sku": "SKU"
     },
     "sections": {
       "itemList": "Item List",
