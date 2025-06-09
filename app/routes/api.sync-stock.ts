@@ -26,23 +26,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     `;
     
     console.log("Location取得開始");
-    const locationResult = await admin.graphql(locationsQuery) as any;
-    console.log("Location取得結果 (全体):", locationResult);
+    const locationResult = await admin.graphql(locationsQuery);
     
-    // GraphQLの結果を正しく解析
-    let locationData;
-    if ((locationResult as any).body) {
-      locationData = (locationResult as any).body;
-    } else if ((locationResult as any).data) {
-      locationData = (locationResult as any).data;
-    } else {
-      // JSONとして解析を試行
-      const textData = await (locationResult as any).text();
-      console.log("Location取得結果 (text):", textData);
-      locationData = JSON.parse(textData);
-    }
+    // ❌ これが問題！ReadableStreamを含むオブジェクト全体をログ出力
+    // console.log("Location取得結果 (全体):", locationResult);
     
-    console.log("解析されたLocation data:", locationData);
+    // ✅ 修正：GraphQLレスポンスを正しく処理
+    const locationData = await locationResult.json();
+    console.log("Location取得結果:", locationData);
     
     if (!locationData || !locationData.data || !locationData.data.locations) {
       return json({ 
@@ -73,18 +64,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         }
       `;
-      const variantRes = await admin.graphql(variantQuery, { variables: { id: item.variant_id } }) as any;
+      const variantRes = await admin.graphql(variantQuery, { variables: { id: item.variant_id } });
       
-      // バリアントレスポンスも同様に解析
-      let variantData;
-      if ((variantRes as any).body) {
-        variantData = (variantRes as any).body;
-      } else if ((variantRes as any).data) {
-        variantData = (variantRes as any).data;
-      } else {
-        const textData = await (variantRes as any).text();
-        variantData = JSON.parse(textData);
-      }
+      // ✅ 修正：GraphQLレスポンスを正しく処理
+      const variantData = await variantRes.json();
       
       const inventoryItemId = variantData.data?.productVariant?.inventoryItem?.id;
       if (!inventoryItemId) {
@@ -112,18 +95,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           locationId,
           availableDelta: item.quantity,
         }
-      }) as any;
+      });
       
-      // 在庫調整結果も同様に解析
-      let adjData;
-      if ((adjResult as any).body) {
-        adjData = (adjResult as any).body;
-      } else if ((adjResult as any).data) {
-        adjData = (adjResult as any).data;
-      } else {
-        const textData = await (adjResult as any).text();
-        adjData = JSON.parse(textData);
-      }
+      // ✅ 修正：GraphQLレスポンスを正しく処理
+      const adjData = await adjResult.json();
       
       const errors = adjData.data?.inventoryAdjustQuantity?.userErrors || [];
       results.push({
@@ -134,7 +109,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
     return json({ results });
   } catch (error) {
-   console.error("sync-stock エラー詳細:", {
+    console.error("sync-stock エラー詳細:", {
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
       name: error instanceof Error ? error.name : undefined
