@@ -24,11 +24,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
       }
     `;
+    
     console.log("Location取得開始");
     const locationResult = await admin.graphql(locationsQuery) as any;
-    console.log("Location取得結果:", locationResult.data);
+    console.log("Location取得結果 (全体):", locationResult);
+    
+    // GraphQLの結果を正しく解析
+    let locationData;
+    if ((locationResult as any).body) {
+      locationData = (locationResult as any).body;
+    } else if ((locationResult as any).data) {
+      locationData = (locationResult as any).data;
+    } else {
+      // JSONとして解析を試行
+      const textData = await (locationResult as any).text();
+      console.log("Location取得結果 (text):", textData);
+      locationData = JSON.parse(textData);
+    }
+    
+    console.log("解析されたLocation data:", locationData);
+    
+    if (!locationData || !locationData.data || !locationData.data.locations) {
+      return json({ 
+        error: "ロケーション情報を取得できませんでした",
+        debug: locationData 
+      }, { status: 400 });
+    }
 
-    const locations = locationResult.data.locations.edges;
+    const locations = locationData.data.locations.edges;
     
     if (!locations || locations.length === 0) {
       return json({ error: "ストアにロケーションが見つかりません" }, { status: 400 });
@@ -37,6 +60,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // 最初のアクティブなロケーション（通常はメインロケーション）を使用
     const primaryLocation = locations.find((loc: any) => loc.node.isPrimary) || locations[0];
     const locationId = primaryLocation.node.id;
+    
+    console.log("使用するLocation ID:", locationId);
 
     const results = [];
     for (const item of items) {
@@ -49,7 +74,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
       `;
       const variantRes = await admin.graphql(variantQuery, { variables: { id: item.variant_id } }) as any;
-      const inventoryItemId = variantRes.data.productVariant?.inventoryItem?.id;
+      
+      // バリアントレスポンスも同様に解析
+      let variantData;
+      if ((variantRes as any).body) {
+        variantData = (variantRes as any).body;
+      } else if ((variantRes as any).data) {
+        variantData = (variantRes as any).data;
+      } else {
+        const textData = await (variantRes as any).text();
+        variantData = JSON.parse(textData);
+      }
+      
+      const inventoryItemId = variantData.data?.productVariant?.inventoryItem?.id;
       if (!inventoryItemId) {
         results.push({
           variant_id: item.variant_id,
@@ -57,6 +94,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         });
         continue;
       }
+      
       // 在庫を追加
       const adjMutation = `
         mutation($inventoryItemId: ID!, $locationId: ID!, $availableDelta: Int!) {
@@ -75,10 +113,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           availableDelta: item.quantity,
         }
       }) as any;
-      const errors = adjResult.data.inventoryAdjustQuantity?.userErrors || [];
+      
+      // 在庫調整結果も同様に解析
+      let adjData;
+      if ((adjResult as any).body) {
+        adjData = (adjResult as any).body;
+      } else if ((adjResult as any).data) {
+        adjData = (adjResult as any).data;
+      } else {
+        const textData = await (adjResult as any).text();
+        adjData = JSON.parse(textData);
+      }
+      
+      const errors = adjData.data?.inventoryAdjustQuantity?.userErrors || [];
       results.push({
         variant_id: item.variant_id,
-        response: adjResult.data.inventoryAdjustQuantity.inventoryLevel,
+        response: adjData.data?.inventoryAdjustQuantity?.inventoryLevel,
         errors,
       });
     }
