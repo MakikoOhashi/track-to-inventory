@@ -49,12 +49,15 @@ const FILE_TYPES = [
     setSyncing(true);
     try {
       // 1. Shopify同期API呼び出し（エンドポイントは適宜変更）
-      const res = await fetch('/api/shopify-sync', {
+      const res = await fetch('/api/sync-stock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shipmentId: shipment.id }) // id等は型に合わせて
+        body: JSON.stringify({  items: shipment.items }) // id等は型に合わせて
       });
       if (!res.ok) throw new Error('Shopify同期に失敗しました');
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+
       // 2. ステータスを「同期済み」に更新
       const updateRes = await fetch('/api/updateShipment', {
         method: 'POST',

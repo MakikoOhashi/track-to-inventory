@@ -3,7 +3,7 @@
 client_id = "54d683ca896f499d837fee84e21f76a3"
 name = "TrackToInventory"
 handle = "tracktoinventory"
-application_url = "https://origin-offense-connected-gorgeous.trycloudflare.com"
+application_url = "https://songs-indoor-mirrors-acceptable.trycloudflare.com"
 embedded = true
 
 [build]
@@ -23,13 +23,13 @@ api_version = "2025-04"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_products,write_products"
+scopes = "read_products,write_products,write_inventory"
 
 [auth]
 redirect_urls = [
-  "https://origin-offense-connected-gorgeous.trycloudflare.com/auth/callback",
-  "https://origin-offense-connected-gorgeous.trycloudflare.com/auth/shopify/callback",
-  "https://origin-offense-connected-gorgeous.trycloudflare.com/api/auth/callback"
+  "https://songs-indoor-mirrors-acceptable.trycloudflare.com/auth/callback",
+  "https://songs-indoor-mirrors-acceptable.trycloudflare.com/auth/shopify/callback",
+  "https://songs-indoor-mirrors-acceptable.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
