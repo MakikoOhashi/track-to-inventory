@@ -24,8 +24,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
       }
     `;
-    
+    console.log("Location取得開始");
     const locationResult = await admin.graphql(locationsQuery) as any;
+    console.log("Location取得結果:", locationResult.data);
+
     const locations = locationResult.data.locations.edges;
     
     if (!locations || locations.length === 0) {
@@ -82,9 +84,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
     return json({ results });
   } catch (error) {
-    console.error("sync-stock エラー:", error);
+   console.error("sync-stock エラー詳細:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined
+    });
     return json({ 
-      error: error instanceof Error ? error.message : String(error) 
-    }, { status: 500 });  
+      error: error instanceof Error ? error.message : String(error),
+      debug: error instanceof Error ? error.stack : undefined
+    }, { status: 500 });
   }
 };
