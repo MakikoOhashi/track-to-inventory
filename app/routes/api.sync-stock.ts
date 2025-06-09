@@ -1,8 +1,6 @@
 import { json, type ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "~/shopify.server";
 
-const SHOPIFY_LOCATION_ID = process.env.SHOPIFY_LOCATION_ID!;
-
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     const { admin } = await authenticate.admin(request);
@@ -10,6 +8,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (!items || items.length === 0) {
       return json({ error: "同期する商品がありません" }, { status: 400 });
     }
+
+    // まず、ストアのLocation IDを動的に取得
+    const locationsQuery = `
+      query {
+        locations(first: 1) {
+          edges {
+            node {
+              id
+              name
+              isActive
+              isPrimary
+            }
+          }
+        }
+      }
+    `;
+    
+    const locationResult = await admin.graphql(locationsQuery) as any;
+    const locations = locationResult.data.locations.edges;
+    
+    if (!locations || locations.length === 0) {
+      return json({ error: "ストアにロケーションが見つかりません" }, { status: 400 });
+    }
+    
+    // 最初のアクティブなロケーション（通常はメインロケーション）を使用
+    const primaryLocation = locations.find((loc: any) => loc.node.isPrimary) || locations[0];
+    const locationId = primaryLocation.node.id;
+
     const results = [];
     for (const item of items) {
       // バリアントIDからinventory_item_id取得
@@ -43,7 +69,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const adjResult = await admin.graphql(adjMutation, {
         variables: {
           inventoryItemId,
-          locationId: SHOPIFY_LOCATION_ID,
+          locationId,
           availableDelta: item.quantity,
         }
       }) as any;
@@ -56,6 +82,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
     return json({ results });
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
+    console.error("sync-stock エラー:", error);
+    return json({ 
+      error: error instanceof Error ? error.message : String(error) 
+    }, { status: 500 });  
   }
 };
