@@ -8,7 +8,7 @@ embedded = true
 
 [build]
 include_config_on_deploy = true
-automatically_update_urls_on_dev = true
+app_url = "https://track-to-inventory.onrender.com"
 
 [webhooks]
 api_version = "2025-04"
