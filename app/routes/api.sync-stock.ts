@@ -78,32 +78,56 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         continue;
       }
       
-      // 在庫を追加
+      // 在庫を調整（正しいmutation名を使用）
       const adjMutation = `
-        mutation($inventoryItemId: ID!, $locationId: ID!, $availableDelta: Int!) {
-          inventoryAdjustQuantity(
-            input: { inventoryItemId: $inventoryItemId, locationId: $locationId, availableDelta: $availableDelta }
-          ) {
-            inventoryLevel { id available }
-            userErrors { field message }
+        mutation($input: InventoryAdjustQuantitiesInput!) {
+          inventoryAdjustQuantities(input: $input) {
+            inventoryAdjustmentGroup {
+              reason
+              referenceDocumentUri
+              changes {
+                name
+                delta
+                quantityAfterChange
+                item {
+                  id
+                }
+                location {
+                  id
+                }
+              }
+            }
+            userErrors {
+              field
+              message
+            }
           }
         }
       `;
+      
       const adjResult = await admin.graphql(adjMutation, {
         variables: {
-          inventoryItemId,
-          locationId,
-          availableDelta: item.quantity,
+          input: {
+            reason: "correction",
+            name: "在庫同期",
+            changes: [
+              {
+                delta: item.quantity,
+                inventoryItemId: inventoryItemId,
+                locationId: locationId
+              }
+            ]
+          }
         }
       });
       
       // ✅ 修正：GraphQLレスポンスを正しく処理
       const adjData = await adjResult.json();
       
-      const errors = adjData.data?.inventoryAdjustQuantity?.userErrors || [];
+      const errors = adjData.data?.inventoryAdjustQuantities?.userErrors || [];
       results.push({
         variant_id: item.variant_id,
-        response: adjData.data?.inventoryAdjustQuantity?.inventoryLevel,
+        response: adjData.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup,
         errors,
       });
     }
