@@ -9,7 +9,8 @@ import {
   Checkbox,
   InlineStack,
   BlockStack,
-  Text
+  Text,
+  Banner
 } from '@shopify/polaris';
 import ShopifyVariantSelector from './ShopifyVariantSelector';
 
