@@ -226,13 +226,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
         console.log("adjData:", JSON.stringify(adjData, null, 2));
         
-        // 詳細なエラーログ
         console.log("Full GraphQL response:", JSON.stringify(adjData, null, 2));
-        
-        // GraphQLのトップレベルエラー
-        if ((adjData as any).errors) {
-          console.error("GraphQL errors:", JSON.stringify((adjData as any).errors, null, 2));
-        }
+
+// GraphQLのトップレベルエラー（多くの場合はこの形式）
+if ((adjData as any).errors) {
+  console.error("GraphQL errors (adjData.errors):", JSON.stringify((adjData as any).errors, null, 2));
+}
+
+// まれに graphQLErrors というプロパティで返る場合もある
+if ((adjData as any).graphQLErrors) {
+  console.error("GraphQL errors (adjData.graphQLErrors):", JSON.stringify((adjData as any).graphQLErrors, null, 2));
+}
 
         // mutationの中のuserErrors
         const userErrors = adjData.data?.inventoryAdjustQuantities?.userErrors || [];
@@ -241,6 +245,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
         
         const errors = adjData.data?.inventoryAdjustQuantities?.userErrors || [];
+        
         
         results.push({
           variant_id: item.variant_id,
