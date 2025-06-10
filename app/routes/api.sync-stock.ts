@@ -173,7 +173,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 reason
                 referenceDocumentUri
                 changes {
-                  name
+                  
                   delta
                   quantityAfterChange
                   item {
