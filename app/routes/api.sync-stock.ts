@@ -196,7 +196,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const mutationVariables = {
           input: {
             reason: "correction",
-            name: "在庫同期",
+            // name: "在庫同期",
             changes: [
               {
                 delta: item.quantity,
