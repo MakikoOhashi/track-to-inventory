@@ -210,6 +210,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         
         console.log("Mutation variables:", JSON.stringify(mutationVariables, null, 2));
         
+        console.log("adjMutation クエリ内容:", adjMutation);
+
         const adjResult = await admin.graphql(adjMutation, {
           variables: mutationVariables
         });
