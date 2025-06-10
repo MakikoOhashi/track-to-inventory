@@ -222,6 +222,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           console.error("Raw response:", adjResult);
           throw new Error("GraphQL レスポンスのパースに失敗しました");
         }
+        console.log("adjData:", JSON.stringify(adjData, null, 2));
         
         // 詳細なエラーログ
         console.log("Full GraphQL response:", JSON.stringify(adjData, null, 2));
