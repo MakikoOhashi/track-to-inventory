@@ -192,34 +192,49 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         `;
         
-        const adjResult = await admin.graphql(adjMutation, {
-          variables: {
-            input: {
-              reason: "correction",
-              name: "在庫同期", // ✅ nameはここ（トップレベル）に配置
-              changes: [
-                {
-                  delta: item.quantity,
-                  inventoryItemId: inventoryItemId,
-                  locationId: locationId,
-                  name: "available" // ✅ 明示的にavailableを指定
-                }
-              ]
-            }
+        // デバッグ用：mutation変数をログ出力
+        const mutationVariables = {
+          input: {
+            reason: "correction",
+            name: "在庫同期",
+            changes: [
+              {
+                delta: item.quantity,
+                inventoryItemId: inventoryItemId,
+                locationId: locationId,
+                name: "available"
+              }
+            ]
           }
+        };
+        
+        console.log("Mutation variables:", JSON.stringify(mutationVariables, null, 2));
+        
+        const adjResult = await admin.graphql(adjMutation, {
+          variables: mutationVariables
         });
         
-        const adjData = await adjResult.json();
+        let adjData;
+        try {
+          adjData = await adjResult.json();
+        } catch (jsonError) {
+          console.error("JSON parsing error:", jsonError);
+          console.error("Raw response:", adjResult);
+          throw new Error("GraphQL レスポンスのパースに失敗しました");
+        }
+        
+        // 詳細なエラーログ
+        console.log("Full GraphQL response:", JSON.stringify(adjData, null, 2));
         
         // GraphQLのトップレベルエラー
         if ((adjData as any).errors) {
-          console.error("adjData.errors:", JSON.stringify((adjData as any).errors, null, 2));
+          console.error("GraphQL errors:", JSON.stringify((adjData as any).errors, null, 2));
         }
 
         // mutationの中のuserErrors
         const userErrors = adjData.data?.inventoryAdjustQuantities?.userErrors || [];
         if (userErrors.length > 0) {
-          console.error("inventoryAdjustQuantities.userErrors:", JSON.stringify(userErrors, null, 2));
+          console.error("User errors:", JSON.stringify(userErrors, null, 2));
         }
         
         const errors = adjData.data?.inventoryAdjustQuantities?.userErrors || [];
