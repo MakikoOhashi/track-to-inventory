@@ -28,9 +28,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.log("Location取得開始");
     const locationResult = await admin.graphql(locationsQuery);
     
-    // ❌ これが問題！ReadableStreamを含むオブジェクト全体をログ出力
-    // console.log("Location取得結果 (全体):", locationResult);
-    
     // ✅ 修正：GraphQLレスポンスを正しく処理
     const locationData = await locationResult.json();
     console.log("Location取得結果:", locationData);
@@ -68,7 +65,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 requiresShipping
               }
               inventoryPolicy
-              
               inventoryQuantity
               product {
                 id
@@ -136,7 +132,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
 
         // 3. バリアントの在庫管理設定を更新
-       if (!variant.inventoryItem.tracked)  {
+        if (!variant.inventoryItem.tracked) {
           console.log(`在庫管理をShopifyに設定: ${item.variant_id}`);
           
           const variantUpdateMutation = `
@@ -144,7 +140,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               productVariantUpdate(input: $input) {
                 productVariant {
                   id
-                 
                   inventoryPolicy
                 }
                 userErrors {
@@ -159,7 +154,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             variables: {
               input: {
                 id: item.variant_id,
-                
                 inventoryPolicy: 'DENY' // 在庫切れ時は販売停止
               }
             }
@@ -171,7 +165,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         }
 
-        // 4. 在庫数量を調整
+        // 4. 在庫数量を調整 - ✅ 修正された部分
         const adjMutation = `
           mutation($input: InventoryAdjustQuantitiesInput!) {
             inventoryAdjustQuantities(input: $input) {
@@ -202,12 +196,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           variables: {
             input: {
               reason: "correction",
-              name: "在庫同期",
+              name: "在庫同期", // ✅ nameはここ（トップレベル）に配置
               changes: [
                 {
                   delta: item.quantity,
                   inventoryItemId: inventoryItemId,
-                  locationId: locationId
+                  locationId: locationId,
+                  name: "available" // ✅ 明示的にavailableを指定
                 }
               ]
             }
@@ -216,16 +211,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         
         const adjData = await adjResult.json();
         
-// GraphQLのトップレベルエラー
-if ((adjData as any).errors) {
-  console.error("adjData.errors:", JSON.stringify((adjData as any).errors, null, 2));
-}
+        // GraphQLのトップレベルエラー
+        if ((adjData as any).errors) {
+          console.error("adjData.errors:", JSON.stringify((adjData as any).errors, null, 2));
+        }
 
-// mutationの中のuserErrors
-const userErrors = adjData.data?.inventoryAdjustQuantities?.userErrors || [];
-if (userErrors.length > 0) {
-  console.error("inventoryAdjustQuantities.userErrors:", JSON.stringify(userErrors, null, 2));
-}
+        // mutationの中のuserErrors
+        const userErrors = adjData.data?.inventoryAdjustQuantities?.userErrors || [];
+        if (userErrors.length > 0) {
+          console.error("inventoryAdjustQuantities.userErrors:", JSON.stringify(userErrors, null, 2));
+        }
+        
         const errors = adjData.data?.inventoryAdjustQuantities?.userErrors || [];
         
         results.push({
@@ -235,7 +231,6 @@ if (userErrors.length > 0) {
           delta: item.quantity,
           after_quantity: variant.inventoryQuantity + item.quantity,
           tracking_enabled: variant.inventoryItem.tracked,
-         
           response: adjData.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup,
           errors,
         });
@@ -249,7 +244,6 @@ if (userErrors.length > 0) {
         });
       }
     }
-    
     
     return json({ results });
     
