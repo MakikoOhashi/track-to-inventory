@@ -68,7 +68,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 requiresShipping
               }
               inventoryPolicy
-              inventoryManagement
+              
               inventoryQuantity
               product {
                 id
@@ -136,7 +136,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
 
         // 3. バリアントの在庫管理設定を更新
-        if (variant.inventoryManagement !== 'SHOPIFY') {
+       if (!variant.inventoryItem.tracked)  {
           console.log(`在庫管理をShopifyに設定: ${item.variant_id}`);
           
           const variantUpdateMutation = `
@@ -144,7 +144,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               productVariantUpdate(input: $input) {
                 productVariant {
                   id
-                  inventoryManagement
+                 
                   inventoryPolicy
                 }
                 userErrors {
@@ -159,7 +159,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             variables: {
               input: {
                 id: item.variant_id,
-                inventoryManagement: 'SHOPIFY',
+                
                 inventoryPolicy: 'DENY' // 在庫切れ時は販売停止
               }
             }
@@ -235,7 +235,7 @@ if (userErrors.length > 0) {
           delta: item.quantity,
           after_quantity: variant.inventoryQuantity + item.quantity,
           tracking_enabled: variant.inventoryItem.tracked,
-          inventory_management: variant.inventoryManagement,
+         
           response: adjData.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup,
           errors,
         });
