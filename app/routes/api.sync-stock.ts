@@ -202,7 +202,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 delta: item.quantity,
                 inventoryItemId: inventoryItemId,
                 locationId: locationId,
-                name: "available"
+                // name: "available"
               }
             ]
           }
