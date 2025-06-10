@@ -215,6 +215,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         });
         
         const adjData = await adjResult.json();
+        
+// GraphQLのトップレベルエラー
+if ((adjData as any).errors) {
+  console.error("adjData.errors:", JSON.stringify((adjData as any).errors, null, 2));
+}
+
+// mutationの中のuserErrors
+const userErrors = adjData.data?.inventoryAdjustQuantities?.userErrors || [];
+if (userErrors.length > 0) {
+  console.error("inventoryAdjustQuantities.userErrors:", JSON.stringify(userErrors, null, 2));
+}
         const errors = adjData.data?.inventoryAdjustQuantities?.userErrors || [];
         
         results.push({
@@ -228,6 +239,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           response: adjData.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup,
           errors,
         });
+        console.log("adjData:", JSON.stringify(adjData, null, 2));
 
       } catch (itemError) {
         console.error(`アイテム処理エラー (${item.variant_id}):`, itemError);
@@ -237,6 +249,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         });
       }
     }
+    
     
     return json({ results });
     
