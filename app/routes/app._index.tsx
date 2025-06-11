@@ -275,7 +275,15 @@ export default function Index() {
     <>
       <Page title={t('title.shipmentsByOwner')}>
         {/* 言語切り替え */}
-        <div style={{ position: "relative", minHeight: "100vh" }}>
+        <div
+          style={{
+            position: "fixed",
+            top: 16,
+            right: 16,
+            width: 120,
+            zIndex: 1000
+          }}
+        >
             <LanguageSwitcher 
               value={lang}
               onChange={setLang}
