@@ -296,6 +296,7 @@ export default function Index() {
         </Card> */}
        
         {/* ETAが近い上位2件のリスト表示 */}     
+        <Page>
         <Card>
         
           <BlockStack> 
@@ -316,7 +317,7 @@ export default function Index() {
           }
           </BlockStack>
         </Card>
-        
+        </Page>
       
     
 
