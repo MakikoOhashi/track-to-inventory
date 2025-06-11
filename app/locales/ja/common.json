@@ -54,7 +54,7 @@
     "descending": "▼ {{field}}"
   },
   "language": {
-    "switch": "言語切り替え",
+    "switch": "言語",
     "japanese": "日本語",
     "english": "English"
   },
