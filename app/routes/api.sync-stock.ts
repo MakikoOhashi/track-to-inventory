@@ -212,22 +212,78 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         
         console.log("adjMutation クエリ内容:", adjMutation);
 
-        const adjResult = await admin.graphql(adjMutation, {
-          variables: mutationVariables
-        });
-        
-        let adjData;
-        try {
-          adjData = await adjResult.json();
-        } catch (jsonError) {
-          console.error("JSON parsing error:", jsonError);
-          console.error("Raw response:", adjResult);
-          throw new Error("GraphQL レスポンスのパースに失敗しました");
-        }
-        console.log("adjData:", JSON.stringify(adjData, null, 2));
-        
-        console.log("Full GraphQL response:", JSON.stringify(adjData, null, 2));
+// 元のコード（129行目あたり）を削除
+// const adjResult = await admin.graphql(adjMutation, {
+//   variables: mutationVariables
+// });
 
+// ↓ これに置き換え
+let adjResult;
+let adjData;
+
+try {
+  console.log("=== GraphQL実行直前デバッグ ===");
+  console.log("Query:", adjMutation);
+  console.log("Variables:", JSON.stringify(mutationVariables, null, 2));
+  console.log("================================");
+  
+  adjResult = await admin.graphql(adjMutation, {
+    variables: mutationVariables
+  });
+  
+  adjData = await adjResult.json();
+  console.log("=== GraphQL実行成功 ===");
+  console.log("Response:", JSON.stringify(adjData, null, 2));
+  
+} catch (error) {
+  console.log("=== DETAILED ERROR DEBUG ===");
+  console.log("Error Type:", typeof error);
+  console.log("Error instanceof Error:", error instanceof Error);
+  
+  // 型ガード：Errorオブジェクトかチェック
+  if (error instanceof Error) {
+    console.log("Error Message:", error.message);
+    console.log("Error Name:", error.name);
+    console.log("Error Stack:", error.stack);
+  }
+  
+  // 型ガード：GraphQLエラーがある場合（重要！）
+  if (error && typeof error === 'object' && 'graphQLErrors' in error) {
+    console.log("=== GraphQL Errors 詳細 ===");
+    const graphQLErrors = (error as any).graphQLErrors;
+    console.log("GraphQL Errors Length:", graphQLErrors?.length);
+    
+    // 配列の中身を一つずつ出力
+    if (Array.isArray(graphQLErrors)) {
+      graphQLErrors.forEach((gqlError: any, index: number) => {
+        console.log(`--- GraphQL Error ${index + 1} ---`);
+        console.log("Message:", gqlError?.message);
+        console.log("Path:", gqlError?.path);
+        console.log("Extensions:", gqlError?.extensions);
+        console.log("Locations:", gqlError?.locations);
+        console.log("Raw Error:", gqlError);
+      });
+    }
+  }
+  
+  // ネットワークステータス
+  if (error && typeof error === 'object' && 'networkStatusCode' in error) {
+    console.log("Network Status Code:", (error as any).networkStatusCode);
+  }
+  
+  // レスポンス詳細
+  if (error && typeof error === 'object' && 'response' in error) {
+    const response = (error as any).response;
+    console.log("Response Status:", response?.status);
+    console.log("Response StatusText:", response?.statusText);
+  }
+  
+  // 元のエラーオブジェクト全体も確認用に出力
+  console.log("Full Error Object:", JSON.stringify(error, null, 2));
+  
+  console.log("========================");
+  throw error;
+}
 // GraphQLのトップレベルエラー（多くの場合はこの形式）
 if ((adjData as any).errors) {
   console.error("GraphQL errors (adjData.errors):", JSON.stringify((adjData as any).errors, null, 2));
