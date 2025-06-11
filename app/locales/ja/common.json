@@ -1,6 +1,6 @@
 {
   "title": {
-    "shipmentsByOwner": "オーナーごとの出荷一覧",
+    "shipmentsByOwner": "入荷予定一覧",
     "arrivalStatus": "入荷ステータス一覧",
     "upcomingArrivals": "近日入荷予定の出荷",
     "detailDisplay": "詳細表示セクション（例：クリックで情報表示）",

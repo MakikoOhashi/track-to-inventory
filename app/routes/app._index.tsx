@@ -289,9 +289,8 @@ export default function Index() {
               onChange={setLang}
             />
           </div>
-        <Card>
+        {/* <Card>
         <BlockStack>
-          
           
           <TextField
             label={t('label.shopId')}
@@ -301,13 +300,10 @@ export default function Index() {
             placeholder={t('placeholder.shopId')}
             readOnly //
           />
-          <BlockStack gap="200">
-          {/* <Button variant="primary" onClick={handleShopIdApply}>
-          {t('button.switch')}
-          </Button> */}
-          </BlockStack>
+        
+
           </BlockStack> 
-        </Card>
+        </Card> */}
        
         {/* ETAが近い上位2件のリスト表示 */}     
         <Card>
