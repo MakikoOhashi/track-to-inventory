@@ -273,6 +273,10 @@ export default function Index() {
   // --- JSX ---
   return (
     <>
+      <Page
+        title={t('title.shipmentsByOwner')}
+        primaryAction={<LanguageSwitcher value={lang} onChange={setLang} />}
+      />
       <Page title={t('title.shipmentsByOwner')}>
         {/* 言語切り替え */}
         <div
