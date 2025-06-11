@@ -165,144 +165,213 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         }
 
-        // 4. 在庫数量を調整 - ✅ 修正された部分
-        const adjMutation = `
-          mutation($input: InventoryAdjustQuantitiesInput!) {
-            inventoryAdjustQuantities(input: $input) {
-              inventoryAdjustmentGroup {
-                reason
-                referenceDocumentUri
-                changes {
-                  delta
-                  quantityAfterChange
-                  item {
-                    id
-                  }
-                  location {
-                    id
+        // 4. 在庫数量を調整 - ✅ 修正された部分（nameフィールド追加 + フォールバック戦略）
+        let adjData: any = null;
+        let success = false;
+        
+        // 戦略1: inventoryAdjustQuantities with name field
+        try {
+          console.log("=== 戦略1: inventoryAdjustQuantities (name追加) ===");
+          
+          const adjMutation = `
+            mutation($input: InventoryAdjustQuantitiesInput!) {
+              inventoryAdjustQuantities(input: $input) {
+                inventoryAdjustmentGroup {
+                  reason
+                  referenceDocumentUri
+                  changes {
+                    delta
+                    quantityAfterChange
+                    item {
+                      id
+                    }
+                    location {
+                      id
+                    }
                   }
                 }
-              }
-              userErrors {
-                field
-                message
+                userErrors {
+                  field
+                  message
+                }
               }
             }
-          }
-        `;
-        
-        // ✅ 修正：nameフィールドを完全に削除した変数
-        const mutationVariables = {
-          input: {
-            reason: "correction",
-            changes: [
-              {
-                delta: item.quantity,
-                inventoryItemId: inventoryItemId,
-                locationId: locationId
-              }
-            ]
-          }
-        };
-        
-        // ✅ 強化されたデバッグログ
-        console.log("=== MUTATION VARIABLES DEBUG ===");
-        console.log("Variables JSON:", JSON.stringify(mutationVariables, null, 2));
-        console.log("Variables keys:", Object.keys(mutationVariables.input));
-        console.log("Changes keys:", Object.keys(mutationVariables.input.changes[0]));
-        console.log("Has 'name' in input?", 'name' in mutationVariables.input);
-        console.log("Has 'name' in changes?", 'name' in mutationVariables.input.changes[0]);
-        console.log("adjMutation クエリ内容:", adjMutation);
-        console.log("================================");
-
-        // ✅ 変数のクリーンアップ（念のため）
-        const cleanVariables = JSON.parse(JSON.stringify(mutationVariables));
-        console.log("Clean variables before GraphQL:", JSON.stringify(cleanVariables, null, 2));
-
-        let adjResult;
-        let adjData;
-
-        try {
-          console.log("=== GraphQL実行直前デバッグ ===");
-          console.log("Query:", adjMutation);
-          console.log("Variables:", JSON.stringify(cleanVariables, null, 2));
-          console.log("================================");
+          `;
           
-          adjResult = await admin.graphql(adjMutation, {
-            variables: cleanVariables
+          // ✅ nameフィールドを追加
+          const mutationVariables = {
+            input: {
+              reason: "correction",
+              name: "available", // ✅ 新たに必須となったフィールド
+              changes: [
+                {
+                  delta: item.quantity,
+                  inventoryItemId: inventoryItemId,
+                  locationId: locationId
+                }
+              ]
+            }
+          };
+          
+          console.log("Variables with name field:", JSON.stringify(mutationVariables, null, 2));
+          
+          const adjResult = await admin.graphql(adjMutation, {
+            variables: mutationVariables
           });
           
           adjData = await adjResult.json();
-          console.log("=== GraphQL実行成功 ===");
-          console.log("Response:", JSON.stringify(adjData, null, 2));
+          console.log("戦略1 成功:", JSON.stringify(adjData, null, 2));
           
-        } catch (error) {
-          console.log("=== DETAILED ERROR DEBUG ===");
-          console.log("Error Type:", typeof error);
-          console.log("Error instanceof Error:", error instanceof Error);
-          
-          // 型ガード：Errorオブジェクトかチェック
-          if (error instanceof Error) {
-            console.log("Error Message:", error.message);
-            console.log("Error Name:", error.name);
-            console.log("Error Stack:", error.stack);
+          if (!adjData.errors && !adjData.data?.inventoryAdjustQuantities?.userErrors?.length) {
+            success = true;
           }
           
-          // 型ガード：GraphQLエラーがある場合（重要！）
-          if (error && typeof error === 'object' && 'graphQLErrors' in error) {
-            console.log("=== GraphQL Errors 詳細 ===");
-            const graphQLErrors = (error as any).graphQLErrors;
-            console.log("GraphQL Errors Length:", graphQLErrors?.length);
+        } catch (strategy1Error) {
+          console.log("戦略1 失敗:", strategy1Error);
+        }
+        
+        // 戦略2: inventorySetQuantities (フォールバック)
+        if (!success) {
+          try {
+            console.log("=== 戦略2: inventorySetQuantities ===");
             
-            // 配列の中身を一つずつ出力
-            if (Array.isArray(graphQLErrors)) {
-              graphQLErrors.forEach((gqlError: any, index: number) => {
-                console.log(`--- GraphQL Error ${index + 1} ---`);
-                console.log("Message:", gqlError?.message);
-                console.log("Path:", gqlError?.path);
-                console.log("Extensions:", gqlError?.extensions);
-                console.log("Locations:", gqlError?.locations);
-                console.log("Raw Error:", gqlError);
-              });
+            // 現在の在庫量を取得
+            const currentQuantity = variant.inventoryQuantity || 0;
+            const newQuantity = Math.max(0, currentQuantity + item.quantity);
+            
+            const setQuantitiesMutation = `
+              mutation($input: InventorySetQuantitiesInput!) {
+                inventorySetQuantities(input: $input) {
+                  inventoryAdjustmentGroup {
+                    reason
+                    changes {
+                      delta
+                      quantityAfterChange
+                      item {
+                        id
+                      }
+                      location {
+                        id
+                      }
+                    }
+                  }
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }
+            `;
+            
+            const setQuantitiesVariables = {
+              input: {
+                reason: "correction",
+                setQuantities: [
+                  {
+                    inventoryItemId: inventoryItemId,
+                    locationId: locationId,
+                    quantity: newQuantity
+                  }
+                ]
+              }
+            };
+            
+            console.log("Set quantities variables:", JSON.stringify(setQuantitiesVariables, null, 2));
+            
+            const setResult = await admin.graphql(setQuantitiesMutation, {
+              variables: setQuantitiesVariables
+            });
+            
+            adjData = await setResult.json();
+            console.log("戦略2 成功:", JSON.stringify(adjData, null, 2));
+            
+            if (!adjData.errors && !adjData.data?.inventorySetQuantities?.userErrors?.length) {
+              success = true;
             }
+            
+          } catch (strategy2Error) {
+            console.log("戦略2 失敗:", strategy2Error);
           }
-          
-          // ネットワークステータス
-          if (error && typeof error === 'object' && 'networkStatusCode' in error) {
-            console.log("Network Status Code:", (error as any).networkStatusCode);
+        }
+        
+        // 戦略3: Legacy inventoryBulkAdjustQuantityAtLocation (最終フォールバック)
+        if (!success) {
+          try {
+            console.log("=== 戦略3: Legacy inventoryBulkAdjustQuantityAtLocation ===");
+            
+            const legacyMutation = `
+              mutation inventoryBulkAdjustQuantityAtLocation($inventoryItemAdjustments: [InventoryAdjustItemInput!]!, $locationId: ID!) {
+                inventoryBulkAdjustQuantityAtLocation(inventoryItemAdjustments: $inventoryItemAdjustments, locationId: $locationId) {
+                  inventoryLevels {
+                    available
+                    item {
+                      id
+                    }
+                  }
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }
+            `;
+            
+            const legacyVariables = {
+              locationId: locationId,
+              inventoryItemAdjustments: [
+                {
+                  inventoryItemId: inventoryItemId,
+                  availableDelta: item.quantity
+                }
+              ]
+            };
+            
+            console.log("Legacy variables:", JSON.stringify(legacyVariables, null, 2));
+            
+            const legacyResult = await admin.graphql(legacyMutation, {
+              variables: legacyVariables
+            });
+            
+            adjData = await legacyResult.json();
+            console.log("戦略3 成功:", JSON.stringify(adjData, null, 2));
+            
+            if (!adjData.errors && !adjData.data?.inventoryBulkAdjustQuantityAtLocation?.userErrors?.length) {
+              success = true;
+            }
+            
+          } catch (strategy3Error) {
+            console.log("戦略3 失敗:", strategy3Error);
           }
-          
-          // レスポンス詳細
-          if (error && typeof error === 'object' && 'response' in error) {
-            const response = (error as any).response;
-            console.log("Response Status:", response?.status);
-            console.log("Response StatusText:", response?.statusText);
-          }
-          
-          // 元のエラーオブジェクト全体も確認用に出力
-          console.log("Full Error Object:", JSON.stringify(error, null, 2));
-          
-          console.log("========================");
-          throw error;
         }
 
-        // GraphQLのトップレベルエラー（多くの場合はこの形式）
-        if ((adjData as any).errors) {
-          console.error("GraphQL errors (adjData.errors):", JSON.stringify((adjData as any).errors, null, 2));
+        // エラーハンドリング
+        if (!success || !adjData) {
+          console.error("全ての戦略が失敗しました または adjData が null です");
+          results.push({
+            variant_id: item.variant_id,
+            error: "在庫調整に失敗しました - 全ての戦略が失敗"
+          });
+          continue;
         }
 
-        // まれに graphQLErrors というプロパティで返る場合もある
-        if ((adjData as any).graphQLErrors) {
-          console.error("GraphQL errors (adjData.graphQLErrors):", JSON.stringify((adjData as any).graphQLErrors, null, 2));
+        // GraphQLのトップレベルエラーチェック
+        if (adjData && adjData.errors) {
+          console.error("GraphQL errors:", JSON.stringify(adjData.errors, null, 2));
         }
 
-        // mutationの中のuserErrors
-        const userErrors = adjData.data?.inventoryAdjustQuantities?.userErrors || [];
+        // userErrorsチェック（各戦略に応じて）
+        let userErrors: any[] = [];
+        if (adjData?.data?.inventoryAdjustQuantities?.userErrors) {
+          userErrors = adjData.data.inventoryAdjustQuantities.userErrors;
+        } else if (adjData?.data?.inventorySetQuantities?.userErrors) {
+          userErrors = adjData.data.inventorySetQuantities.userErrors;
+        } else if (adjData?.data?.inventoryBulkAdjustQuantityAtLocation?.userErrors) {
+          userErrors = adjData.data.inventoryBulkAdjustQuantityAtLocation.userErrors;
+        }
+        
         if (userErrors.length > 0) {
           console.error("User errors:", JSON.stringify(userErrors, null, 2));
         }
-        
-        const errors = adjData.data?.inventoryAdjustQuantities?.userErrors || [];
         
         results.push({
           variant_id: item.variant_id,
@@ -311,10 +380,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           delta: item.quantity,
           after_quantity: variant.inventoryQuantity + item.quantity,
           tracking_enabled: variant.inventoryItem.tracked,
-          response: adjData.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup,
-          errors,
+          response: adjData?.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup || 
+                   adjData?.data?.inventorySetQuantities?.inventoryAdjustmentGroup ||
+                   adjData?.data?.inventoryBulkAdjustQuantityAtLocation?.inventoryLevels,
+          errors: userErrors,
+          strategy_used: success ? "success" : "failed"
         });
-        console.log("adjData:", JSON.stringify(adjData, null, 2));
+
+        console.log(`在庫調整完了 - ${item.variant_id}:`, adjData ? JSON.stringify(adjData, null, 2) : "adjData is null");
 
       } catch (itemError) {
         console.error(`アイテム処理エラー (${item.variant_id}):`, itemError);
