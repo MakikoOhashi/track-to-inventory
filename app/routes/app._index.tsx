@@ -277,21 +277,8 @@ export default function Index() {
         title={t('title.shipmentsByOwner')}
         primaryAction={<LanguageSwitcher value={lang} onChange={setLang} />}
       />
-      <Page title={t('title.shipmentsByOwner')}>
-        {/* 言語切り替え */}
-        <div
-          style={{
-            display: "flex", 
-            justifyContent: "flex-end", 
-            alignItems: "center", 
-            padding: "8px 16px"
-          }}
-        >
-            <LanguageSwitcher 
-              value={lang}
-              onChange={setLang}
-            />
-          </div>
+     
+        
         {/* <Card>
         <BlockStack>
           
@@ -330,7 +317,7 @@ export default function Index() {
           </BlockStack>
         </Card>
         
-      </Page>
+      
     
 
     <Page title={t('title.arrivalStatus')}>
