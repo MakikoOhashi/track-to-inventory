@@ -280,7 +280,7 @@ export default function Index() {
             position: "fixed",
             top: 16,
             right: 16,
-            width: 120,
+            width: 100,
             zIndex: 1000
           }}
         >
