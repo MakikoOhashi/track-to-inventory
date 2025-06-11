@@ -277,11 +277,10 @@ export default function Index() {
         {/* 言語切り替え */}
         <div
           style={{
-            position: "fixed",
-            top: 16,
-            right: 16,
-            width: 100,
-            zIndex: 1000
+            display: "flex", 
+            justifyContent: "flex-end", 
+            alignItems: "center", 
+            padding: "8px 16px"
           }}
         >
             <LanguageSwitcher 
