@@ -274,16 +274,16 @@ export default function Index() {
   return (
     <>
       <Page title={t('title.shipmentsByOwner')}>
-        
-        <Card>
-        <BlockStack>
-          {/* 言語切り替え */}
-          <div style={{ marginBottom: 16 }}>
+        {/* 言語切り替え */}
+        <div style={{ position: "relative", minHeight: "100vh" }}>
             <LanguageSwitcher 
               value={lang}
               onChange={setLang}
             />
           </div>
+        <Card>
+        <BlockStack>
+          
           
           <TextField
             label={t('label.shopId')}
