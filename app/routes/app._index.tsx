@@ -355,7 +355,7 @@ export default function Index() {
   </Button>
         </ButtonGroup>
       
-
+      <div style={{marginTop: 16,}}>
       {/* 表示形式に応じて切り替え */}
       
       {viewMode === 'card' ? (
@@ -374,6 +374,7 @@ export default function Index() {
         onSelectShipment={(shipment) => setSelectedShipment(shipment)}
         />
       )}
+      </div>
       </BlockStack>
       </Card>
 
