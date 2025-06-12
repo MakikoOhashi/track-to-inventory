@@ -332,11 +332,7 @@ export default function Index() {
 {/* 
     <Page title={t('title.arrivalStatus')}> */}
       
-        {/* ここにOCRアップローダーを追加 - shopIdを渡す */}
-        <OCRUploader 
-          shopId={shopId} 
-          onSaveSuccess={handleOcrSaveSuccess}
-        />
+
       
       {/* 表示切り替えボタン */}
        <Card>
@@ -354,9 +350,7 @@ export default function Index() {
             setViewMode(selectedIndex === 0 ? 'card' : 'table');
           }}
         />
-        <Divider />
-      
-      
+
       <Divider />
       {/* 表示形式に応じて切り替え */}
       
@@ -537,6 +531,13 @@ export default function Index() {
                  
           </BlockStack>
           </Card>
+
+
+       {/* ここにOCRアップローダーを追加 - shopIdを渡す */}
+        <OCRUploader 
+          shopId={shopId} 
+          onSaveSuccess={handleOcrSaveSuccess}
+        />
           </BlockStack>
         </Layout.Section>
         </Layout>
