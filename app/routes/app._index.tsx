@@ -436,7 +436,7 @@ export default function Index() {
       position: "relative" 
     }}> */}
 
-      <Box paddingBlockStart="500">
+      <Box paddingBlockStart="500" maxWidth="700px">
        {/* 商品別 */}
        {detailViewMode === 'product' && (
       <BlockStack gap="400">
@@ -609,8 +609,8 @@ export default function Index() {
         </Box>
       </div>
     )}
-  <Box paddingBlockEnd="600" />
-  
+  <Box paddingBlockEnd="1200" />
+
       {/* モーダル表示 */}
       <CustomModal
         shipment={selectedShipment}
