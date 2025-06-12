@@ -609,7 +609,8 @@ export default function Index() {
         </Box>
       </div>
     )}
-
+  <Box paddingBlockEnd="600" />
+  
       {/* モーダル表示 */}
       <CustomModal
         shipment={selectedShipment}
