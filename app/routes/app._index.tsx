@@ -12,6 +12,10 @@ import {
   Banner,
   InlineStack,
   Text,
+  Tabs,
+  Divider,
+  Box,
+  Layout,
 } from '@shopify/polaris';
 import CustomModal from '../components/Modal';
 import StatusCard from '../components/StatusCard';
@@ -272,13 +276,17 @@ export default function Index() {
 
   // --- JSX ---
   return (
-    <>
+  
       <Page
         title={t('title.shipmentsByOwner')}
         primaryAction={<LanguageSwitcher value={lang} onChange={setLang} />}
-      />
+      >
      
-        
+     <Layout>
+        {/* メインコンテンツエリア */}
+        <Layout.Section>
+          <BlockStack gap="600">
+
         {/* <Card>
         <BlockStack>
           
@@ -296,14 +304,15 @@ export default function Index() {
         </Card> */}
        
         {/* ETAが近い上位2件のリスト表示 */}     
-        <Page>
+       
         <Card>
         
-          <BlockStack> 
+          <BlockStack gap="400"> 
           <Text as="h2" variant="headingLg">{t('title.upcomingArrivals')}</Text>
-        <p>{t('message.upcomingArrivals')}</p>
+          <Text as="p" variant="bodyMd" tone="subdued">{t('message.upcomingArrivals')}</Text>
+        
         {shipments.length === 0 ? (
-            <p>{t('message.noData')}</p>
+            <Banner tone="info">{t('message.noData')}</Banner>
           ) : (
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {upcomingShipments.map((s) => (
@@ -317,11 +326,11 @@ export default function Index() {
           }
           </BlockStack>
         </Card>
-        </Page>
+       
       
     
-
-    <Page title={t('title.arrivalStatus')}>
+{/* 
+    <Page title={t('title.arrivalStatus')}> */}
       
         {/* ここにOCRアップローダーを追加 - shopIdを渡す */}
         <OCRUploader 
@@ -331,8 +340,9 @@ export default function Index() {
       
       {/* 表示切り替えボタン */}
        <Card>
-       <BlockStack gap="400">
-        
+       <BlockStack gap="500">
+        <InlineStack align="space-between">
+        <Text as="h2" variant="headingLg">{t('title.arrivalStatus')}</Text>
         <ButtonGroup>
           <Button 
           variant={viewMode === 'card' ? 'primary' : 'secondary'} 
@@ -343,15 +353,16 @@ export default function Index() {
             variant={viewMode === 'table' ? 'primary' : 'secondary'}
             onClick={() => setViewMode('table')}
           >
-    {t('button.tableView')}
-  </Button>
+            {t('button.tableView')}
+          </Button>
         </ButtonGroup>
+      </InlineStack>
       
-      <div style={{marginTop: 16,}}>
+      <Divider />
       {/* 表示形式に応じて切り替え */}
       
       {viewMode === 'card' ? (
-        <InlineStack gap="400">
+        <InlineStack gap="400" wrap>
           {shipments.map((s) => (
              <StatusCard
              key={s.si_number}
@@ -366,7 +377,7 @@ export default function Index() {
         onSelectShipment={(shipment) => setSelectedShipment(shipment)}
         />
       )}
-      </div>
+      
       </BlockStack>
       </Card>
 
@@ -376,11 +387,11 @@ export default function Index() {
 
 {/* 詳細表示　　セクション */}
 <Card>
-  <BlockStack gap="400">
+  <BlockStack gap="500">
 
   <Text as="h2" variant="headingLg">{t('title.detailDisplay')}</Text>
 
-  <ButtonGroup>
+  {/* <ButtonGroup>
     <Button 
       variant={detailViewMode === 'search' ? "primary" : "secondary"}
       onClick={() => setDetailViewMode('search')}
@@ -399,10 +410,21 @@ export default function Index() {
     >
       {t('button.statusChart')}
     </Button>
-  </ButtonGroup>
+  </ButtonGroup> */}
+                <Tabs 
+                  tabs={tabs}
+                  selected={selectedTab}
+                  onSelect={(selectedIndex) => {
+                    const selectedId = tabs[selectedIndex].id as 'product' | 'status' | 'search';
+                    setDetailViewMode(selectedId);
+                  }}
+                />
+
+
+
   {/* ←この下にトグルで統計表を追加 */}
   
-    <div style={{ 
+    {/* <div style={{ 
       marginTop: 16, 
       background: "#fff", 
       border: "1px solid #ccc", 
@@ -412,12 +434,15 @@ export default function Index() {
       marginLeft: "auto", 
       marginRight: "auto", 
       position: "relative" 
-    }}>
+    }}> */}
+
+      <Box paddingBlockStart="500">
        {/* 商品別 */}
        {detailViewMode === 'product' && (
-      <>
+      <BlockStack gap="400">
+      <InlineStack align="space-between">
       <Text as="h3" variant="headingMd">{t('title.productArrivals')}</Text>
-      <div style={{ marginBottom: 12 }}>        
+          
         <Button
           onClick={() =>
 
@@ -430,7 +455,8 @@ export default function Index() {
         >
           {productStatsSort === 'name-asc' ?t('button.productNameAsc') : t('button.productNameDesc')}
         </Button>
-      </div>
+      </InlineStack>
+
         <DataTable
             columnContentTypes={['text', 'numeric']}
             headings={[t('label.productName'), t('label.totalQuantity')]}
@@ -445,49 +471,15 @@ export default function Index() {
             </span>,
                 qty
             ])}
-      />
-     
-      {/* POPUP */}
-      { hoveredProduct && (
-        <div
-          style={{
-            position: "fixed",
-            top: popupPos.y,
-            left: popupPos.x,
-            background: "#fff",
-            border: "1px solid #aaa",
-            borderRadius: "6px",
-            boxShadow: "0 2px 8px #aaa",
-            padding: "12px",
-            zIndex: 99999,
-            minWidth: `${POPUP_WIDTH}px`,
-            maxWidth: `${POPUP_WIDTH}px`,
-            maxHeight: `${POPUP_HEIGHT}px`,
-            overflowY: "auto",
-            fontSize: "0.95em"
-          }}
-          onMouseEnter={handlePopupMouseEnter}
-          onMouseLeave={handlePopupMouseLeave}
-        >
-          <b>{t('message.siListWith', { productName: hoveredProduct })}</b>
-          <DataTable
-            columnContentTypes={['text', 'text', 'numeric', 'text']}
-            headings={[
-              t('label.siNumber'),
-              t('label.productName'),
-              t('label.quantity'),
-              t('label.status')
-            ]}
-            rows={rows}
           />
-        </div>
+       </BlockStack>
       )}
-    </>
-    )}
+     
+      
 
      {/* ステータスごとのチャート */}
      {detailViewMode === 'status' && (
-    <>
+    <BlockStack gap="500">
     <Text as="h3" variant="headingMd">{t('title.statusChart')}</Text>
       {statusOrder.map(status => {
         const shipmentsForStatus = getStatusStats(shipments)[status] || [];
@@ -507,26 +499,29 @@ export default function Index() {
             item.quantity
           ])
         );
-        return (
-          <div key={status} style={{ marginBottom: 16 }}>
+        return rows.length > 0 ?(
+          <Box key={status} paddingBlock="400">
+            <BlockStack gap="300">
             <Text as="h4" variant="headingMd">{status}</Text>
             <DataTable
               columnContentTypes={['text', 'text', 'numeric']}
               headings={[t('label.siNumber'), t('label.productName'), t('label.quantity')]}
               rows={rows}
             />
-          </div>
-        );
+          </BlockStack>
+          </Box>
+        ): null;
         })}
-          </>
+      </BlockStack>
         )}
 
 
 
         {/* SI番号で検索 */}
         {detailViewMode === 'search' && (
-            <>
+            <BlockStack gap="400">
               <Text as="h3" variant="headingMd">{t('title.siSearch')}</Text>
+              <Box maxWidth="400px">
               <TextField
                 label={t('label.siNumber')}
                 value={siQuery}
@@ -536,6 +531,11 @@ export default function Index() {
                 clearButton
                 onClearButtonClick={() => setSiQuery('')}
               />
+              </Box>
+
+              {siQuery && (
+                <>
+
               <DataTable
                 columnContentTypes={['text', 'text', 'text']}
                 headings={[t('label.siNumber'), t('label.eta'), t('label.supplier')]}
@@ -554,23 +554,69 @@ export default function Index() {
                   s.supplier_name
                 ])}
               />
-              {siQuery && filteredShipments.length === 0 && (
+              {filteredShipments.length === 0 && (
                 <Banner tone="info">{t('message.noMatchingSi')}</Banner>
               )}
             </>
             )}
-    </div>
-  
+          </BlockStack>
+
+          )}
+
+          </Box>         
+          </BlockStack>
+          </Card>
+          </BlockStack>
+        </Layout.Section>
+        </Layout>
+
+     {/* ポップアップ */}
+     {hoveredProduct && (
+      <div
+        style={{
+          position: "fixed",
+          top: popupPos.y,
+          left: popupPos.x,
+          background: "#fff",
+          border: "1px solid #e1e3e5",
+          borderRadius: "8px",
+          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+          padding: "16px",
+          zIndex: 99999,
+          minWidth: `${POPUP_WIDTH}px`,
+          maxWidth: `${POPUP_WIDTH}px`,
+          maxHeight: `${POPUP_HEIGHT}px`,
+          overflowY: "auto",
+          fontSize: "14px"
+        }}
+        onMouseEnter={handlePopupMouseEnter}
+        onMouseLeave={handlePopupMouseLeave}
+      >
+        <Text as="p" variant="bodyMd" fontWeight="semibold">
+          {t('message.siListWith', { productName: hoveredProduct })}
+        </Text>
+        <Box paddingBlockStart="200">
+          <DataTable
+            columnContentTypes={['text', 'text', 'numeric', 'text']}
+            headings={[
+              t('label.siNumber'),
+              t('label.productName'),
+              t('label.quantity'),
+              t('label.status')
+            ]}
+            rows={rows}
+          />
+        </Box>
+      </div>
+    )}
+
       {/* モーダル表示 */}
       <CustomModal
         shipment={selectedShipment}
         onClose={handleModalClose}
         onUpdated={() => fetchShipments(shopId)}
       />
-      </BlockStack>
-    </Card>  
     </Page>
-  </>
   );
 }
 
