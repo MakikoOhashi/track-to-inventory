@@ -325,17 +325,9 @@ export default function Index() {
         </ul>)
           }
           </BlockStack>
-        </Card>
        
-      
-    
-{/* 
-    <Page title={t('title.arrivalStatus')}> */}
-      
-
-      
       {/* 表示切り替えボタン */}
-       <Card>
+      
        <BlockStack gap="500">
         
         <Text as="h2" variant="headingLg">{t('title.arrivalStatus')}</Text>
