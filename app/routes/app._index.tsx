@@ -331,7 +331,7 @@ export default function Index() {
       
       {/* 表示切り替えボタン */}
        <Card>
-       <BlockStack>
+       <BlockStack gap="400">
         
         <ButtonGroup>
           <Button 
