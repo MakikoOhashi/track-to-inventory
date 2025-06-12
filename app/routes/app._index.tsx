@@ -279,6 +279,7 @@ export default function Index() {
   
       <Page
         title={t('title.shipmentsByOwner')}
+       
         primaryAction={<LanguageSwitcher value={lang} onChange={setLang} />}
       >
      
@@ -309,8 +310,8 @@ export default function Index() {
         
           <BlockStack gap="400"> 
           <Text as="h2" variant="headingLg">{t('title.upcomingArrivals')}</Text>
-          <Text as="p" variant="bodyMd" tone="subdued">{t('message.upcomingArrivals')}</Text>
-        
+          {/* <Text as="p" variant="bodyMd" tone="subdued">{t('message.upcomingArrivals')}</Text>
+         */}
         {shipments.length === 0 ? (
             <Banner tone="info">{t('message.noData')}</Banner>
           ) : (
