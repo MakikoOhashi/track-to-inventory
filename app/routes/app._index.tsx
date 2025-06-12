@@ -341,22 +341,21 @@ export default function Index() {
       {/* 表示切り替えボタン */}
        <Card>
        <BlockStack gap="500">
-        <InlineStack align="space-between">
+        
         <Text as="h2" variant="headingLg">{t('title.arrivalStatus')}</Text>
-        <ButtonGroup>
-          <Button 
-          variant={viewMode === 'card' ? 'primary' : 'secondary'} 
-          onClick={() => setViewMode('card')}>
-            {t('button.cardView')}
-          </Button>
-          <Button
-            variant={viewMode === 'table' ? 'primary' : 'secondary'}
-            onClick={() => setViewMode('table')}
-          >
-            {t('button.tableView')}
-          </Button>
-        </ButtonGroup>
-      </InlineStack>
+        {/* ▼▼▼ ここが変更点 ▼▼▼ */}
+        <Tabs
+          tabs={[
+            { id: 'card', content: t('button.cardView') },
+            { id: 'table', content: t('button.tableView') }
+          ]}
+          selected={viewMode === 'card' ? 0 : 1}
+          onSelect={selectedIndex => {
+            setViewMode(selectedIndex === 0 ? 'card' : 'table');
+          }}
+        />
+        <Divider />
+      
       
       <Divider />
       {/* 表示形式に応じて切り替え */}
