@@ -391,26 +391,7 @@ export default function Index() {
 
   <Text as="h2" variant="headingLg">{t('title.detailDisplay')}</Text>
 
-  {/* <ButtonGroup>
-    <Button 
-      variant={detailViewMode === 'search' ? "primary" : "secondary"}
-      onClick={() => setDetailViewMode('search')}
-    >
-      {t('button.searchBySi')}
-    </Button>
-    <Button 
-       variant={detailViewMode === 'product' ? "primary" : "secondary"}
-       onClick={() => setDetailViewMode('product')}
-    >
-       {t('button.productArrivals')}
-    </Button>
-    <Button 
-      variant={detailViewMode === 'status' ? "primary" : "secondary"}
-      onClick={() => setDetailViewMode('status')}
-    >
-      {t('button.statusChart')}
-    </Button>
-  </ButtonGroup> */}
+
                 <Tabs 
                   tabs={tabs}
                   selected={selectedTab}
@@ -423,20 +404,10 @@ export default function Index() {
 
 
   {/* ←この下にトグルで統計表を追加 */}
-  
-    {/* <div style={{ 
-      marginTop: 16, 
-      background: "#fff", 
-      border: "1px solid #ccc", 
-      borderRadius: 6, 
-      padding: 16, 
-      maxWidth: 480, 
-      marginLeft: "auto", 
-      marginRight: "auto", 
-      position: "relative" 
-    }}> */}
+  <Divider />
 
-      <Box paddingBlockStart="500" maxWidth="700px">
+      <BlockStack gap="500">
+      <div style={{ maxWidth: "700px", margin: "0 auto", paddingTop: 32 }}>
        {/* 商品別 */}
        {detailViewMode === 'product' && (
       <BlockStack gap="400">
@@ -562,8 +533,9 @@ export default function Index() {
           </BlockStack>
 
           )}
-
-          </Box>         
+          </div> 
+          </BlockStack>  
+                 
           </BlockStack>
           </Card>
           </BlockStack>
