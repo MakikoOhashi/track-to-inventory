@@ -81,6 +81,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                       <Button variant="primary" size="medium">
                         アップロードセクションへ
                       </Button>
+                      <div style={{ width: 8, display: 'inline-block' }} />
                       <Link url="https://example.com" target="_blank">
                         チュートリアルを見る
                       </Link>
@@ -112,6 +113,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                       <Button variant="primary" size="medium">
                         配送リストを見る
                       </Button>
+                      <div style={{ width: 8, display: 'inline-block' }} />
                       <Link url="https://example.com" target="_blank">
                         チュートリアルを見る
                       </Link>
@@ -141,6 +143,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                       <Button variant="primary" size="medium">
                         エディターを試す
                       </Button>
+                      <div style={{ width: 8, display: 'inline-block' }} />
                       <Link url="https://example.com" target="_blank">
                         チュートリアルを見る
                       </Link>
