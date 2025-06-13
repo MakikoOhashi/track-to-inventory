@@ -17,6 +17,8 @@ import {
   Box,
   Layout,
 } from '@shopify/polaris';
+import { QuestionCircleIcon } from '@shopify/polaris-icons';
+
 import CustomModal from '../components/Modal';
 import StatusCard from '../components/StatusCard';
 import StatusTable from '../components/StatusTable';
@@ -276,6 +278,30 @@ export default function Index() {
       ];
     });
 
+    const IndexPage = () => {
+      // StartGuideの表示状態を親で管理
+      const [showStartGuide, setShowStartGuide] = useState(false);
+    
+      useEffect(() => {
+        // 初回表示ロジック
+        const hasSeenGuide = localStorage.getItem('hasSeenStartGuide') === 'true';
+        const isFirstTime = true; // Supabaseのユーザ情報などがあればここで判定
+        if (!hasSeenGuide || isFirstTime) {
+          setShowStartGuide(true);
+        }
+      }, []);
+    
+      // StartGuideを閉じた時のコールバック
+      const handleDismissGuide = () => {
+        setShowStartGuide(false);
+        localStorage.setItem('hasSeenStartGuide', 'true');
+        // Supabaseの更新もここで
+      };
+    
+      // 「？」ボタン押下でStartGuide再表示
+      const handleShowGuide = () => setShowStartGuide(true);
+    
+
   // --- JSX ---
   return (
   
@@ -309,7 +335,24 @@ export default function Index() {
         {/* ETAが近い上位2件のリスト表示 */}     
        
 
-        <StartGuide />
+        {/* StartGuide本体 */}
+      {showStartGuide && (
+        <StartGuide onDismiss={handleDismissGuide} />
+      )}
+
+      {/* ガイドが非表示ならヘルプボタン */}
+      {!showStartGuide && (
+        <Box position="fixed">
+          <Button
+            icon={QuestionCircleIcon}
+            onClick={handleShowGuide}
+            variant="plain"
+            size="large"
+            accessibilityLabel="ガイドを再表示"
+          />
+        </Box>
+      )}
+
         <Card>
         
           <BlockStack gap="400"> 
@@ -589,4 +632,4 @@ export default function Index() {
     </Page>
   );
 }
-
+}

@@ -10,38 +10,17 @@ import {
 } from '@shopify/polaris';
 import { XIcon } from '@shopify/polaris-icons';
 
-const StartGuide = () => {
-  const [isVisible, setIsVisible] = useState(false);
+const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  useEffect(() => {
-    // 初回表示判定のロジック
-    // 実際の実装では localStorage または Supabase user_metadata を使用
-    const hasSeenGuide = false; // localStorage.getItem('hasSeenStartGuide') === 'true';
-    const isFirstTime = true; // user?.user_metadata?.first_time === true;
-    
-    if (!hasSeenGuide || isFirstTime) {
-      setIsVisible(true);
-    }
-  }, []);
+  const toggleExpanded = () => setIsExpanded(!isExpanded);
 
-  const dismissGuide = () => {
-    setIsVisible(false);
-    // localStorage.setItem('hasSeenStartGuide', 'true');
-    // または Supabase でユーザー設定を更新
-  };
-
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
-  };
-
-  if (!isVisible) return null;
 
   return (
     <Card>
       <Box
         padding="400"
-        background="bg-surface-brand-subdued"
+        
         borderRadius="200"
       >
         <BlockStack gap="400">
@@ -51,7 +30,7 @@ const StartGuide = () => {
               <Box
                 background="bg-surface-brand"
                 padding="200"
-                borderRadius="50"
+                
                 minWidth="32px"
                 minHeight="32px"
               >
@@ -59,13 +38,13 @@ const StartGuide = () => {
                   🚀
                 </Text>
               </Box>
-              <Text as="h3" variant="headingLg" tone="text-brand">
+              <Text as="h3" variant="headingLg">
                 初めてのご利用ですか？
               </Text>
             </InlineStack>
             <InlineStack gap="200">
               <Button
-                onClick={toggleExpanded}
+                onClick={onDismiss}
                 variant="plain"
                 size="slim"
                 tone="critical"
@@ -73,7 +52,7 @@ const StartGuide = () => {
                 {isExpanded ? '折りたたむ' : '詳細を見る'}
               </Button>
               <Button
-                onClick={dismissGuide}
+                onClick={onDismiss}
                 variant="plain"
                 size="slim"
                 icon={XIcon}
@@ -96,7 +75,7 @@ const StartGuide = () => {
                       <Box
                         background="bg-surface-brand"
                         padding="200"
-                        borderRadius="50"
+                        
                         minWidth="32px"
                         minHeight="32px"
                       >
@@ -126,7 +105,7 @@ const StartGuide = () => {
                       <Box
                         background="bg-surface-brand"
                         padding="200"
-                        borderRadius="50"
+                        
                         minWidth="32px"
                         minHeight="32px"
                       >
@@ -156,7 +135,7 @@ const StartGuide = () => {
                       <Box
                         background="bg-surface-brand"
                         padding="200"
-                        borderRadius="50"
+                       
                         minWidth="32px"
                         minHeight="32px"
                       >
@@ -182,7 +161,7 @@ const StartGuide = () => {
 
               {/* コールトゥアクション */}
               <Card>
-                <Box padding="300" background="bg-surface-success-subdued">
+                <Box padding="300">
                   <InlineStack gap="200" align="center">
                     <Text as="span" variant="bodyMd">✅</Text>
                     <Text as="span" variant="bodyMd" fontWeight="medium" tone="success">
@@ -193,13 +172,13 @@ const StartGuide = () => {
               </Card>
 
               {/* フッター */}
-              <Box paddingBlockStart="400" borderBlockStart="divider">
+              <Box paddingBlockStart="400">
                 <InlineStack align="space-between">
                   <Text as="span" variant="bodySm" tone="subdued">
                     このガイドは一度非表示にすると、再表示されません
                   </Text>
                   <Button 
-                    onClick={dismissGuide} 
+                    onClick={onDismiss} 
                     variant="primary"
                     size="slim"
                   >
