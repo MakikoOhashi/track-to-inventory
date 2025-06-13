@@ -373,7 +373,12 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     
     <Card sectioned title={t("ocrUploader.title")|| "OCR"}>
       {error && <Banner status="critical">{error}</Banner>}
-
+      
+        {/* タイトルを明示的に表示 */}
+        <div style={{ marginBottom: '8px' }}>
+          <Text as="h2" variant="headingLg">{t("ocrUploader.title")}</Text>
+        </div>
+      
       <DropZone 
        
         accept="image/*,application/pdf" onDrop={handleDrop}>
