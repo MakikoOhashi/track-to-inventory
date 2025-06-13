@@ -32,6 +32,13 @@ const steps = [
     btn: "Go to editor",
     url: "/edit",
   },
+  {
+    badge: "4",
+    title: "Review and edit details",
+    desc: "Click on any shipment card to view and edit detailed information",
+    btn: "Go to editor",
+    url: "/edit",
+  },
 ];
 
 interface StartGuideProps {
