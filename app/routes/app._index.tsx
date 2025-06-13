@@ -339,18 +339,22 @@ export default function Index() {
         <StartGuide onDismiss={handleDismissGuide} />
       )}
 
-      {/* ガイドが非表示ならヘルプボタン */}
-      {!showStartGuide && (
-        <Box position="fixed">
-          <Button
-            icon={QuestionCircleIcon}
-            onClick={handleShowGuide}
-            variant="plain"
-            size="large"
-            accessibilityLabel="ガイドを再表示"
-          />
-        </Box>
-      )}
+     {/* ガイドが非表示ならヘルプボタンを右上に表示 */}
+     {!showStartGuide && (
+            <Box paddingBlockEnd="200">
+              <InlineStack align="end">
+                <Button
+                  icon={QuestionCircleIcon}
+                  onClick={handleShowGuide}
+                  variant="plain"
+                  size="large"
+                  accessibilityLabel="ガイドを再表示"
+                >
+                  ガイドを表示
+                </Button>
+              </InlineStack>
+            </Box>
+          )}
 
         <Card>
         

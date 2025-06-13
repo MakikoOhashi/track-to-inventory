@@ -15,12 +15,10 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
 
   const toggleExpanded = () => setIsExpanded(!isExpanded);
 
-
   return (
     <Card>
       <Box
         padding="400"
-        
         borderRadius="200"
       >
         <BlockStack gap="400">
@@ -30,7 +28,6 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
               <Box
                 background="bg-surface-brand"
                 padding="200"
-                
                 minWidth="32px"
                 minHeight="32px"
               >
@@ -44,7 +41,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
             </InlineStack>
             <InlineStack gap="200">
               <Button
-                onClick={onDismiss}
+                onClick={toggleExpanded}
                 variant="plain"
                 size="slim"
                 tone="critical"
@@ -75,7 +72,6 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                       <Box
                         background="bg-surface-brand"
                         padding="200"
-                        
                         minWidth="32px"
                         minHeight="32px"
                       >
@@ -105,7 +101,6 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                       <Box
                         background="bg-surface-brand"
                         padding="200"
-                        
                         minWidth="32px"
                         minHeight="32px"
                       >
@@ -135,7 +130,6 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                       <Box
                         background="bg-surface-brand"
                         padding="200"
-                       
                         minWidth="32px"
                         minHeight="32px"
                       >
