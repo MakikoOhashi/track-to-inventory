@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   Card,
   BlockStack,
@@ -7,101 +7,215 @@ import {
   Button,
   Box,
   Icon,
-  Badge,
-} from "@shopify/polaris";
-import { XIcon, UploadIcon, OrderIcon, EditIcon } from "@shopify/polaris-icons";
-
-const steps = [
-  {
-    icon: UploadIcon,
-    label: "Upload shipping documents",
-    description: "Upload images of your shipping documents and OCR will automatically extract the information",
-    linkLabel: "Go to upload",
-    linkUrl: "/upload"
-  },
-  {
-    icon: OrderIcon,
-    label: "Review in shipments list",
-    description: "After OCR processing is complete, your shipments will automatically appear in the list",
-    linkLabel: "View shipments",
-    linkUrl: "/shipments"
-  },
-  {
-    icon: EditIcon,
-    label: "Review and edit details",
-    description: "Click on any shipment card to view and edit detailed information",
-    linkLabel: "Go to editor",
-    linkUrl: "/edit"
-  },
-];
+  Link
+} from '@shopify/polaris';
+import { XIcon, UploadIcon, ViewIcon, EditIcon } from '@shopify/polaris-icons';
 
 const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
+  const toggleExpanded = () => setIsExpanded(!isExpanded);
+
   return (
     <Card>
-      <Box padding="400" background="bg-surface">
+      <Box
+        padding="400"
+        borderRadius="200"
+      >
         <BlockStack gap="400">
-          {/* Header */}
+          {/* ヘッダー */}
           <InlineStack align="space-between">
-            <BlockStack gap="100">
+            <InlineStack gap="200" align="center">
+              <Box
+                background="bg-surface-brand"
+                padding="200"
+                minWidth="32px"
+                minHeight="32px"
+              >
+                <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center">
+                  🚀
+                </Text>
+              </Box>
               <Text as="h3" variant="headingLg">
                 Get started with inventory management
               </Text>
-              <Text as="p" variant="bodyMd" tone="subdued">
-                Set up your inventory management in <Text as="span" fontWeight="bold">3 steps</Text>
-              </Text>
-            </BlockStack>
-            <Button
-              onClick={onDismiss}
-              variant="plain"
-              size="slim"
-              icon={XIcon}
-              accessibilityLabel="Close guide"
-            />
+            </InlineStack>
+            <InlineStack gap="200">
+              <Button
+                onClick={toggleExpanded}
+                variant="plain"
+                size="slim"
+                tone="critical"
+              >
+                {isExpanded ? 'Collapse' : 'Show details'}
+              </Button>
+              <Button
+                onClick={onDismiss}
+                variant="plain"
+                size="slim"
+                icon={XIcon}
+              />
+            </InlineStack>
           </InlineStack>
 
-          {/* Steps */}
+          {/* 展開時のコンテンツ */}
           {isExpanded && (
-            <BlockStack gap="300">
-              {steps.map((step, idx) => (
-                <InlineStack key={step.label} gap="300" align="start">
-                  <Badge tone="info">{String(idx + 1)}</Badge>
-                  <Icon source={step.icon} />
-                  <BlockStack gap="100">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      {step.label}
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {step.description}
-                    </Text>
-                    <Box paddingBlockStart="100">
-                      <Button
-                        variant="plain"
-                        size="slim"
-                        url={step.linkUrl}
-                        external={false}
+            <BlockStack gap="400">
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Set up your inventory management in <Text as="span" fontWeight="bold">3 steps</Text>:
+              </Text>
+              
+              <BlockStack gap="300">
+                {/* ステップ1 */}
+                <Card>
+                  <Box padding="300">
+                    <InlineStack gap="300" align="start">
+                      <Box
+                        background="bg-surface-brand"
+                        padding="200"
+                        minWidth="32px"
+                        minHeight="32px"
                       >
-                        {step.linkLabel}
-                      </Button>
-                    </Box>
-                  </BlockStack>
+                        <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center" fontWeight="bold">
+                          1
+                        </Text>
+                      </Box>
+                      <BlockStack gap="200">
+                        <BlockStack gap="100">
+                          <InlineStack gap="200" align="center">
+                            <Icon source={UploadIcon} />
+                            <Text as="span" variant="bodyMd" fontWeight="semibold">
+                              Upload shipping documents
+                            </Text>
+                          </InlineStack>
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            Upload images of your shipping documents and OCR will automatically extract the information
+                          </Text>
+                        </BlockStack>
+                        <Box paddingBlockStart="100">
+                          <Button
+                            variant="plain"
+                            size="slim"
+                            url="/upload"
+                            external={false}
+                          >
+                            Go to upload
+                          </Button>
+                        </Box>
+                      </BlockStack>
+                    </InlineStack>
+                  </Box>
+                </Card>
+
+                {/* ステップ2 */}
+                <Card>
+                  <Box padding="300">
+                    <InlineStack gap="300" align="start">
+                      <Box
+                        background="bg-surface-brand"
+                        padding="200"
+                        minWidth="32px"
+                        minHeight="32px"
+                      >
+                        <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center" fontWeight="bold">
+                          2
+                        </Text>
+                      </Box>
+                      <BlockStack gap="200">
+                        <BlockStack gap="100">
+                          <InlineStack gap="200" align="center">
+                            <Icon source={ViewIcon} />
+                            <Text as="span" variant="bodyMd" fontWeight="semibold">
+                              Review in shipments list
+                            </Text>
+                          </InlineStack>
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            After OCR processing is complete, your shipments will automatically appear in the list
+                          </Text>
+                        </BlockStack>
+                        <Box paddingBlockStart="100">
+                          <Button
+                            variant="plain"
+                            size="slim"
+                            url="/shipments"
+                            external={false}
+                          >
+                            View shipments
+                          </Button>
+                        </Box>
+                      </BlockStack>
+                    </InlineStack>
+                  </Box>
+                </Card>
+
+                {/* ステップ3 */}
+                <Card>
+                  <Box padding="300">
+                    <InlineStack gap="300" align="start">
+                      <Box
+                        background="bg-surface-brand"
+                        padding="200"
+                        minWidth="32px"
+                        minHeight="32px"
+                      >
+                        <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center" fontWeight="bold">
+                          3
+                        </Text>
+                      </Box>
+                      <BlockStack gap="200">
+                        <BlockStack gap="100">
+                          <InlineStack gap="200" align="center">
+                            <Icon source={EditIcon} />
+                            <Text as="span" variant="bodyMd" fontWeight="semibold">
+                              Review and edit details
+                            </Text>
+                          </InlineStack>
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            Click on any shipment card to view and edit detailed information
+                          </Text>
+                        </BlockStack>
+                        <Box paddingBlockStart="100">
+                          <Button
+                            variant="plain"
+                            size="slim"
+                            url="/edit"
+                            external={false}
+                          >
+                            Go to editor
+                          </Button>
+                        </Box>
+                      </BlockStack>
+                    </InlineStack>
+                  </Box>
+                </Card>
+              </BlockStack>
+
+              {/* コールトゥアクション */}
+              <Card>
+                <Box padding="300">
+                  <InlineStack gap="200" align="center">
+                    <Text as="span" variant="bodyMd">✅</Text>
+                    <Text as="span" variant="bodyMd" fontWeight="medium" tone="success">
+                      Start by uploading your first shipping document!
+                    </Text>
+                  </InlineStack>
+                </Box>
+              </Card>
+
+              {/* フッター */}
+              <Box paddingBlockStart="400">
+                <InlineStack align="space-between">
+                  <Button 
+                    onClick={onDismiss} 
+                    variant="primary"
+                    size="slim"
+                  >
+                    Close guide
+                  </Button>
                 </InlineStack>
-              ))}
+              </Box>
             </BlockStack>
           )}
-
-          {/* Call to action */}
-          <Box paddingBlockStart="400" paddingBlockEnd="200">
-            <Button
-              onClick={onDismiss}
-              variant="primary"
-              size="medium"
-              fullWidth
-            >
-              Start by uploading your first document!
-            </Button>
-          </Box>
         </BlockStack>
       </Box>
     </Card>
