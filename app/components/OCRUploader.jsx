@@ -375,7 +375,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       {error && <Banner status="critical">{error}</Banner>}
       
         {/* タイトルを明示的に表示 */}
-        <div style={{ marginBottom: '8px' }}>
+        <div style={{ marginBottom: '24px' }}>
           <Text as="h2" variant="headingLg">{t("ocrUploader.title")}</Text>
         </div>
       

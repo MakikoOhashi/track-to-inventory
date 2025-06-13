@@ -22,8 +22,10 @@ import StatusCard from '../components/StatusCard';
 import StatusTable from '../components/StatusTable';
 import OCRUploader from "../components/OCRUploader";
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
+import StartGuide from '~/components/StartGuide';
 
 import type { Shipment,ShipmentItem } from '../../types/Shipment';
+
 
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
@@ -306,6 +308,8 @@ export default function Index() {
        
         {/* ETAが近い上位2件のリスト表示 */}     
        
+
+        <StartGuide />
         <Card>
         
           <BlockStack gap="400"> 
