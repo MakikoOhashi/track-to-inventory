@@ -89,9 +89,9 @@ export default function Index() {
 
     useEffect(() => {
       // 初回表示ロジック
-      const hasSeenGuide = localStorage.getItem('hasSeenStartGuide') === 'true';
-      const isFirstTime = true; // Supabaseのユーザ情報などがあればここで判定
-      if (!hasSeenGuide || isFirstTime) {
+      const hasSeenGuide = localStorage.getItem('hasSeenStartGuide') ;
+     
+      if (hasSeenGuide  !== 'true') {
         setShowStartGuide(true);
       }
     }, []);
