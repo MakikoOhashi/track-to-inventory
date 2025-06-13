@@ -18,20 +18,18 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
 
   return (
     <Card>
-      <Box
-        padding="400"
-      >
+      <Box padding="400">
         <BlockStack gap="400">
           {/* ヘッダー */}
           <InlineStack align="space-between">
-            <InlineStack gap="200" align="center">
+            <InlineStack gap="300" align="center">
               <Box
-                background="bg-surface-brand"
                 padding="200"
                 minWidth="32px"
                 minHeight="32px"
+            
               >
-                <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center">
+                <Text as="span" variant="bodyMd">
                   🚀
                 </Text>
               </Box>
@@ -44,7 +42,6 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                 onClick={toggleExpanded}
                 variant="plain"
                 size="slim"
-                tone="critical"
               >
                 {isExpanded ? 'Collapse' : 'Show details'}
               </Button>
@@ -70,16 +67,16 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                   <Box padding="300">
                     <InlineStack gap="300" align="start">
                       <Box
-                        background="bg-surface-brand"
                         padding="200"
                         minWidth="32px"
                         minHeight="32px"
+                       
                       >
-                        <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center" fontWeight="bold">
+                        <Text as="span" variant="bodyMd" fontWeight="bold">
                           1
                         </Text>
                       </Box>
-                      <BlockStack gap="100">
+                      <BlockStack gap="200">
                         <InlineStack gap="200" align="center">
                           <Icon source={UploadIcon} />
                           <Text as="span" variant="bodyMd" fontWeight="semibold">
@@ -89,7 +86,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                         <Text as="p" variant="bodySm" tone="subdued">
                           Upload images of your shipping documents and OCR will automatically extract the information
                         </Text>
-                        <Box paddingBlockStart="100">
+                        <Box paddingBlockStart="200">
                           <Button
                             variant="plain"
                             size="slim"
@@ -109,16 +106,16 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                   <Box padding="300">
                     <InlineStack gap="300" align="start">
                       <Box
-                        background="bg-surface-brand"
                         padding="200"
                         minWidth="32px"
                         minHeight="32px"
+                      
                       >
-                        <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center" fontWeight="bold">
+                        <Text as="span" variant="bodyMd" fontWeight="bold">
                           2
                         </Text>
                       </Box>
-                      <BlockStack gap="100">
+                      <BlockStack gap="200">
                         <InlineStack gap="200" align="center">
                           <Icon source={ViewIcon} />
                           <Text as="span" variant="bodyMd" fontWeight="semibold">
@@ -128,7 +125,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                         <Text as="p" variant="bodySm" tone="subdued">
                           After OCR processing is complete, your shipments will automatically appear in the list
                         </Text>
-                        <Box paddingBlockStart="100">
+                        <Box paddingBlockStart="200">
                           <Button
                             variant="plain"
                             size="slim"
@@ -148,16 +145,16 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                   <Box padding="300">
                     <InlineStack gap="300" align="start">
                       <Box
-                        background="bg-surface-brand"
                         padding="200"
                         minWidth="32px"
                         minHeight="32px"
+                        
                       >
-                        <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center" fontWeight="bold">
+                        <Text as="span" variant="bodyMd" fontWeight="bold">
                           3
                         </Text>
                       </Box>
-                      <BlockStack gap="100">
+                      <BlockStack gap="200">
                         <InlineStack gap="200" align="center">
                           <Icon source={EditIcon} />
                           <Text as="span" variant="bodyMd" fontWeight="semibold">
@@ -167,7 +164,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                         <Text as="p" variant="bodySm" tone="subdued">
                           Click on any shipment card to view and edit detailed information
                         </Text>
-                        <Box paddingBlockStart="100">
+                        <Box paddingBlockStart="200">
                           <Button
                             variant="plain"
                             size="slim"
