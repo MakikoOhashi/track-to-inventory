@@ -56,75 +56,60 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
               </Text>
               
               <BlockStack gap="300">
-                {/* ステップ1 */}
-                <Card>
-                  <InlineStack gap="300" align="start">
-                    <Badge>1</Badge>
-                    <BlockStack gap="200">
-                      <Text as="span" variant="bodyMd" fontWeight="semibold">
-                        Upload shipping documents
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        Upload images of your shipping documents and OCR will automatically extract the information
-                      </Text>
-                      <Button
-                        variant="plain"
-                        size="slim"
-                        url="/upload"
-                        external={false}
-                      >
-                        Go to upload
-                      </Button>
-                    </BlockStack>
-                  </InlineStack>
-                </Card>
+  {/* ステップ1 */}
+  <Card>
+    <InlineStack gap="300" align="start">
+      <Badge>1</Badge>
+      <BlockStack gap="200">
+        <Text as="span" variant="bodyMd" fontWeight="semibold">
+          Upload shipping documents
+        </Text>
+        <Text as="p" variant="bodySm" tone="subdued">
+          Upload images of your shipping documents and OCR will automatically extract the information
+        </Text>
+        <Button variant="plain" size="slim" url="/upload">
+          Go to upload
+        </Button>
+      </BlockStack>
+    </InlineStack>
+  </Card>
 
-                {/* ステップ2 */}
-                <Card>
-                  <InlineStack gap="300" align="start">
-                    <Badge>2</Badge>
-                    <BlockStack gap="200">
-                      <Text as="span" variant="bodyMd" fontWeight="semibold">
-                        Review in shipments list
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        After OCR processing is complete, your shipments will automatically appear in the list
-                      </Text>
-                      <Button
-                        variant="plain"
-                        size="slim"
-                        url="/shipments"
-                        external={false}
-                      >
-                        View shipments
-                      </Button>
-                    </BlockStack>
-                  </InlineStack>
-                </Card>
+  {/* ステップ2 */}
+  <Card>
+    <InlineStack gap="300" align="start">
+      <Badge>2</Badge>
+      <BlockStack gap="200">
+        <Text as="span" variant="bodyMd" fontWeight="semibold">
+          Review in shipments list
+        </Text>
+        <Text as="p" variant="bodySm" tone="subdued">
+          After OCR processing is complete, your shipments will automatically appear in the list
+        </Text>
+        <Button variant="plain" size="slim" url="/shipments">
+          View shipments
+        </Button>
+      </BlockStack>
+    </InlineStack>
+  </Card>
 
-                {/* ステップ3 */}
-                <Card>
-                  <InlineStack gap="300" align="start">
-                    <Badge>3</Badge>
-                    <BlockStack gap="200">
-                      <Text as="span" variant="bodyMd" fontWeight="semibold">
-                        Review and edit details
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        Click on any shipment card to view and edit detailed information
-                      </Text>
-                      <Button
-                        variant="plain"
-                        size="slim"
-                        url="/edit"
-                        external={false}
-                      >
-                        Go to editor
-                      </Button>
-                    </BlockStack>
-                  </InlineStack>
-                </Card>
-              </BlockStack>
+  {/* ステップ3 */}
+  <Card>
+    <InlineStack gap="300" align="start">
+      <Badge>3</Badge>
+      <BlockStack gap="200">
+        <Text as="span" variant="bodyMd" fontWeight="semibold">
+          Review and edit details
+        </Text>
+        <Text as="p" variant="bodySm" tone="subdued">
+          Click on any shipment card to view and edit detailed information
+        </Text>
+        <Button variant="plain" size="slim" url="/edit">
+          Go to editor
+        </Button>
+      </BlockStack>
+    </InlineStack>
+  </Card>
+</BlockStack>
 
               {/* コールトゥアクション */}
               <Card>
