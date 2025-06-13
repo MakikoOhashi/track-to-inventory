@@ -27,9 +27,10 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
               <Icon source={PackageIcon} />
               <BlockStack gap="100">
                 <Text as="h2" variant="headingXl">
-                  輸入貨物の入荷管理を始めましょう
+                  輸入商品をかんたん入荷管理！
                 </Text>
-                <Badge tone="info">自動化で効率アップ</Badge>
+                <Badge tone="info">海外から届く商品が、いつ倉庫に届いて、いつ在庫になるのか？
+                その流れを“見える化”して、自動でShopifyに反映します。</Badge>
               </BlockStack>
             </InlineStack>
             <InlineStack gap="200">
@@ -54,9 +55,9 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
             <BlockStack gap="400">
               {/* メイン説明 */}
               <Text as="p" variant="bodyLg">
-                こちらのアプリを使えば現地を出発してShopifyの在庫になるまで、しっかりトラッキング管理できます。倉庫に到着すれば、自動でShopify在庫に追加。SIやINVをOCRで読み取って自動でデータ追加して簡単に始められます。
-              </Text>
-
+                📦 自動化で入荷チェックを効率化！
+                このアプリなら、海外出荷からShopify在庫反映までをまるごと自動管理。
+                書類をアップロードするだけで、在庫反映までの流れがスムーズになります。              </Text>
               <Divider />
 
               {/* Step 1 */}
@@ -68,11 +69,14 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                
                   <BlockStack gap="200">
                     <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      配送書類をアップロード
+                      書類アップロード
                     </Text>
                     <Text as="p" variant="bodySm" tone="subdued">
-                      配送書類の画像をアップロードすると、OCRが自動的に情報を抽出します。手動入力の手間を省けます。
-                    </Text>
+                    配送書類をアップロードするだけ
+                    納品書やインボイスの画像をアップすると、自動で内容を読み取って入荷情報を作成。
+                    面倒な手入力は不要です。
+
+                    🔍 対応書類例：パッキングリスト・インボイス・納品書など                    </Text>
                     <Box paddingBlockStart="100">
                       <Button variant="primary" size="medium">
                         アップロードページへ
@@ -93,11 +97,14 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                
                   <BlockStack gap="200">
                     <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      配送リストで一覧確認
+                      配送状況を一覧でチェック
                     </Text>
                     <Text as="p" variant="bodySm" tone="subdued">
-                      OCR処理が完了した配送情報は、配送リストで一覧表示されます。ステータスも一目で確認できます。
-                    </Text>
+                      どこから来てる？ 何が届く？ 一目でわかる
+                      アップロードされた情報は、配送リストに一覧表示されます。
+                      納品予定日・現在のステータス・到着状況などをまとめてチェック。
+
+                      ✨ 商品名やSKU、入荷予定日もここで確認できます。                    </Text>
                     <Box paddingBlockStart="100">
                       <Button variant="primary" size="medium">
                         配送リストを見る
@@ -118,11 +125,12 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                 
                   <BlockStack gap="200">
                     <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      詳細情報の確認・編集
+                      詳細を確認＆編集
                     </Text>
                     <Text as="p" variant="bodySm" tone="subdued">
-                      配送カードをクリックすると詳細情報が表示されます。必要に応じて情報を編集・修正できます。
-                    </Text>
+                    タップで詳細を確認・必要があれば修正も
+                    配送カード（各商品）をタップすれば、詳細情報を確認・編集できます。
+                    「到着済」にしたり、「数量修正」もカンタン。                    </Text>
                     <Box paddingBlockStart="100">
                       <Button variant="primary" size="medium">
                         エディターを試す
