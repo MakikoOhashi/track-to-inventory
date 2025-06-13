@@ -60,20 +60,14 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
               <BlockStack gap="300">
                 {/* ステップ1 */}
                 <Card>
-                  <Box padding="300">
-                    <InlineStack>
-                      
                         <Badge>
                           1
                         </Badge>
                         <Icon source={UploadIcon} />
                       <BlockStack gap="200">
-                       
-                          
-                          <Text as="span" variant="bodyMd" fontWeight="semibold">
+                        <Text as="span" variant="bodyMd" fontWeight="semibold">
                             Upload shipping documents
-                          </Text>
-                        
+                        </Text>
                         <Text as="p" variant="bodySm" tone="subdued">
                           Upload images of your shipping documents and OCR will automatically extract the information
                         </Text>
@@ -88,8 +82,6 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                           </Button>
                         
                       </BlockStack>
-                    </InlineStack>
-                  </Box>
                 </Card>
 
                 {/* ステップ2 */}
