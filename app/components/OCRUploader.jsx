@@ -363,7 +363,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
 // クライアントでのみレンダリング
   if (!isClient) {
     return (
-      <Card title={t("ocrUploader.title")|| "OCR"}>
+      <Card sectioned title={t("ocrUploader.title")|| "OCR"}>
         <Spinner />
       </Card>
     );
@@ -371,7 +371,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
 
   return (
     
-    <Card title={t("ocrUploader.title")}>
+    <Card sectioned title={t("ocrUploader.title")|| "OCR"}>
       {error && <Banner status="critical">{error}</Banner>}
 
       <DropZone 
