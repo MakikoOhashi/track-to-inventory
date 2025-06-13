@@ -8,7 +8,8 @@ import {
   Box,
   Icon,
   Badge,
-  Divider
+  Divider,
+  Link
 } from '@shopify/polaris';
 import { XIcon, UploadIcon, ViewIcon, EditIcon, PackageIcon } from '@shopify/polaris-icons';
 
@@ -55,8 +56,8 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
             <BlockStack gap="400">
               {/* メイン説明 */}
               <Text as="p" variant="bodyLg">
-                📦 自動化で入荷チェックを効率化！
-                このアプリなら、海外出荷からShopify在庫反映までをまるごと自動管理。
+                📦 自動化で入荷チェックを効率化！<br />
+                このアプリなら、海外出荷からShopify在庫反映までをまるごと自動管理。<br />
                 書類をアップロードするだけで、在庫反映までの流れがスムーズになります。              </Text>
               <Divider />
 
@@ -78,8 +79,11 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                     🔍 対応書類例：パッキングリスト・インボイス・納品書など                    </Text>
                     <Box paddingBlockStart="100">
                       <Button variant="primary" size="medium">
-                        アップロードページへ
+                        アップロードセクションへ
                       </Button>
+                      <Link url="https://example.com" target="_blank">
+                        チュートリアルを見る
+                      </Link>
                     </Box>
                   </BlockStack>
                 </InlineStack>
@@ -108,6 +112,9 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                       <Button variant="primary" size="medium">
                         配送リストを見る
                       </Button>
+                      <Link url="https://example.com" target="_blank">
+                        チュートリアルを見る
+                      </Link>
                     </Box>
                   </BlockStack>
                 </InlineStack>
@@ -134,6 +141,9 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                       <Button variant="primary" size="medium">
                         エディターを試す
                       </Button>
+                      <Link url="https://example.com" target="_blank">
+                        チュートリアルを見る
+                      </Link>
                     </Box>
                   </BlockStack>
                 </InlineStack>
