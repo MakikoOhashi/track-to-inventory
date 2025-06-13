@@ -6,8 +6,7 @@ import {
   Text,
   Button,
   Box,
-  Icon,
-  Link
+  Icon
 } from '@shopify/polaris';
 import { XIcon, UploadIcon, ViewIcon, EditIcon } from '@shopify/polaris-icons';
 
@@ -23,24 +22,9 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
           {/* ヘッダー */}
           <InlineStack align="space-between">
             <InlineStack gap="300" align="center">
-              <div
-                style={{
-                  backgroundColor: '#006FBB',
-                  borderRadius: '4px',
-                  padding: '8px',
-                  minWidth: '32px',
-                  minHeight: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <span style={{ color: 'white', fontSize: '14px' }}>
-                  🚀
-                </span>
-              </div>
+              <Text as="span" variant="bodyMd">💡</Text>
               <Text as="h3" variant="headingLg">
-                Get started with inventory management
+                在庫管理のヒント
               </Text>
             </InlineStack>
             <InlineStack gap="200">
@@ -64,153 +48,105 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
           {isExpanded && (
             <BlockStack gap="400">
               <Text as="p" variant="bodyMd" tone="subdued">
-                Set up your inventory management in <Text as="span" fontWeight="bold">3 steps</Text>:
+                効率的な在庫管理のために、以下の機能をご活用ください。お時間のあるときにお試しいただけます。
               </Text>
               
               <BlockStack gap="300">
-                {/* ステップ1 */}
+                {/* Tip1 */}
                 <Card>
-                  <Box padding="300">
-                    <InlineStack gap="300" align="start">
-                      <div
-                        style={{
-                          backgroundColor: '#006FBB',
-                          borderRadius: '4px',
-                          padding: '8px',
-                          minWidth: '32px',
-                          minHeight: '32px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <span style={{ color: 'white', fontSize: '14px', fontWeight: 'bold' }}>
-                          1
-                        </span>
-                      </div>
-                      <BlockStack gap="200">
-                        <InlineStack gap="200" align="center">
-                          <Icon source={UploadIcon} />
+                  <Box padding="400">
+                    <BlockStack gap="300">
+                      <InlineStack gap="300" align="start">
+                        <Icon source={UploadIcon} />
+                        <BlockStack gap="200">
                           <Text as="span" variant="bodyMd" fontWeight="semibold">
-                            Upload shipping documents
+                            配送書類をアップロード
                           </Text>
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          Upload images of your shipping documents and OCR will automatically extract the information
-                        </Text>
-                        <Box paddingBlockStart="200">
-                          <Button
-                            variant="plain"
-                            size="slim"
-                            url="/upload"
-                            external={false}
-                          >
-                            Go to upload
-                          </Button>
-                        </Box>
-                      </BlockStack>
-                    </InlineStack>
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            配送書類の画像をアップロードすると、OCRが自動的に情報を抽出します。手動入力の手間を省けます。
+                          </Text>
+                          <Box paddingBlockStart="200">
+                            <Button
+                              variant="primary"
+                              size="medium"
+                              url="/upload"
+                              external={false}
+                            >
+                              アップロードページへ
+                            </Button>
+                          </Box>
+                        </BlockStack>
+                      </InlineStack>
+                    </BlockStack>
                   </Box>
                 </Card>
 
-                {/* ステップ2 */}
+                {/* Tip2 */}
                 <Card>
-                  <Box padding="300">
-                    <InlineStack gap="300" align="start">
-                      <div
-                        style={{
-                          backgroundColor: '#006FBB',
-                          borderRadius: '4px',
-                          padding: '8px',
-                          minWidth: '32px',
-                          minHeight: '32px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <span style={{ color: 'white', fontSize: '14px', fontWeight: 'bold' }}>
-                          2
-                        </span>
-                      </div>
-                      <BlockStack gap="200">
-                        <InlineStack gap="200" align="center">
-                          <Icon source={ViewIcon} />
+                  <Box padding="400">
+                    <BlockStack gap="300">
+                      <InlineStack gap="300" align="start">
+                        <Icon source={ViewIcon} />
+                        <BlockStack gap="200">
                           <Text as="span" variant="bodyMd" fontWeight="semibold">
-                            Review in shipments list
+                            配送リストで一覧確認
                           </Text>
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          After OCR processing is complete, your shipments will automatically appear in the list
-                        </Text>
-                        <Box paddingBlockStart="200">
-                          <Button
-                            variant="plain"
-                            size="slim"
-                            url="/shipments"
-                            external={false}
-                          >
-                            View shipments
-                          </Button>
-                        </Box>
-                      </BlockStack>
-                    </InlineStack>
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            OCR処理が完了した配送情報は、配送リストで一覧表示されます。ステータスも一目で確認できます。
+                          </Text>
+                          <Box paddingBlockStart="200">
+                            <Button
+                              variant="primary"
+                              size="medium"
+                              url="/shipments"
+                              external={false}
+                            >
+                              配送リストを見る
+                            </Button>
+                          </Box>
+                        </BlockStack>
+                      </InlineStack>
+                    </BlockStack>
                   </Box>
                 </Card>
 
-                {/* ステップ3 */}
+                {/* Tip3 */}
                 <Card>
-                  <Box padding="300">
-                    <InlineStack gap="300" align="start">
-                      <div
-                        style={{
-                          backgroundColor: '#006FBB',
-                          borderRadius: '4px',
-                          padding: '8px',
-                          minWidth: '32px',
-                          minHeight: '32px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <span style={{ color: 'white', fontSize: '14px', fontWeight: 'bold' }}>
-                          3
-                        </span>
-                      </div>
-                      <BlockStack gap="200">
-                        <InlineStack gap="200" align="center">
-                          <Icon source={EditIcon} />
+                  <Box padding="400">
+                    <BlockStack gap="300">
+                      <InlineStack gap="300" align="start">
+                        <Icon source={EditIcon} />
+                        <BlockStack gap="200">
                           <Text as="span" variant="bodyMd" fontWeight="semibold">
-                            Review and edit details
+                            詳細情報の確認・編集
                           </Text>
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          Click on any shipment card to view and edit detailed information
-                        </Text>
-                        <Box paddingBlockStart="200">
-                          <Button
-                            variant="plain"
-                            size="slim"
-                            url="/edit"
-                            external={false}
-                          >
-                            Go to editor
-                          </Button>
-                        </Box>
-                      </BlockStack>
-                    </InlineStack>
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            配送カードをクリックすると詳細情報が表示されます。必要に応じて情報を編集・修正できます。
+                          </Text>
+                          <Box paddingBlockStart="200">
+                            <Button
+                              variant="primary"
+                              size="medium"
+                              url="/edit"
+                              external={false}
+                            >
+                              エディターを試す
+                            </Button>
+                          </Box>
+                        </BlockStack>
+                      </InlineStack>
+                    </BlockStack>
                   </Box>
                 </Card>
               </BlockStack>
 
-              {/* コールトゥアクション */}
+              {/* 追加情報 */}
               <Card>
                 <Box padding="300">
                   <InlineStack gap="200" align="center">
-                    <Text as="span" variant="bodyMd">✅</Text>
-                    <Text as="span" variant="bodyMd" fontWeight="medium" tone="success">
-                      Start by uploading your first shipping document!
+                    <Text as="span" variant="bodyMd">✨</Text>
+                    <Text as="span" variant="bodyMd" fontWeight="medium">
+                      これらの機能は必要に応じてご利用ください。いつでもここに戻ってこれます。
                     </Text>
                   </InlineStack>
                 </Box>
@@ -218,13 +154,13 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
 
               {/* フッター */}
               <Box paddingBlockStart="400">
-                <InlineStack align="space-between">
+                <InlineStack align="end">
                   <Button 
                     onClick={onDismiss} 
-                    variant="primary"
-                    size="slim"
+                    variant="tertiary"
+                    size="medium"
                   >
-                    Close guide
+                    ヒントを閉じる
                   </Button>
                 </InlineStack>
               </Box>
