@@ -23,12 +23,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
           {/* ヘッダー */}
           <InlineStack align="space-between">
             <InlineStack gap="300" align="center">
-              <Box
-                padding="200"
-                minWidth="32px"
-                minHeight="32px"
-            
-              >
+              <Box>
                 <Text as="span" variant="bodyMd">
                   🚀
                 </Text>
@@ -75,7 +70,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                         </Text>
                       </Box>
                       <BlockStack gap="200">
-                        <InlineStack gap="200" align="center">
+                        <InlineStack gap="200">
                           <Icon source={UploadIcon} />
                           <Text as="span" variant="bodyMd" fontWeight="semibold">
                             Upload shipping documents
@@ -112,7 +107,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                         </Text>
                       </Box>
                       <BlockStack gap="200">
-                        <InlineStack gap="200" align="center">
+                        <InlineStack gap="200">
                           <Icon source={ViewIcon} />
                           <Text as="span" variant="bodyMd" fontWeight="semibold">
                             Review in shipments list
@@ -149,7 +144,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                         </Text>
                       </Box>
                       <BlockStack gap="200">
-                        <InlineStack gap="200" align="center">
+                        <InlineStack gap="200">
                           <Icon source={EditIcon} />
                           <Text as="span" variant="bodyMd" fontWeight="semibold">
                             Review and edit details
@@ -177,7 +172,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
               {/* コールトゥアクション */}
               <Card>
                 <Box padding="300">
-                  <InlineStack gap="200" align="center">
+                  <InlineStack gap="200">
                     <Text as="span" variant="bodyMd">✅</Text>
                     <Text as="span" variant="bodyMd" fontWeight="medium" tone="success">
                       Start by uploading your first shipping document!
