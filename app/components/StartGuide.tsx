@@ -8,12 +8,36 @@ import {
   Box,
   Badge,
 } from '@shopify/polaris';
-import { XIcon, UploadIcon, ViewIcon, EditIcon } from '@shopify/polaris-icons';
+import { XIcon } from '@shopify/polaris-icons';
 
-const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
+const steps = [
+  {
+    badge: '1',
+    title: 'Upload shipping documents',
+    desc: 'Upload images of your shipping documents and OCR will automatically extract the information',
+    btn: 'Go to upload',
+    url: '/upload',
+  },
+  {
+    badge: '2',
+    title: 'Review in shipments list',
+    desc: 'After OCR processing is complete, your shipments will automatically appear in the list',
+    btn: 'View shipments',
+    url: '/shipments',
+  },
+  {
+    badge: '3',
+    title: 'Review and edit details',
+    desc: 'Click on any shipment card to view and edit detailed information',
+    btn: 'Go to editor',
+    url: '/edit',
+  },
+];
+interface StartGuideProps {
+  onDismiss: () => void;
+}
+const StartGuide: React.FC<StartGuideProps> = ({ onDismiss })  => {
   const [isExpanded, setIsExpanded] = useState(true);
-
-  const toggleExpanded = () => setIsExpanded(!isExpanded);
 
   return (
     <Card>
@@ -22,29 +46,14 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
           {/* ヘッダー */}
           <InlineStack align="space-between">
             <InlineStack gap="300" align="center">
-              <Box>
-                <Text as="span" variant="bodyMd">
-                  🚀
-                </Text>
-              </Box>
-              <Text as="h3" variant="headingLg">
-                Get started with inventory management
-              </Text>
+              <Text as="span" variant="bodyMd">🚀</Text>
+              <Text as="h3" variant="headingLg">Get started with inventory management</Text>
             </InlineStack>
             <InlineStack gap="200">
-              <Button
-                onClick={toggleExpanded}
-                variant="plain"
-                size="slim"
-              >
+              <Button onClick={() => setIsExpanded(!isExpanded)} variant="plain" size="slim">
                 {isExpanded ? 'Collapse' : 'Show details'}
               </Button>
-              <Button
-                onClick={onDismiss}
-                variant="plain"
-                size="slim"
-                icon={XIcon}
-              />
+              <Button onClick={onDismiss} variant="plain" size="slim" icon={XIcon} />
             </InlineStack>
           </InlineStack>
 
@@ -54,62 +63,33 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
               <Text as="p" variant="bodyMd" tone="subdued">
                 Set up your inventory management in <Text as="span" fontWeight="bold">3 steps</Text>:
               </Text>
-              
+
               <BlockStack gap="300">
-  {/* ステップ1 */}
-  <Card>
-    <InlineStack gap="300" align="start">
-      <Badge>1</Badge>
-      <BlockStack gap="200">
-        <Text as="span" variant="bodyMd" fontWeight="semibold">
-          Upload shipping documents
-        </Text>
-        <Text as="p" variant="bodySm" tone="subdued">
-          Upload images of your shipping documents and OCR will automatically extract the information
-        </Text>
-        <Button variant="plain" size="slim" url="/upload">
-          Go to upload
-        </Button>
-      </BlockStack>
-    </InlineStack>
-  </Card>
-
-  {/* ステップ2 */}
-  <Card>
-    <InlineStack gap="300" align="start">
-      <Badge>2</Badge>
-      <BlockStack gap="200">
-        <Text as="span" variant="bodyMd" fontWeight="semibold">
-          Review in shipments list
-        </Text>
-        <Text as="p" variant="bodySm" tone="subdued">
-          After OCR processing is complete, your shipments will automatically appear in the list
-        </Text>
-        <Button variant="plain" size="slim" url="/shipments">
-          View shipments
-        </Button>
-      </BlockStack>
-    </InlineStack>
-  </Card>
-
-  {/* ステップ3 */}
-  <Card>
-    <InlineStack gap="300" align="start">
-      <Badge>3</Badge>
-      <BlockStack gap="200">
-        <Text as="span" variant="bodyMd" fontWeight="semibold">
-          Review and edit details
-        </Text>
-        <Text as="p" variant="bodySm" tone="subdued">
-          Click on any shipment card to view and edit detailed information
-        </Text>
-        <Button variant="plain" size="slim" url="/edit">
-          Go to editor
-        </Button>
-      </BlockStack>
-    </InlineStack>
-  </Card>
-</BlockStack>
+                {steps.map((step) => (
+                  <Card key={step.badge}>
+                    <Box padding="300">
+                      <InlineStack gap="300" align="center">
+                        <Badge>{step.badge}</Badge>
+                        <BlockStack gap="200" >
+                          <Text as="span" variant="bodyMd" fontWeight="semibold">
+                            {step.title}
+                          </Text>
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            {step.desc}
+                          </Text>
+                          <Button
+                            variant="plain"
+                            size="slim"
+                            url={step.url}
+                          >
+                            {step.btn}
+                          </Button>
+                        </BlockStack>
+                      </InlineStack>
+                    </Box>
+                  </Card>
+                ))}
+              </BlockStack>
 
               {/* コールトゥアクション */}
               <Card>
@@ -125,7 +105,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
 
               {/* フッター */}
               <Box paddingBlockStart="400">
-                <InlineStack align="space-between">
+                <InlineStack align="end">
                   <Button 
                     onClick={onDismiss} 
                     variant="primary"
