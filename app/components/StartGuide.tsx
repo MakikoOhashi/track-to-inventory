@@ -67,9 +67,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                   <Box padding="300">
                     <InlineStack gap="300" align="start">
                       <Box
-                        padding="200"
-                        minWidth="32px"
-                        minHeight="32px"
+              
                        
                       >
                         <Text as="span" variant="bodyMd" fontWeight="bold">
@@ -106,9 +104,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                   <Box padding="300">
                     <InlineStack gap="300" align="start">
                       <Box
-                        padding="200"
-                        minWidth="32px"
-                        minHeight="32px"
+           
                       
                       >
                         <Text as="span" variant="bodyMd" fontWeight="bold">
@@ -145,9 +141,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                   <Box padding="300">
                     <InlineStack gap="300" align="start">
                       <Box
-                        padding="200"
-                        minWidth="32px"
-                        minHeight="32px"
+                     
                         
                       >
                         <Text as="span" variant="bodyMd" fontWeight="bold">
