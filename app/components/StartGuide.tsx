@@ -7,7 +7,8 @@ import {
   Button,
   Box,
   Icon,
-  Link
+  Link,
+  Badge,
 } from '@shopify/polaris';
 import { XIcon, UploadIcon, ViewIcon, EditIcon } from '@shopify/polaris-icons';
 
@@ -61,22 +62,22 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                 <Card>
                   <Box padding="300">
                     <InlineStack>
-                      <Box>
-                        <Text as="span" variant="bodyMd" fontWeight="bold">
+                      
+                        <Badge>
                           1
-                        </Text>
-                      </Box>
+                        </Badge>
+                        <Icon source={UploadIcon} />
                       <BlockStack gap="200">
-                        <InlineStack gap="200">
-                          <Icon source={UploadIcon} />
+                       
+                          
                           <Text as="span" variant="bodyMd" fontWeight="semibold">
                             Upload shipping documents
                           </Text>
-                        </InlineStack>
+                        
                         <Text as="p" variant="bodySm" tone="subdued">
                           Upload images of your shipping documents and OCR will automatically extract the information
                         </Text>
-                        <Box paddingBlockStart="200">
+                        
                           <Button
                             variant="plain"
                             size="slim"
@@ -85,7 +86,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                           >
                             Go to upload
                           </Button>
-                        </Box>
+                        
                       </BlockStack>
                     </InlineStack>
                   </Box>
