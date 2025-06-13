@@ -6,8 +6,6 @@ import {
   Text,
   Button,
   Box,
-  Icon,
-  Link,
   Badge,
 } from '@shopify/polaris';
 import { XIcon, UploadIcon, ViewIcon, EditIcon } from '@shopify/polaris-icons';
@@ -60,96 +58,71 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
               <BlockStack gap="300">
                 {/* ステップ1 */}
                 <Card>
-                        <Badge>
-                          1
-                        </Badge>
-                        {/* <Icon source={UploadIcon} /> */}
-                      <BlockStack gap="200">
-                        <Text as="span" variant="bodyMd" fontWeight="semibold">
-                            Upload shipping documents
-                        </Text>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          Upload images of your shipping documents and OCR will automatically extract the information
-                        </Text>
-                        
-                          <Button
-                            variant="plain"
-                            size="slim"
-                            url="/upload"
-                            external={false}
-                          >
-                            Go to upload
-                          </Button>
-                        
-                      </BlockStack>
+                  <InlineStack gap="300" align="start">
+                    <Badge>1</Badge>
+                    <BlockStack gap="200">
+                      <Text as="span" variant="bodyMd" fontWeight="semibold">
+                        Upload shipping documents
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Upload images of your shipping documents and OCR will automatically extract the information
+                      </Text>
+                      <Button
+                        variant="plain"
+                        size="slim"
+                        url="/upload"
+                        external={false}
+                      >
+                        Go to upload
+                      </Button>
+                    </BlockStack>
+                  </InlineStack>
                 </Card>
 
                 {/* ステップ2 */}
                 <Card>
-                  <Box padding="300">
-                    <InlineStack>
-                      <Box>
-                        <Text as="span" variant="bodyMd" fontWeight="bold">
-                          2
-                        </Text>
-                      </Box>
-                      <BlockStack gap="200">
-                        <InlineStack gap="200">
-                          <Icon source={ViewIcon} />
-                          <Text as="span" variant="bodyMd" fontWeight="semibold">
-                            Review in shipments list
-                          </Text>
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          After OCR processing is complete, your shipments will automatically appear in the list
-                        </Text>
-                        <Box paddingBlockStart="200">
-                          <Button
-                            variant="plain"
-                            size="slim"
-                            url="/shipments"
-                            external={false}
-                          >
-                            View shipments
-                          </Button>
-                        </Box>
-                      </BlockStack>
-                    </InlineStack>
-                  </Box>
+                  <InlineStack gap="300" align="start">
+                    <Badge>2</Badge>
+                    <BlockStack gap="200">
+                      <Text as="span" variant="bodyMd" fontWeight="semibold">
+                        Review in shipments list
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        After OCR processing is complete, your shipments will automatically appear in the list
+                      </Text>
+                      <Button
+                        variant="plain"
+                        size="slim"
+                        url="/shipments"
+                        external={false}
+                      >
+                        View shipments
+                      </Button>
+                    </BlockStack>
+                  </InlineStack>
                 </Card>
 
                 {/* ステップ3 */}
                 <Card>
-                  <Box padding="300">
-                    <InlineStack>
-                      <Box>
-                        <Text as="span" variant="bodyMd" fontWeight="bold">
-                          3
-                        </Text>
-                      </Box>
-                      <BlockStack gap="200">
-                        <InlineStack gap="200">
-                          <Icon source={EditIcon} />
-                          <Text as="span" variant="bodyMd" fontWeight="semibold">
-                            Review and edit details
-                          </Text>
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          Click on any shipment card to view and edit detailed information
-                        </Text>
-                        <Box paddingBlockStart="200">
-                          <Button
-                            variant="plain"
-                            size="slim"
-                            url="/edit"
-                            external={false}
-                          >
-                            Go to editor
-                          </Button>
-                        </Box>
-                      </BlockStack>
-                    </InlineStack>
-                  </Box>
+                  <InlineStack gap="300" align="start">
+                    <Badge>3</Badge>
+                    <BlockStack gap="200">
+                      <Text as="span" variant="bodyMd" fontWeight="semibold">
+                        Review and edit details
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Click on any shipment card to view and edit detailed information
+                      </Text>
+                      <Button
+                        variant="plain"
+                        size="slim"
+                        url="/edit"
+                        external={false}
+                      >
+                        Go to editor
+                      </Button>
+                    </BlockStack>
+                  </InlineStack>
                 </Card>
               </BlockStack>
 
