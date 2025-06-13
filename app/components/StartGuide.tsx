@@ -63,7 +63,7 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                         <Badge>
                           1
                         </Badge>
-                        <Icon source={UploadIcon} />
+                        {/* <Icon source={UploadIcon} /> */}
                       <BlockStack gap="200">
                         <Text as="span" variant="bodyMd" fontWeight="semibold">
                             Upload shipping documents
