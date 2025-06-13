@@ -84,6 +84,27 @@ export default function Index() {
   const [detailViewMode, setDetailViewMode] = useState<'product' | 'status' | 'search'>('product');
   const [siQuery, setSiQuery] = useState<string>('');
 
+    // StartGuideの表示状態を親で管理
+    const [showStartGuide, setShowStartGuide] = useState(false);
+
+    useEffect(() => {
+      // 初回表示ロジック
+      const hasSeenGuide = localStorage.getItem('hasSeenStartGuide') === 'true';
+      const isFirstTime = true; // Supabaseのユーザ情報などがあればここで判定
+      if (!hasSeenGuide || isFirstTime) {
+        setShowStartGuide(true);
+      }
+    }, []);
+  
+    // StartGuideを閉じた時のコールバック
+    const handleDismissGuide = () => {
+      setShowStartGuide(false);
+      localStorage.setItem('hasSeenStartGuide', 'true');
+      // Supabaseの更新もここで
+    };
+  
+    // 「？」ボタン押下でStartGuide再表示
+    const handleShowGuide = () => setShowStartGuide(true);
 
   const popupTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const POPUP_WIDTH = 320;
@@ -278,28 +299,6 @@ export default function Index() {
       ];
     });
 
-    const IndexPage = () => {
-      // StartGuideの表示状態を親で管理
-      const [showStartGuide, setShowStartGuide] = useState(false);
-    
-      useEffect(() => {
-        // 初回表示ロジック
-        const hasSeenGuide = localStorage.getItem('hasSeenStartGuide') === 'true';
-        const isFirstTime = true; // Supabaseのユーザ情報などがあればここで判定
-        if (!hasSeenGuide || isFirstTime) {
-          setShowStartGuide(true);
-        }
-      }, []);
-    
-      // StartGuideを閉じた時のコールバック
-      const handleDismissGuide = () => {
-        setShowStartGuide(false);
-        localStorage.setItem('hasSeenStartGuide', 'true');
-        // Supabaseの更新もここで
-      };
-    
-      // 「？」ボタン押下でStartGuide再表示
-      const handleShowGuide = () => setShowStartGuide(true);
     
 
   // --- JSX ---
@@ -632,4 +631,4 @@ export default function Index() {
     </Page>
   );
 }
-}
+
