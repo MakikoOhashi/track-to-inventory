@@ -60,11 +60,8 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                 {/* ステップ1 */}
                 <Card>
                   <Box padding="300">
-                    <InlineStack gap="300" align="start">
-                      <Box
-              
-                       
-                      >
+                    <InlineStack>
+                      <Box>
                         <Text as="span" variant="bodyMd" fontWeight="bold">
                           1
                         </Text>
@@ -97,11 +94,8 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                 {/* ステップ2 */}
                 <Card>
                   <Box padding="300">
-                    <InlineStack gap="300" align="start">
-                      <Box
-           
-                      
-                      >
+                    <InlineStack>
+                      <Box>
                         <Text as="span" variant="bodyMd" fontWeight="bold">
                           2
                         </Text>
@@ -134,11 +128,8 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                 {/* ステップ3 */}
                 <Card>
                   <Box padding="300">
-                    <InlineStack gap="300" align="start">
-                      <Box
-                     
-                        
-                      >
+                    <InlineStack>
+                      <Box>
                         <Text as="span" variant="bodyMd" fontWeight="bold">
                           3
                         </Text>
