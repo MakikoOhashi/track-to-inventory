@@ -363,7 +363,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
 // クライアントでのみレンダリング
   if (!isClient) {
     return (
-      <Card sectioned title={t("ocrUploader.title")|| "OCR"}>
+      <Card title={t("ocrUploader.title")|| "OCR"}>
         <Spinner />
       </Card>
     );
@@ -371,12 +371,11 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
 
   return (
     
-    <Card sectioned title={t("ocrUploader.title")}>
+    <Card title={t("ocrUploader.title")}>
       {error && <Banner status="critical">{error}</Banner>}
 
       <DropZone 
-        label={t("ocrUploader.title")}
-        labelHidden={false}
+       
         accept="image/*,application/pdf" onDrop={handleDrop}>
         {!file ? (
           <div style={{ textAlign: "center", paddingInlineStartadding: 20, width: "100%" }}>
