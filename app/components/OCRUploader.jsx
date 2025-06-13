@@ -375,7 +375,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       {error && <Banner status="critical">{error}</Banner>}
 
       <DropZone 
-        label={t("ocrUploader.dropzoneText")}
+        label={t("ocrUploader.title")}
         labelHidden={false}
         accept="image/*,application/pdf" onDrop={handleDrop}>
         {!file ? (
