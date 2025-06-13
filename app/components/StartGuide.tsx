@@ -65,7 +65,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                   <Box>
                     <Text as="span" variant="headingMd" tone="base">1.</Text>
                   </Box>
-                  <Icon source={UploadIcon} />
+               
                   <BlockStack gap="200">
                     <Text as="span" variant="bodyMd" fontWeight="semibold">
                       配送書類をアップロード
@@ -90,7 +90,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                   <Box>
                     <Text as="span" variant="headingMd" tone="base">2.</Text>
                   </Box>
-                  <Icon source={ViewIcon} />
+               
                   <BlockStack gap="200">
                     <Text as="span" variant="bodyMd" fontWeight="semibold">
                       配送リストで一覧確認
@@ -115,7 +115,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                   <Box>
                     <Text as="span" variant="headingMd" tone="base">3.</Text>
                   </Box>
-                  <Icon source={EditIcon} />
+                
                   <BlockStack gap="200">
                     <Text as="span" variant="bodyMd" fontWeight="semibold">
                       詳細情報の確認・編集
