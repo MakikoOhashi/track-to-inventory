@@ -72,10 +72,9 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                       書類アップロード
                     </Text>
                     <Text as="p" variant="bodySm" tone="subdued">
-                    配送書類をアップロードするだけ
-                    納品書やインボイスの画像をアップすると、自動で内容を読み取って入荷情報を作成。
-                    面倒な手入力は不要です。
-
+                    配送書類をアップロードするだけ<br />
+                    納品書やインボイスの画像をアップすると、自動で内容を読み取って入荷情報を作成。<br />
+                    面倒な手入力は不要です。<br />
                     🔍 対応書類例：パッキングリスト・インボイス・納品書など                    </Text>
                     <Box paddingBlockStart="100">
                       <Button variant="primary" size="medium">
@@ -100,9 +99,9 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                       配送状況を一覧でチェック
                     </Text>
                     <Text as="p" variant="bodySm" tone="subdued">
-                      どこから来てる？ 何が届く？ 一目でわかる
-                      アップロードされた情報は、配送リストに一覧表示されます。
-                      納品予定日・現在のステータス・到着状況などをまとめてチェック。
+                      どこから来てる？ 何が届く？ 一目でわかる<br />
+                      アップロードされた情報は、配送リストに一覧表示されます。<br />
+                      納品予定日・現在のステータス・到着状況などをまとめてチェック。<br />
 
                       ✨ 商品名やSKU、入荷予定日もここで確認できます。                    </Text>
                     <Box paddingBlockStart="100">
@@ -128,8 +127,8 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                       詳細を確認＆編集
                     </Text>
                     <Text as="p" variant="bodySm" tone="subdued">
-                    タップで詳細を確認・必要があれば修正も
-                    配送カード（各商品）をタップすれば、詳細情報を確認・編集できます。
+                    タップで詳細を確認・必要があれば修正も<br />
+                    配送カード（各商品）をタップすれば、詳細情報を確認・編集できます。<br />
                     「到着済」にしたり、「数量修正」もカンタン。                    </Text>
                     <Box paddingBlockStart="100">
                       <Button variant="primary" size="medium">
