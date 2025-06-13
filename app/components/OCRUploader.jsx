@@ -374,7 +374,10 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     <Card sectioned title={t("ocrUploader.title")}>
       {error && <Banner status="critical">{error}</Banner>}
 
-      <DropZone accept="image/*,application/pdf" onDrop={handleDrop}>
+      <DropZone 
+        label={t("ocrUploader.dropzoneText")}
+        labelHidden={false}
+        accept="image/*,application/pdf" onDrop={handleDrop}>
         {!file ? (
           <div style={{ textAlign: "center", paddingInlineStartadding: 20, width: "100%" }}>
           <Text variant="bodyMd" as="span">
