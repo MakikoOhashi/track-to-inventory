@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from "react";
 import {
   Card,
   BlockStack,
@@ -7,181 +7,101 @@ import {
   Button,
   Box,
   Icon,
-  Link
-} from '@shopify/polaris';
-import { XIcon } from '@shopify/polaris-icons';
+  Badge,
+} from "@shopify/polaris";
+import { XIcon, UploadIcon, OrderIcon, EditIcon } from "@shopify/polaris-icons";
+
+const steps = [
+  {
+    icon: UploadIcon,
+    label: "Upload shipping documents",
+    description: "Upload images of your shipping documents and OCR will automatically extract the information",
+    linkLabel: "Go to upload",
+    linkUrl: "/upload"
+  },
+  {
+    icon: OrderIcon,
+    label: "Review in shipments list",
+    description: "After OCR processing is complete, your shipments will automatically appear in the list",
+    linkLabel: "View shipments",
+    linkUrl: "/shipments"
+  },
+  {
+    icon: EditIcon,
+    label: "Review and edit details",
+    description: "Click on any shipment card to view and edit detailed information",
+    linkLabel: "Go to editor",
+    linkUrl: "/edit"
+  },
+];
 
 const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  const toggleExpanded = () => setIsExpanded(!isExpanded);
-
   return (
     <Card>
-      <Box
-        padding="400"
-        borderRadius="200"
-      >
+      <Box padding="400" background="bg-surface">
         <BlockStack gap="400">
-          {/* ヘッダー */}
+          {/* Header */}
           <InlineStack align="space-between">
-            <InlineStack gap="200" align="center">
-              <Box
-                padding="200"
-                minWidth="32px"
-                minHeight="32px"
-              >
-                <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center">
-                  🚀
-                </Text>
-              </Box>
+            <BlockStack gap="100">
               <Text as="h3" variant="headingLg">
-                初めてのご利用ですか？
+                Get started with inventory management
               </Text>
-            </InlineStack>
-            <InlineStack gap="200">
-              <Button
-                onClick={toggleExpanded}
-                variant="plain"
-                size="slim"
-                tone="critical"
-              >
-                {isExpanded ? '折りたたむ' : '詳細を見る'}
-              </Button>
-              <Button
-                onClick={onDismiss}
-                variant="plain"
-                size="slim"
-                icon={XIcon}
-              />
-            </InlineStack>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Set up your inventory management in <Text as="span" fontWeight="bold">3 steps</Text>
+              </Text>
+            </BlockStack>
+            <Button
+              onClick={onDismiss}
+              variant="plain"
+              size="slim"
+              icon={XIcon}
+              accessibilityLabel="Close guide"
+            />
           </InlineStack>
 
-          {/* 展開時のコンテンツ */}
+          {/* Steps */}
           {isExpanded && (
-            <BlockStack gap="400">
-              <Text as="p" variant="bodyMd" tone="subdued">
-                <Text as="span" fontWeight="bold">3ステップ</Text>で在庫管理を始められます：
-              </Text>
-              
-              <BlockStack gap="300">
-                {/* ステップ1 */}
-                <Card>
-                  <Box padding="300">
-                    <InlineStack gap="300" align="start">
-                      <Box
-                        background="bg-surface-brand"
-                        padding="200"
-                        minWidth="32px"
-                        minHeight="32px"
-                      >
-                        <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center" fontWeight="bold">
-                          1
-                        </Text>
-                      </Box>
-                      <BlockStack gap="100">
-                        <InlineStack gap="200" align="center">
-                          <Text as="span" variant="bodyMd">📤</Text>
-                          <Text as="span" variant="bodyMd" fontWeight="semibold">
-                            出荷帳票をアップロード
-                          </Text>
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          出荷帳票の画像をアップロードすると、OCRが自動で情報を読み取ります
-                        </Text>
-                      </BlockStack>
-                    </InlineStack>
-                  </Box>
-                </Card>
-
-                {/* ステップ2 */}
-                <Card>
-                  <Box padding="300">
-                    <InlineStack gap="300" align="start">
-                      <Box
-                        background="bg-surface-brand"
-                        padding="200"
-                        minWidth="32px"
-                        minHeight="32px"
-                      >
-                        <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center" fontWeight="bold">
-                          2
-                        </Text>
-                      </Box>
-                      <BlockStack gap="100">
-                        <InlineStack gap="200" align="center">
-                          <Text as="span" variant="bodyMd">📋</Text>
-                          <Text as="span" variant="bodyMd" fontWeight="semibold">
-                            出荷一覧で確認
-                          </Text>
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          OCR完了後、出荷一覧に自動で反映されます
-                        </Text>
-                      </BlockStack>
-                    </InlineStack>
-                  </Box>
-                </Card>
-
-                {/* ステップ3 */}
-                <Card>
-                  <Box padding="300">
-                    <InlineStack gap="300" align="start">
-                      <Box
-                        background="bg-surface-brand"
-                        padding="200"
-                        minWidth="32px"
-                        minHeight="32px"
-                      >
-                        <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center" fontWeight="bold">
-                          3
-                        </Text>
-                      </Box>
-                      <BlockStack gap="100">
-                        <InlineStack gap="200" align="center">
-                          <Text as="span" variant="bodyMd">✏️</Text>
-                          <Text as="span" variant="bodyMd" fontWeight="semibold">
-                            詳細確認・編集
-                          </Text>
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          出荷カードをクリックして、詳細情報の確認や編集ができます
-                        </Text>
-                      </BlockStack>
-                    </InlineStack>
-                  </Box>
-                </Card>
-              </BlockStack>
-
-              {/* コールトゥアクション */}
-              <Card>
-                <Box padding="300">
-                  <InlineStack gap="200" align="center">
-                    <Text as="span" variant="bodyMd">✅</Text>
-                    <Text as="span" variant="bodyMd" fontWeight="medium" tone="success">
-                      まずは出荷帳票の画像をアップロードしてみましょう！
+            <BlockStack gap="300">
+              {steps.map((step, idx) => (
+                <InlineStack key={step.label} gap="300" align="start">
+                  <Badge tone="info">{String(idx + 1)}</Badge>
+                  <Icon source={step.icon} />
+                  <BlockStack gap="100">
+                    <Text as="span" variant="bodyMd" fontWeight="semibold">
+                      {step.label}
                     </Text>
-                  </InlineStack>
-                </Box>
-              </Card>
-
-              {/* フッター */}
-              <Box paddingBlockStart="400">
-                <InlineStack align="space-between">
-                  {/* <Text as="span" variant="bodySm" tone="subdued">
-                    このガイドは一度非表示にすると、再表示されません
-                  </Text> */}
-                  <Button 
-                    onClick={onDismiss} 
-                    variant="primary"
-                    size="slim"
-                  >
-                    ガイドを閉じる
-                  </Button>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {step.description}
+                    </Text>
+                    <Box paddingBlockStart="100">
+                      <Button
+                        variant="plain"
+                        size="slim"
+                        url={step.linkUrl}
+                        external={false}
+                      >
+                        {step.linkLabel}
+                      </Button>
+                    </Box>
+                  </BlockStack>
                 </InlineStack>
-              </Box>
+              ))}
             </BlockStack>
           )}
+
+          {/* Call to action */}
+          <Box paddingBlockStart="400" paddingBlockEnd="200">
+            <Button
+              onClick={onDismiss}
+              variant="primary"
+              size="medium"
+              fullWidth
+            >
+              Start by uploading your first document!
+            </Button>
+          </Box>
         </BlockStack>
       </Box>
     </Card>
