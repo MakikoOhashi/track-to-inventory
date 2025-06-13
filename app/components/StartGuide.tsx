@@ -6,7 +6,8 @@ import {
   Text,
   Button,
   Box,
-  Icon
+  Icon,
+  Link
 } from '@shopify/polaris';
 import { XIcon } from '@shopify/polaris-icons';
 
@@ -26,7 +27,6 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
           <InlineStack align="space-between">
             <InlineStack gap="200" align="center">
               <Box
-                background="bg-surface-brand"
                 padding="200"
                 minWidth="32px"
                 minHeight="32px"
@@ -168,9 +168,9 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
               {/* フッター */}
               <Box paddingBlockStart="400">
                 <InlineStack align="space-between">
-                  <Text as="span" variant="bodySm" tone="subdued">
+                  {/* <Text as="span" variant="bodySm" tone="subdued">
                     このガイドは一度非表示にすると、再表示されません
-                  </Text>
+                  </Text> */}
                   <Button 
                     onClick={onDismiss} 
                     variant="primary"
