@@ -20,7 +20,6 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
     <Card>
       <Box
         padding="400"
-        borderRadius="200"
       >
         <BlockStack gap="400">
           {/* ヘッダー */}
@@ -80,18 +79,16 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                           1
                         </Text>
                       </Box>
-                      <BlockStack gap="200">
-                        <BlockStack gap="100">
-                          <InlineStack gap="200" align="center">
-                            <Icon source={UploadIcon} />
-                            <Text as="span" variant="bodyMd" fontWeight="semibold">
-                              Upload shipping documents
-                            </Text>
-                          </InlineStack>
-                          <Text as="p" variant="bodySm" tone="subdued">
-                            Upload images of your shipping documents and OCR will automatically extract the information
+                      <BlockStack gap="100">
+                        <InlineStack gap="200" align="center">
+                          <Icon source={UploadIcon} />
+                          <Text as="span" variant="bodyMd" fontWeight="semibold">
+                            Upload shipping documents
                           </Text>
-                        </BlockStack>
+                        </InlineStack>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          Upload images of your shipping documents and OCR will automatically extract the information
+                        </Text>
                         <Box paddingBlockStart="100">
                           <Button
                             variant="plain"
@@ -121,18 +118,16 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                           2
                         </Text>
                       </Box>
-                      <BlockStack gap="200">
-                        <BlockStack gap="100">
-                          <InlineStack gap="200" align="center">
-                            <Icon source={ViewIcon} />
-                            <Text as="span" variant="bodyMd" fontWeight="semibold">
-                              Review in shipments list
-                            </Text>
-                          </InlineStack>
-                          <Text as="p" variant="bodySm" tone="subdued">
-                            After OCR processing is complete, your shipments will automatically appear in the list
+                      <BlockStack gap="100">
+                        <InlineStack gap="200" align="center">
+                          <Icon source={ViewIcon} />
+                          <Text as="span" variant="bodyMd" fontWeight="semibold">
+                            Review in shipments list
                           </Text>
-                        </BlockStack>
+                        </InlineStack>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          After OCR processing is complete, your shipments will automatically appear in the list
+                        </Text>
                         <Box paddingBlockStart="100">
                           <Button
                             variant="plain"
@@ -162,18 +157,16 @@ const StartGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                           3
                         </Text>
                       </Box>
-                      <BlockStack gap="200">
-                        <BlockStack gap="100">
-                          <InlineStack gap="200" align="center">
-                            <Icon source={EditIcon} />
-                            <Text as="span" variant="bodyMd" fontWeight="semibold">
-                              Review and edit details
-                            </Text>
-                          </InlineStack>
-                          <Text as="p" variant="bodySm" tone="subdued">
-                            Click on any shipment card to view and edit detailed information
+                      <BlockStack gap="100">
+                        <InlineStack gap="200" align="center">
+                          <Icon source={EditIcon} />
+                          <Text as="span" variant="bodyMd" fontWeight="semibold">
+                            Review and edit details
                           </Text>
-                        </BlockStack>
+                        </InlineStack>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          Click on any shipment card to view and edit detailed information
+                        </Text>
                         <Box paddingBlockStart="100">
                           <Button
                             variant="plain"
