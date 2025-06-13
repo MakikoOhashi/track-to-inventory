@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { X, Upload, List, Edit3, CheckCircle } from 'lucide-react';
+import {
+  Card,
+  BlockStack,
+  InlineStack,
+  Text,
+  Button,
+  Box,
+  Icon
+} from '@shopify/polaris';
+import { XIcon } from '@shopify/polaris-icons';
 
 const StartGuide = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -31,113 +38,179 @@ const StartGuide = () => {
   if (!isVisible) return null;
 
   return (
-    <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 shadow-sm mb-6 relative">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              🚀
-            </div>
-            <h3 className="font-bold text-lg text-blue-900">初めてのご利用ですか？</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={toggleExpanded}
-              variant="ghost"
-              size="sm"
-              className="text-blue-600 hover:text-blue-800"
-            >
-              {isExpanded ? '折りたたむ' : '詳細を見る'}
-            </Button>
-            <Button
-              onClick={dismissGuide}
-              variant="ghost"
-              size="sm"
-              className="text-gray-500 hover:text-gray-700 p-1"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
+    <Card>
+      <Box
+        padding="400"
+        background="bg-surface-brand-subdued"
+        borderRadius="200"
+      >
+        <BlockStack gap="400">
+          {/* ヘッダー */}
+          <InlineStack align="space-between">
+            <InlineStack gap="200" align="center">
+              <Box
+                background="bg-surface-brand"
+                padding="200"
+                borderRadius="50"
+                minWidth="32px"
+                minHeight="32px"
+              >
+                <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center">
+                  🚀
+                </Text>
+              </Box>
+              <Text as="h3" variant="headingLg" tone="text-brand">
+                初めてのご利用ですか？
+              </Text>
+            </InlineStack>
+            <InlineStack gap="200">
+              <Button
+                onClick={toggleExpanded}
+                variant="plain"
+                size="slim"
+                tone="critical"
+              >
+                {isExpanded ? '折りたたむ' : '詳細を見る'}
+              </Button>
+              <Button
+                onClick={dismissGuide}
+                variant="plain"
+                size="slim"
+                icon={XIcon}
+              />
+            </InlineStack>
+          </InlineStack>
 
-      {isExpanded && (
-        <CardContent className="pt-0">
-          <div className="space-y-4">
-            <p className="text-sm text-blue-800 mb-4">
-              <strong>3ステップ</strong>で在庫管理を始められます：
-            </p>
-            
-            <div className="grid gap-3">
-              <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-blue-100">
-                <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold">
-                  1
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Upload className="w-4 h-4 text-blue-500" />
-                    <span className="font-semibold text-gray-900">出荷帳票をアップロード</span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    出荷帳票の画像をアップロードすると、OCRが自動で情報を読み取ります
-                  </p>
-                </div>
-              </div>
+          {/* 展開時のコンテンツ */}
+          {isExpanded && (
+            <BlockStack gap="400">
+              <Text as="p" variant="bodyMd" tone="subdued">
+                <Text as="span" fontWeight="bold">3ステップ</Text>で在庫管理を始められます：
+              </Text>
+              
+              <BlockStack gap="300">
+                {/* ステップ1 */}
+                <Card>
+                  <Box padding="300">
+                    <InlineStack gap="300" align="start">
+                      <Box
+                        background="bg-surface-brand"
+                        padding="200"
+                        borderRadius="50"
+                        minWidth="32px"
+                        minHeight="32px"
+                      >
+                        <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center" fontWeight="bold">
+                          1
+                        </Text>
+                      </Box>
+                      <BlockStack gap="100">
+                        <InlineStack gap="200" align="center">
+                          <Text as="span" variant="bodyMd">📤</Text>
+                          <Text as="span" variant="bodyMd" fontWeight="semibold">
+                            出荷帳票をアップロード
+                          </Text>
+                        </InlineStack>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          出荷帳票の画像をアップロードすると、OCRが自動で情報を読み取ります
+                        </Text>
+                      </BlockStack>
+                    </InlineStack>
+                  </Box>
+                </Card>
 
-              <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-blue-100">
-                <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold">
-                  2
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <List className="w-4 h-4 text-blue-500" />
-                    <span className="font-semibold text-gray-900">出荷一覧で確認</span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    OCR完了後、出荷一覧に自動で反映されます
-                  </p>
-                </div>
-              </div>
+                {/* ステップ2 */}
+                <Card>
+                  <Box padding="300">
+                    <InlineStack gap="300" align="start">
+                      <Box
+                        background="bg-surface-brand"
+                        padding="200"
+                        borderRadius="50"
+                        minWidth="32px"
+                        minHeight="32px"
+                      >
+                        <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center" fontWeight="bold">
+                          2
+                        </Text>
+                      </Box>
+                      <BlockStack gap="100">
+                        <InlineStack gap="200" align="center">
+                          <Text as="span" variant="bodyMd">📋</Text>
+                          <Text as="span" variant="bodyMd" fontWeight="semibold">
+                            出荷一覧で確認
+                          </Text>
+                        </InlineStack>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          OCR完了後、出荷一覧に自動で反映されます
+                        </Text>
+                      </BlockStack>
+                    </InlineStack>
+                  </Box>
+                </Card>
 
-              <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-blue-100">
-                <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold">
-                  3
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Edit3 className="w-4 h-4 text-blue-500" />
-                    <span className="font-semibold text-gray-900">詳細確認・編集</span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    出荷カードをクリックして、詳細情報の確認や編集ができます
-                  </p>
-                </div>
-              </div>
-            </div>
+                {/* ステップ3 */}
+                <Card>
+                  <Box padding="300">
+                    <InlineStack gap="300" align="start">
+                      <Box
+                        background="bg-surface-brand"
+                        padding="200"
+                        borderRadius="50"
+                        minWidth="32px"
+                        minHeight="32px"
+                      >
+                        <Text as="span" variant="bodyMd" tone="text-inverse" alignment="center" fontWeight="bold">
+                          3
+                        </Text>
+                      </Box>
+                      <BlockStack gap="100">
+                        <InlineStack gap="200" align="center">
+                          <Text as="span" variant="bodyMd">✏️</Text>
+                          <Text as="span" variant="bodyMd" fontWeight="semibold">
+                            詳細確認・編集
+                          </Text>
+                        </InlineStack>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          出荷カードをクリックして、詳細情報の確認や編集ができます
+                        </Text>
+                      </BlockStack>
+                    </InlineStack>
+                  </Box>
+                </Card>
+              </BlockStack>
 
-            <div className="flex items-center gap-2 mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <span className="text-sm text-green-800 font-medium">
-                まずは出荷帳票の画像をアップロードしてみましょう！
-              </span>
-            </div>
-          </div>
+              {/* コールトゥアクション */}
+              <Card>
+                <Box padding="300" background="bg-surface-success-subdued">
+                  <InlineStack gap="200" align="center">
+                    <Text as="span" variant="bodyMd">✅</Text>
+                    <Text as="span" variant="bodyMd" fontWeight="medium" tone="success">
+                      まずは出荷帳票の画像をアップロードしてみましょう！
+                    </Text>
+                  </InlineStack>
+                </Box>
+              </Card>
 
-          <div className="mt-6 pt-4 border-t border-blue-100 flex justify-between items-center">
-            <span className="text-xs text-gray-500">
-              このガイドは一度非表示にすると、再表示されません
-            </span>
-            <Button 
-              onClick={dismissGuide} 
-              variant="outline" 
-              size="sm"
-              className="text-blue-600 border-blue-200 hover:bg-blue-50"
-            >
-              ガイドを閉じる
-            </Button>
-          </div>
-        </CardContent>
-      )}
+              {/* フッター */}
+              <Box paddingBlockStart="400" borderBlockStart="divider">
+                <InlineStack align="space-between">
+                  <Text as="span" variant="bodySm" tone="subdued">
+                    このガイドは一度非表示にすると、再表示されません
+                  </Text>
+                  <Button 
+                    onClick={dismissGuide} 
+                    variant="primary"
+                    size="slim"
+                  >
+                    ガイドを閉じる
+                  </Button>
+                </InlineStack>
+              </Box>
+            </BlockStack>
+          )}
+        </BlockStack>
+      </Box>
     </Card>
   );
 };
