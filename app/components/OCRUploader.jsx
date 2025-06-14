@@ -29,7 +29,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     transport_type: "",
     items: []  // JSONBとして保存される配列
   });
-  const [error, setError] = useState("");
+  //const [error, setError] = useState("");
   const [ocrError, setOcrError] = useState("");
   const [aiError, setAiError] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -108,7 +108,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       );
       return ocrResult.text;
     } catch (e) {
-      setError(t("ocrUploader.convertError"));
+      setOcrError(t("ocrUploader.convertError"));
       return "";
     }
   },
@@ -237,12 +237,12 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
    // AI補助（未入力項目のみAIで補完）
    const handleAiAssist = async () => {
     if (!ocrTextEdited.trim()) {
-      setError(t("ocrUploader.emptyOcrText"));
+      setAiError(t("ocrUploader.emptyOcrText"));
       return;
     }
     
     setAiLoading(true);
-    setError("");
+    setAiError("");
     
     try {
       console.log("Sending to AI:", { text: ocrTextEdited, fields }); // デバッグ用
@@ -257,8 +257,10 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       });
       
       // ★ 429エラー（使用回数制限）の専用ハンドリング
+      let data;
       if (res.status === 429) {
-        setError(data.error || "AI使用回数の月間上限に達しました。プランをアップグレードしてください。");
+        data = await res.json(); // ← 必ずここでawait！
+        setAiError(data.error || "AI使用回数の月間上限に達しました。プランをアップグレードしてください。");
         return;
       }
       
@@ -266,7 +268,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       
-      const data = await res.json();
+      data = await res.json();
       console.log("AI Response:", data); // デバッグ用
       
       if (data.error) {
@@ -278,7 +280,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         aiFields = JSON.parse(data.result);
       } catch (parseError) {
         console.error("JSON parse error:", parseError, "Raw result:", data.result);
-        seAiError(t("ocrUploader.aiParseFail"));
+        setAiError(t("ocrUploader.aiParseFail"));
         return;
       }
       
@@ -315,18 +317,18 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   const handleSaveToSupabase = async () => {
     // shopIdの必須チェック
     if (!shopId) {
-      setError(t("ocrUploader.noShopId"));
+      setSaveError(t("ocrUploader.noShopId"));
       return;
     }
     // バリデーション
     if (!fields.si_number) {
-      setError(t("ocrUploader.siRequired"));
+      setSaveError(t("ocrUploader.siRequired"));
       return;
     }
 
     try {
       setLoading(true);
-      setError("");
+      setSaveError("");
 
       // データの準備
       const shipmentData = {
@@ -423,7 +425,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         OCRテキスト: ocrTextEdited,
         shopId: shopId
       });
-      setError(t("ocrUploader.saveFail", { message: error.message }));
+      setSaveError(t("ocrUploader.saveFail", { message: error.message }));
     } finally {
       setLoading(false);
     }
@@ -555,7 +557,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
                 )}
               </div>
               <div style={{ marginTop: 8 }}>
-                <Button primary onClick={handleSaveToSupabase} disabled={!fields.si_number && !fields.supplier_name && !fields.eta && !fields.amount}>{t("ocrUploader.saveButton")}</Button>
+                <Button primary onClick={handleSaveToSupabase} disabled={!fields.si_number}>{t("ocrUploader.saveButton")}</Button>
                 {saveError && (
                   <Text color="critical" variant="bodySm" style={{ marginTop: 4 }}>{saveError}</Text>
                 )}
