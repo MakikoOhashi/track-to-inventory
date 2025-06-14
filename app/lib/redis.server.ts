@@ -249,8 +249,8 @@ export async function checkSILimit(userId: string): Promise<void> {
   try {
     const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/shipments?shop_id=eq.${encodeURIComponent(userId)}&select=count`, {
       headers: {
-        'apikey': process.env.SUPABASE_ANON_KEY!,
-        'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY!}`,
+        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
         'Content-Type': 'application/json',
         'Prefer': 'count=exact'
       }
