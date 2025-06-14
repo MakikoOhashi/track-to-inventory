@@ -30,6 +30,9 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     items: []  // JSONBとして保存される配列
   });
   const [error, setError] = useState("");
+  const [ocrError, setOcrError] = useState("");
+  const [aiError, setAiError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [isClient, setIsClient] = useState(false);
   const [usageInfo, setUsageInfo] = useState(null); // 使用状況情報を保存
 
@@ -439,7 +442,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     
     <Card sectioned>
       {/* OCRエラーは画面上部（Banner） */}
-      {ocrError && <Banner status="critical">{error}</Banner>}
+      {ocrError && <Banner status="critical">{ocrError}</Banner>}
       
         {/* タイトルを明示的に表示 */}
         <div style={{ marginBottom: '24px' }}>
