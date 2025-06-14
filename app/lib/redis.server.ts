@@ -158,6 +158,7 @@ export async function checkAndIncrementOCRFromRequest(request: Request): Promise
 export async function getUserUsage(userId: string) {
   const month = getCurrentMonth()
   const plan = await getUserPlan(userId)
+  const limits = PLAN_LIMITS[plan]
   
   // 現在の使用回数を取得
   const [aiCount, ocrCount] = await Promise.all([
@@ -189,12 +190,15 @@ export async function getUserUsage(userId: string) {
     }
   } catch (error) {
     console.error('SI件数取得エラー:', error)
-    // エラー時は0件として扱う
+    siCount = 0 // エラー時は0件として扱う
   }
 
   
-  // 制限値を取得
-  const limits = PLAN_LIMITS[plan]
+  // remainingはマイナスも許容
+  const siCurrent = typeof siCount === "number" && !isNaN(siCount) ? siCount : 0
+  const siLimit = limits.si
+  const siRemaining = siLimit === Infinity ? Infinity : siLimit - siCurrent
+
   
   return {
     plan,
@@ -213,7 +217,7 @@ export async function getUserUsage(userId: string) {
       si: {
         current: siCount,
         limit: limits.si,
-        remaining: limits.si === Infinity ? Infinity : limits.si - siCount,
+        remaining: siRemaining, // ここがマイナスもありうる
       },
     },
   }
