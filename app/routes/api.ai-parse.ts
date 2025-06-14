@@ -1,5 +1,6 @@
 import { json, ActionFunctionArgs } from "@remix-run/node";
 import { generateGeminiContent } from "~/lib/geminiClient";
+import { checkAndIncrementAIFromRequest } from "~/lib/redis.server";
 
 type Fields = { [key: string]: string | string[] };
 type RequestBody = { text: string; fields: Fields };
@@ -28,6 +29,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (missing.length === 0) {
     return json({ result: "{}" });
   }
+  
+  // 🔥 AI使用制限チェック（ここで回数制限＆カウント増加）
+  try {
+    await checkAndIncrementAIFromRequest(request);
+  } catch (error) {
+    // 制限に達した場合は429エラーを返す
+    return json(
+      { 
+        error: error instanceof Error ? error.message : "AI usage limit exceeded",
+        type: "usage_limit"
+      }, 
+      { status: 429 }
+    );
+  }
+
 
   // AIへのプロンプト設計
   const prompt = `

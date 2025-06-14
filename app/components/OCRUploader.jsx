@@ -31,12 +31,54 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   });
   const [error, setError] = useState("");
   const [isClient, setIsClient] = useState(false);
+  const [usageInfo, setUsageInfo] = useState(null); // 使用状況情報を保存
 
    // クライアント判定（SSR対策）
    useEffect(() => {
     setIsClient(true);
+    // コンポーネント初期化時に使用状況を取得
+    fetchUsageInfo();
   }, []);
 
+    // 使用状況を取得する関数
+    const fetchUsageInfo = async () => {
+      try {
+        const res = await fetch("/api/usage", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          setUsageInfo(data.usage);
+        }
+      } catch (error) {
+        console.error("使用状況の取得に失敗:", error);
+      }
+    };
+
+    // OCR使用制限をチェックする関数
+    const checkOCRLimit = async () => {
+      try {
+        const res = await fetch("/api/check-ocr-limit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        
+        if (res.status === 429) {
+          const data = await res.json();
+          throw new Error(data.error || "OCR使用回数の月間上限に達しました。プランをアップグレードしてください。");
+        }
+        
+        if (!res.ok) {
+          throw new Error("OCR制限チェックに失敗しました");
+        }
+        
+        return true;
+      } catch (error) {
+        throw error;
+      }
+    };
 
   // PDFをCanvas画像化→OCR
   const pdfToImageAndOcr = useCallback(
@@ -206,6 +248,12 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         }),
       });
       
+      // ★ 429エラー（使用回数制限）の専用ハンドリング
+      if (res.status === 429) {
+        setError(data.error || "AI使用回数の月間上限に達しました。プランをアップグレードしてください。");
+        return;
+      }
+      
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
@@ -310,8 +358,21 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       
       // HTTPステータスエラーをチェック
       if (!res.ok) {
-        throw new Error(`APIリクエストが失敗しました (ステータス: ${res.status})\nレスポンス: ${responseText}`);
+       // 制限エラーの場合
+      if (res.status === 403) {
+        let json;
+        try {
+          json = JSON.parse(responseText);
+        } catch (parseError) {
+          // JSON解析に失敗した場合はデフォルトメッセージ
+          setError('SI登録件数の制限に達しました');
+          return;
+        }
+        setError(json.error || 'SI登録件数の制限に達しました');
+        return;
       }
+      throw new Error(`APIリクエストが失敗しました (ステータス: ${res.status})\nレスポンス: ${responseText}`);
+    }
       
       // JSONとして解析を試行
       let json;
@@ -394,9 +455,14 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       </DropZone>
       {file && (
         <div style={{ marginTop: 16 }}>
-          <button onClick={handleOcr} disabled={loading}>
+          <button onClick={handleOcr} disabled={loading || (usageInfo && usageInfo.ocr.remaining <= 0 && usageInfo.ocr.limit !== Infinity)}>
           {t("ocrUploader.ocrButton")}
           </button>
+          {usageInfo && usageInfo.ocr.remaining <= 0 && usageInfo.ocr.limit !== Infinity && (
+            <Text variant="bodySm" color="critical" style={{ marginLeft: '8px' }}>
+              月間OCR使用回数の上限に達しています
+            </Text>
+          )}
         </div>
       )}
       {loading && <Spinner />}
