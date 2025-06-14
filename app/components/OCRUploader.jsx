@@ -455,10 +455,13 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       </DropZone>
       {file && (
         <div style={{ marginTop: 16 }}>
-          <button onClick={handleOcr} disabled={loading || (usageInfo && usageInfo.ocr.remaining <= 0 && usageInfo.ocr.limit !== Infinity)}>
+          <button onClick={handleOcr} 
+          disabled={
+            loading || 
+            (usageInfo?.ocr && usageInfo.ocr.remaining <= 0 && usageInfo.ocr.limit !== Infinity)}>
           {t("ocrUploader.ocrButton")}
           </button>
-          {usageInfo && usageInfo.ocr.remaining <= 0 && usageInfo.ocr.limit !== Infinity && (
+          {usageInfo?.ocr && usageInfo.ocr.remaining <= 0 && usageInfo.ocr.limit !== Infinity && (
             <Text variant="bodySm" color="critical" style={{ marginLeft: '8px' }}>
               月間OCR使用回数の上限に達しています
             </Text>
