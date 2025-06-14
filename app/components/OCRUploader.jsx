@@ -143,6 +143,9 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     setLoading(true);
     setError("");
     try {
+      // ★ ここでOCR使用制限チェック
+      await checkOCRLimit();
+
       let text = "";
       if (file.type === "application/pdf" || file.name?.toLowerCase().endsWith(".pdf")) {
         text = await pdfToImageAndOcr(file);
