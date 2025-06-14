@@ -274,7 +274,9 @@ export async function checkSILimit(userId: string): Promise<void> {
     if (error instanceof Error && error.message.includes('SI登録件数の上限')) {
       throw error
     }
-    throw new Error('SI登録件数の確認中にエラーが発生しました。')
+     // それ以外は詳細を含めてthrow
+     const detail = error instanceof Error ? error.message : String(error)
+     throw new Error(`SI登録件数の確認中にエラーが発生しました。詳細: ${detail}`)
   }
 }
 
