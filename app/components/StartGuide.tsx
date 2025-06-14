@@ -82,7 +82,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                         アップロードセクションへ
                       </Button>
                       <div style={{ width: 8, display: 'inline-block' }} />
-                      <Link url="https://example.com" target="_blank">
+                      <Link url="https://www.notion.so/track-to-inventory-211c3eba44cb803dbc79f9a485bc8342?source=copy_link#211c3eba44cb805ba274e891bd9d2c59" target="_blank">
                         チュートリアルを見る
                       </Link>
                     </Box>
@@ -114,7 +114,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                         配送リストを見る
                       </Button>
                       <div style={{ width: 8, display: 'inline-block' }} />
-                      <Link url="https://example.com" target="_blank">
+                      <Link url="https://www.notion.so/track-to-inventory-211c3eba44cb803dbc79f9a485bc8342?source=copy_link#211c3eba44cb80569cbde4b68b11514b" target="_blank">
                         チュートリアルを見る
                       </Link>
                     </Box>
@@ -144,7 +144,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                         エディターを試す
                       </Button>
                       <div style={{ width: 8, display: 'inline-block' }} />
-                      <Link url="https://example.com" target="_blank">
+                      <Link url="https://www.notion.so/track-to-inventory-211c3eba44cb803dbc79f9a485bc8342?source=copy_link#211c3eba44cb80ddab5dfa6fecc2e32c" target="_blank">
                         チュートリアルを見る
                       </Link>
                     </Box>
