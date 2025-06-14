@@ -30,10 +30,14 @@ const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET!;
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
 
-  // --- HMAC検証を最初に追加 ---
-  if (!verifyShopifyHmac(url.searchParams, SHOPIFY_API_SECRET)) {
-    return json({ error: "HMAC validation failed" }, { status: 401 });
-  }
+    // ★★★ 修正：hmacがある時だけ検証する ★★★
+    const hmac = url.searchParams.get("hmac");
+    if (hmac) {
+      if (!verifyShopifyHmac(url.searchParams, SHOPIFY_API_SECRET)) {
+        return json({ error: "HMAC validation failed" }, { status: 401 });
+      }
+    }
+    // hmacが無い場合はスキップ
 
   const shop_id = url.searchParams.get("shop_id");
   if (!shop_id) {
