@@ -607,9 +607,9 @@ export default function Index() {
         onMouseEnter={handlePopupMouseEnter}
         onMouseLeave={handlePopupMouseLeave}
       >
-        <Text as="p" variant="bodyMd" fontWeight="semibold">
+        {/* <Text as="p" variant="bodyMd" fontWeight="semibold">
           {t('message.siListWith', { productName: hoveredProduct })}
-        </Text>
+        </Text> */}
         <Box paddingBlockStart="200">
           <DataTable
             columnContentTypes={['text', 'text', 'numeric', 'text']}
