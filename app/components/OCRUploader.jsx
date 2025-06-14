@@ -131,7 +131,9 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     setOcrText("");
     setOcrTextEdited("");
     setFields({ si_number: "", supplier_name: "", transport_type: "", items: []  });
-    setError("");
+    setOcrError("");
+    setAiError("");
+    setSaveError("");
     setImageUrl("");
   },
   []
@@ -141,7 +143,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   const handleOcr = useCallback(async () => {
     if (!file) return;
     setLoading(true);
-    setError("");
+    setOcrError("");
     try {
       // ★ ここでOCR使用制限チェック
       await checkOCRLimit();
@@ -152,7 +154,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       } else if (file.type.startsWith("image/")) {
         text = await imageToOcr(file);
       } else {
-        setError(t("ocrUploader.unsupportedFileType"));
+        setOcrError(t("ocrUploader.unsupportedFileType"));
       }
       setOcrText(text);
       setOcrTextEdited(text);
@@ -273,7 +275,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         aiFields = JSON.parse(data.result);
       } catch (parseError) {
         console.error("JSON parse error:", parseError, "Raw result:", data.result);
-        setError(t("ocrUploader.aiParseFail"));
+        seAiError(t("ocrUploader.aiParseFail"));
         return;
       }
       
@@ -301,7 +303,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       
     } catch (error) {
       console.error("AI assist error:", error);
-      setError(`AI補完に失敗しました: ${error.message}`);
+      setAiError(`AI補完に失敗しました: ${error.message}`);
     } finally {
       setAiLoading(false);
     }
@@ -368,10 +370,10 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
           json = JSON.parse(responseText);
         } catch (parseError) {
           // JSON解析に失敗した場合はデフォルトメッセージ
-          setError('SI登録件数の制限に達しました');
+          setSaveError('SI登録件数の制限に達しました');
           return;
         }
-        setError(json.error || 'SI登録件数の制限に達しました');
+        setSaveError(json.error || 'SI登録件数の制限に達しました');
         return;
       }
       throw new Error(`APIリクエストが失敗しました (ステータス: ${res.status})\nレスポンス: ${responseText}`);
@@ -436,7 +438,8 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   return (
     
     <Card sectioned>
-      {error && <Banner status="critical">{error}</Banner>}
+      {/* OCRエラーは画面上部（Banner） */}
+      {ocrError && <Banner status="critical">{error}</Banner>}
       
         {/* タイトルを明示的に表示 */}
         <div style={{ marginBottom: '24px' }}>
@@ -539,11 +542,21 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
                 <Button size="slim" onClick={handleAddItem} style={{ marginTop: 4 }}>{t("ocrUploader.addProduct")}</Button>
               </div>
             </div>
-            {/* AI補助ボタン */}
-            <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
-              <Button onClick={handleAiAssist} disabled={aiLoading}>{t("ocrUploader.aiButton")}</Button>
-              {aiLoading && <Spinner />}
-              <Button primary onClick={handleSaveToSupabase} disabled={!fields.si_number && !fields.supplier_name && !fields.eta && !fields.amount}>{t("ocrUploader.saveButton")}</Button>
+            {/* AI補助ボタン・保存ボタンエラーはボタン下に表示 */}
+            <div style={{ marginTop: 16, display: "flex", gap: 12, flexDirection: "column", alignItems: "flex-start" }}>
+              <div>
+                <Button onClick={handleAiAssist} disabled={aiLoading}>{t("ocrUploader.aiButton")}</Button>
+                {aiLoading && <Spinner />}
+                {aiError && (
+                  <Text color="critical" variant="bodySm" style={{ marginTop: 4 }}>{aiError}</Text>
+                )}
+              </div>
+              <div style={{ marginTop: 8 }}>
+                <Button primary onClick={handleSaveToSupabase} disabled={!fields.si_number && !fields.supplier_name && !fields.eta && !fields.amount}>{t("ocrUploader.saveButton")}</Button>
+                {saveError && (
+                  <Text color="critical" variant="bodySm" style={{ marginTop: 4 }}>{saveError}</Text>
+                )}
+              </div>
             </div>
           </div>
         </div>
