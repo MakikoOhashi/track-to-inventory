@@ -78,7 +78,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                     面倒な手入力は不要です。<br />
                     🔍 対応書類例：パッキングリスト・インボイス・納品書など                    </Text>
                     <Box paddingBlockStart="100">
-                      <Button variant="primary" size="medium">
+                      <Button variant="primary" size="medium" url="#ocr-section">
                         アップロードセクションへ
                       </Button>
                       <div style={{ width: 8, display: 'inline-block' }} />
@@ -110,7 +110,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
 
                       ✨ 商品名やSKU、入荷予定日もここで確認できます。                    </Text>
                     <Box paddingBlockStart="100">
-                      <Button variant="primary" size="medium">
+                      <Button variant="primary" size="medium" url="#detail-section">
                         配送リストを見る
                       </Button>
                       <div style={{ width: 8, display: 'inline-block' }} />
@@ -140,8 +140,8 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                     配送カード（各商品）をタップすれば、詳細情報を確認・編集できます。<br />
                     「到着済」にしたり、「数量修正」もカンタン。                    </Text>
                     <Box paddingBlockStart="100">
-                      <Button variant="primary" size="medium">
-                        エディターを試す
+                      <Button variant="primary" size="medium"  url="#card-edit">
+                        エディターを試す(該当カードをクリック)
                       </Button>
                       <div style={{ width: 8, display: 'inline-block' }} />
                       <Link url="https://www.notion.so/track-to-inventory-211c3eba44cb803dbc79f9a485bc8342?source=copy_link#211c3eba44cb80ddab5dfa6fecc2e32c" target="_blank">

@@ -331,8 +331,7 @@ export default function Index() {
           </BlockStack> 
         </Card> */}
        
-        {/* ETAが近い上位2件のリスト表示 */}     
-       
+        
 
         {/* StartGuide本体 */}
       {showStartGuide && (
@@ -359,7 +358,7 @@ export default function Index() {
         <Card>
         
           <BlockStack gap="400"> 
-          <Text as="h2" variant="headingLg">{t('title.upcomingArrivals')}</Text>
+          <Text as="h2" variant="headingLg" id="card-edit">{t('title.upcomingArrivals')}</Text>
           {/* <Text as="p" variant="bodyMd" tone="subdued">{t('message.upcomingArrivals')}</Text>
          */}
         {shipments.length === 0 ? (
@@ -425,7 +424,7 @@ export default function Index() {
 <Card>
   <BlockStack gap="500">
 
-  <Text as="h2" variant="headingLg">{t('title.detailDisplay')}</Text>
+  <Text as="h2" variant="headingLg" id="detail-section">{t('title.detailDisplay')}</Text>
 
 
                 <Tabs 
@@ -577,9 +576,11 @@ export default function Index() {
 
 
        {/* ここにOCRアップローダーを追加 - shopIdを渡す */}
+       <div id="ocr-section" />
         <OCRUploader 
           shopId={shopId} 
           onSaveSuccess={handleOcrSaveSuccess}
+          
         />
           </BlockStack>
         </Layout.Section>
