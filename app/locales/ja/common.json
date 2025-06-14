@@ -136,7 +136,8 @@
       "deleteConfirm": "本当に削除してよろしいですか？",
       "alreadySynced": "すでにShopifyと同期済みです",
       "alreadySyncedDetail": "この出荷データはShopifyと同期済みです。再度同期したい場合はステータスを戻してください。",
-      "syncSuccess": "Shopify同期が完了しました"
+      "syncSuccess": "Shopify同期が完了しました",
+      "fileTooLarge": "ファイルサイズは10MBまでです"
     }
   },
   "ocrUploader": {

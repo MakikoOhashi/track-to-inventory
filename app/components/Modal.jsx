@@ -101,6 +101,14 @@ const FILE_TYPES = [
    const handleFileUpload = async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
+
+      // ここから10MB制限追加 -----
+      const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+      if (file.size > MAX_SIZE) {
+        alert(t('modal.messages.fileTooLarge') || 'ファイルサイズは10MBまでです');
+        return;
+      }
+      // ここまで追加 -----
     const form = new FormData();
     form.append('file', file);
     form.append('si_number', formData.si_number);

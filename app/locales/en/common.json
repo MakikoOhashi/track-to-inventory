@@ -136,7 +136,8 @@
       "deleteConfirm": "Are you sure you want to delete?",
       "alreadySynced": "Alreadt Synced",
       "alreadySyncedDetail": "This SI has already been synced to Shopify. If you want to re-sync, please change the status to 'SI Issued' or 'Shipping' and try again.",
-      "syncSuccess": "Successfully synced to Shopify!"
+      "syncSuccess": "Successfully synced to Shopify!",
+      "fileTooLarge": "The file size must be up to 10MB"
     }
   },
   "ocrUploader": {
