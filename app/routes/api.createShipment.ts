@@ -51,8 +51,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 
 // バリデーション
-if (!shipment?.si_number || !shipment?.supplier_name) {
-  return json({ error: "SI番号と仕入先は必須項目です" }, { status: 400 });
+if (!shipment?.si_number) {
+  return json({ error: "SI番号は必須項目です" }, { status: 400 });
 }
 
 // ★★★ ここでSI登録件数制限チェックを追加 ★★★
