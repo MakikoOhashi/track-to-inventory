@@ -81,7 +81,8 @@
       "addItem": "商品追加",
       "viewFile": "アップロード済み{{fileType}}を見る",
       "viewFileType": "{{fileType}}ファイルを見る",
-      "syncShopify": "Shopifyと同期"
+      "syncShopify": "Shopifyと同期",
+      "deleteShipment": "このSIを削除する"
     },
     "fields": {
       "status": "ステータス",
@@ -137,7 +138,9 @@
       "alreadySynced": "すでにShopifyと同期済みです",
       "alreadySyncedDetail": "この出荷データはShopifyと同期済みです。再度同期したい場合はステータスを戻してください。",
       "syncSuccess": "Shopify同期が完了しました",
-      "fileTooLarge": "ファイルサイズは10MBまでです"
+      "fileTooLarge": "ファイルサイズは10MBまでです",
+      "deleteShipmentConfirm": "本当に削除してよいですか？（削除後は戻せません）",
+      "deleteShipmentSuccess": "削除しました"
     }
   },
   "ocrUploader": {

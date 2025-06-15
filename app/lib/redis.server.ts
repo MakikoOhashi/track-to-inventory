@@ -350,3 +350,24 @@ export async function testAILimit(): Promise<void> {
     console.log('❌ 制限に達しました:', getErrorMessage(error))
   }
 }
+/**
+ * 削除回数制限をチェック
+ * @param shopId ショップID
+ * @param limit 削除上限回数
+ */
+export async function checkDeleteLimit(shopId: string, limit: number) {
+  const month = getCurrentMonth();
+  const key = `delete_count:${shopId}:${month}`;
+  const count = await redis.get<number>(key);
+  if (Number(count ?? 0) >= limit) throw new Error("削除上限到達");
+}
+
+/**
+ * 削除回数をインクリメント
+ * @param shopId ショップID
+ */
+export async function incrementDeleteCount(shopId: string) {
+  const month = getCurrentMonth();
+  const key = `delete_count:${shopId}:${month}`;
+  await redis.incr(key);
+}

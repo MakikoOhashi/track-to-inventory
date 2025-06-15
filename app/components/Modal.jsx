@@ -20,6 +20,35 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState(shipment);
   const [syncing, setSyncing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+
+// 削除ハンドラ
+const handleDelete = async () => {
+  if (!window.confirm(t('modal.messages.deleteShipmentConfirm') || "本当に削除してよいですか？（削除後は戻せません）")) return;
+  setDeleting(true);
+  try {
+    const res = await fetch('/api/deleteShipment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        shop_id: shipment.shop_id,
+        shipment_id: shipment.id,
+        plan: shipment.plan, // 必要に応じて
+      }),
+    });
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    alert(t('modal.messages.deleteSuccess') || '削除しました');
+    if (onUpdated) onUpdated();
+    onClose();
+  } catch (e) {
+    alert(e.message || '削除に失敗しました');
+  } finally {
+    setDeleting(false);
+  }
+};
+
 
 const FILE_TYPES = [
   { label: t('modal.fileTypes.invoice'), key: 'invoice' },
@@ -324,6 +353,16 @@ const FILE_TYPES = [
                 )}
               </BlockStack>
             ))}
+            {/* === 削除ボタンをここに追加 === */}
+            <Button
+              destructive
+              loading={deleting}
+              onClick={handleDelete}
+              style={{ marginTop: 24 }}
+            >
+              {t('modal.buttons.deleteShipment') || "削除する"}
+            </Button>
+            {/* ========================== */}
           </BlockStack>
         ) : (
           <BlockStack gap="300">

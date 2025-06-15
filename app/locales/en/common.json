@@ -81,7 +81,8 @@
       "addItem": "Add Item",
       "viewFile": "View uploaded {{fileType}}",
       "viewFileType": "View {{fileType}} file",
-      "syncShopify": "Synced to Shopify"
+      "syncShopify": "Synced to Shopify",
+      "deleteShipment": "Delete this SI"
     },
     "fields": {
       "status": "Status",
@@ -137,7 +138,9 @@
       "alreadySynced": "Alreadt Synced",
       "alreadySyncedDetail": "This SI has already been synced to Shopify. If you want to re-sync, please change the status to 'SI Issued' or 'Shipping' and try again.",
       "syncSuccess": "Successfully synced to Shopify!",
-      "fileTooLarge": "The file size must be up to 10MB"
+      "fileTooLarge": "The file size must be up to 10MB",
+      "deleteShipmentConfirm": "Are you sure you want to delete? (Once deleted, it cannot be recovered)",
+      "deleteShipmentSuccess": "Deleted successfully"
     }
   },
   "ocrUploader": {
