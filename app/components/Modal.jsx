@@ -28,7 +28,7 @@ const handleDelete = async () => {
   if (!window.confirm(t('modal.messages.deleteShipmentConfirm') || "本当に削除してよいですか？（削除後は戻せません）")) return;
   setDeleting(true);
   try {
-    const res = await fetch('/api/deleteShipment', {
+    const res = await fetch('/api/delete-shipment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
