@@ -443,17 +443,19 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   return (
     
     <Card sectioned>
-      {/* OCRエラーは画面上部（Banner） */}
-      {ocrError && <Banner status="critical">{ocrError}</Banner>}
       
         {/* タイトルを明示的に表示 */}
         <div style={{ marginBottom: '24px' }}>
           <Text as="h2" variant="headingLg">{t("ocrUploader.title")}</Text>
         </div>
-      
+
+       {/* ファイルアップロードセクション */}
+      <div style={{ marginBottom: '24px' }}>
       <DropZone 
        
-        accept="image/*,application/pdf" onDrop={handleDrop}>
+        accept="image/*,application/pdf" 
+        onDrop={handleDrop}
+        >
         {!file ? (
           <div style={{ textAlign: "center", paddingInlineStartadding: 20, width: "100%" }}>
           <Text variant="bodyMd" as="span">
@@ -466,20 +468,32 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       </DropZone>
       {file && (
         <div style={{ marginTop: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button onClick={handleOcr} 
           disabled={
             loading || 
             (usageInfo?.ocr && usageInfo.ocr.remaining <= 0 && usageInfo.ocr.limit !== Infinity)}>
           {t("ocrUploader.ocrButton")}
           </button>
+          {loading && <Spinner size="small" />}
+          </div>
+          
+
+          {/* OCR関連のエラー表示 */}
+          {ocrError && (
+            <div style={{ marginTop: 8 }}>
+              <Text color="critical" variant="bodySm">{ocrError}</Text>
+            </div>
+          )}
+          
           {usageInfo?.ocr && usageInfo.ocr.remaining <= 0 && usageInfo.ocr.limit !== Infinity && (
-            <Text variant="bodySm" color="critical" style={{ marginLeft: '8px' }}>
+            <Text variant="bodySm" color="critical" style={{ marginTop: 8 }}>
               月間OCR使用回数の上限に達しています
             </Text>
           )}
         </div>
       )}
-      {loading && <Spinner />}
+    </div>
       
 
       {/* 画像＋OCRテキスト横並び */}
@@ -544,22 +558,38 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
                 ) : (
                   <Text color="subdued">{t("ocrUploader.noProductData")}</Text>
                 )}
-                <Button size="slim" onClick={handleAddItem} style={{ marginTop: 4 }}>{t("ocrUploader.addProduct")}</Button>
+                <Button size="slim" onClick={handleAddItem} style={{ marginTop: 4 }}>
+                  {t("ocrUploader.addProduct")}
+                </Button>
               </div>
             </div>
-            {/* AI補助ボタン・保存ボタンエラーはボタン下に表示 */}
+            {/* アクションボタンとエラー表示セクション  */}
             <div style={{ marginTop: 16, display: "flex", gap: 12, flexDirection: "column", alignItems: "flex-start" }}>
+               {/* AI補助セクション */}
               <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Button onClick={handleAiAssist} disabled={aiLoading}>{t("ocrUploader.aiButton")}</Button>
-                {aiLoading && <Spinner />}
+                {aiLoading && <Spinner size="small" />}
+              </div>
                 {aiError && (
+                  <div style={{ marginTop: 8 }}>
                   <Text color="critical" variant="bodySm" style={{ marginTop: 4 }}>{aiError}</Text>
+                  </div>
                 )}
               </div>
-              <div style={{ marginTop: 8 }}>
-                <Button primary onClick={handleSaveToSupabase} disabled={!fields.si_number}>{t("ocrUploader.saveButton")}</Button>
+
+              {/* 保存ボタンセクション */}
+              <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Button primary onClick={handleSaveToSupabase} disabled={!fields.si_number}>
+                  {t("ocrUploader.saveButton")}
+                </Button>
+                {loading && <Spinner size="small" />}
+                </div>
                 {saveError && (
+                  <div style={{ marginTop: 8 }}>
                   <Text color="critical" variant="bodySm" style={{ marginTop: 4 }}>{saveError}</Text>
+                  </div>
                 )}
               </div>
             </div>
