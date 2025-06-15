@@ -139,6 +139,8 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     setAiError("");
     setSaveError("");
     setImageUrl("");
+     // ファイルがアップロードされた場合は手動入力フォームを非表示
+    setShowManualForm(false);
   },
   []
   );
@@ -180,7 +182,19 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     setFields({ si_number: "", supplier_name: "", transport_type: "", items: [] });
     setOcrText("");
     setOcrTextEdited("");
+    // ファイル関連もクリア
+    setFile(null);
+    setImageUrl("");
+    setOcrError("");
+    setAiError("");
+    setSaveError("");
   };
+
+    // ★ 手動入力フォームを閉じる関数
+    const handleCloseManualForm = () => {
+      setShowManualForm(false);
+      setFields({ si_number: "", supplier_name: "", transport_type: "", items: [] });
+    };
 
 
     // 商品リスト部分の抽出（必要に応じて正規表現を調整）
@@ -427,6 +441,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       setOcrTextEdited("");
       setImageUrl("");
       setFile(null);
+      setShowManualForm(false); // 手動入力フォームも非表示
 
       // 親コンポーネントのコールバック関数を呼び出し
       if (onSaveSuccess) {
@@ -457,7 +472,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   }
 
   return (
-    
     <Card sectioned>
       
         {/* タイトルを明示的に表示 */}
@@ -522,10 +536,11 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         </div>
       )}
 
-      {/* 画像＋OCRテキスト横並び */}
-      {imageUrl && (ocrText || loading) && (
+      {/* 画像＋OCRテキスト横並び または 手動入力フォーム */}
+      {(imageUrl && (ocrText || loading)) || showManualForm && (
         <div style={{ display: "flex", gap: 32, marginTop: 32, alignItems: "flex-start", flexWrap: "wrap" }}>
-          {/* 画像プレビュー */}
+          {/* 画像プレビュー手動入力時は非表示 */}
+          {imageUrl && !showManualForm && (
           <div style={{ minWidth: 280, maxWidth: 400 }}>
             <Text variant="headingMd">{t("ocrUploader.uploadedImage")}</Text>
             <img
@@ -541,8 +556,22 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
               }}
             />
           </div>
-          {/* OCR編集テキストエリア＋FORM */}
+          )}
+              {/* OCR編集テキストエリア＋FORM */}
           <div style={{ flex: 1, minWidth: 320 }}>
+            {/* 手動入力時のヘッダー */}
+            {showManualForm && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <Text variant="headingMd">手動でSI情報を入力</Text>
+                <Button size="slim" onClick={handleCloseManualForm}>閉じる</Button>
+              </div>
+            )}
+
+          {/* 手動入力フォーム */}
+          {!showManualForm && (
+            <>
+          {/* OCR編集テキストエリア＋FORM */}
+          
             <Text variant="headingMd">{t("ocrUploader.ocrResultTitle")}</Text>
             <TextField
               multiline={10}
@@ -552,7 +581,9 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
               placeholder={t("ocrUploader.ocrResultPlaceholder")}
               style={{ fontFamily: "monospace", marginTop: 8, minHeight: 180 }}
             />
-            {/* フォーム項目 */}
+            </>
+          )}
+            {/* 共通フォーム項目 */}
             <div style={{ marginTop: 16 }}>
             <TextField label={t("ocrUploader.siNumber")} value={fields.si_number} onChange={val => handleFieldChange("si_number", val)} autoComplete="off" />
             <TextField label={t("ocrUploader.supplierName")} value={fields.supplier_name} onChange={val => handleFieldChange("supplier_name", val)} autoComplete="off" />
@@ -591,7 +622,8 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
             </div>
             {/* アクションボタンとエラー表示セクション  */}
             <div style={{ marginTop: 16, display: "flex", gap: 12, flexDirection: "column", alignItems: "flex-start" }}>
-               {/* AI補助セクション */}
+               {/* AI補助セクション（手動入力時は非表示） */}
+               {!showManualForm && (
               <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Button onClick={handleAiAssist} disabled={aiLoading}>{t("ocrUploader.aiButton")}</Button>
@@ -603,6 +635,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
                   </div>
                 )}
               </div>
+              )}
 
               {/* 保存ボタンセクション */}
               <div>
