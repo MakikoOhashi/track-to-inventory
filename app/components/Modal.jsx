@@ -33,7 +33,7 @@ const handleDelete = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         shop_id: shipment.shop_id,
-        shipment_id: shipment.id,
+        si_number: shipment.si_number,
         plan: shipment.plan, // 必要に応じて
       }),
     });

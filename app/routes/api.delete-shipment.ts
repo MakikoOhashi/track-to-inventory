@@ -6,7 +6,7 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   if (request.method !== "POST") return json({ error: "Method Not Allowed" }, { status: 405 });
-  const { shop_id, shipment_id, plan } = await request.json();
+  const { shop_id, si_number, plan } = await request.json();
 
   // 削除回数チェック
   try {
@@ -19,7 +19,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   // 削除
-  const { error } = await supabase.from("shipments").delete().eq("id", shipment_id);
+  const { error } = await supabase.from("shipments").delete().eq("si_number", si_number);
   if (error) return json({ error: "削除に失敗しました", details: error.message }, { status: 500 });
 
   // 削除回数カウント
