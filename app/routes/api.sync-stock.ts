@@ -1,6 +1,24 @@
 import { json, type ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "~/shopify.server";
 
+type UserError = {
+  field?: string[] | null;
+  message: string;
+};
+
+type SyncResult = {
+  variant_id: string;
+  product_title?: string;
+  before_quantity?: number;
+  delta?: number;
+  after_quantity?: number;
+  tracking_enabled?: boolean;
+  response?: unknown;
+  errors?: UserError[];
+  strategy_used?: string;
+  error?: string;
+};
+
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     const { admin } = await authenticate.admin(request);
@@ -51,7 +69,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     
     console.log("使用するLocation ID:", locationId);
 
-    const results = [];
+    const results: SyncResult[] = [];
     for (const item of items) {
       try {
         // 1. バリアント情報を詳細取得（在庫設定含む）
@@ -360,7 +378,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
 
         // userErrorsチェック（各戦略に応じて）
-        let userErrors: any[] = [];
+        let userErrors: UserError[] = [];
         if (adjData?.data?.inventoryAdjustQuantities?.userErrors) {
           userErrors = adjData.data.inventoryAdjustQuantities.userErrors;
         } else if (adjData?.data?.inventorySetQuantities?.userErrors) {
