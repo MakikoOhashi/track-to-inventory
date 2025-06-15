@@ -172,6 +172,16 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     }
   }, [file, pdfToImageAndOcr, imageToOcr, t]);
 
+   // ★ 手動入力フォームを開く関数
+   const handleOpenManualForm = () => {
+    setShowManualForm(true);
+    // フィールドをクリア（必要に応じて）
+    setFields({ si_number: "", supplier_name: "", transport_type: "", items: [] });
+    setOcrText("");
+    setOcrTextEdited("");
+  };
+
+
     // 商品リスト部分の抽出（必要に応じて正規表現を調整）
     function extractItems(text) {
       const lines = text.split("\n");
@@ -499,7 +509,17 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         </div>
       )}
     </div>
-      
+      {/* ★ 手動入力ボタン（OCR制限時や任意で使用） */}
+      {!showManualForm && (
+        <div style={{ marginBottom: '24px' }}>
+          <Button onClick={handleOpenManualForm}>
+            手動でSI情報を入力
+          </Button>
+          <Text variant="bodySm" color="subdued" style={{ marginTop: 8 }}>
+            OCRを使わずに直接入力する場合はこちら
+          </Text>
+        </div>
+      )}
 
       {/* 画像＋OCRテキスト横並び */}
       {imageUrl && (ocrText || loading) && (
