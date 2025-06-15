@@ -17,6 +17,9 @@ type SyncResult = {
   errors?: UserError[];
   strategy_used?: string;
   error?: string;
+  errorType?: string;    // 追加: エラータイプ（userError, graphql, logic, exception など）
+  failedStep?: string;   // 追加: どの処理で失敗したか
+  graphqlErrors?: unknown; // GraphQLトップレベルのerrors
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -71,6 +74,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     const results: SyncResult[] = [];
     for (const item of items) {
+      let step = "variantQuery";
       try {
         // 1. バリアント情報を詳細取得（在庫設定含む）
         const variantQuery = `
@@ -95,13 +99,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const variantRes = await admin.graphql(variantQuery, { 
           variables: { id: item.variant_id } 
         });
-        const variantData = await variantRes.json();
+        const variantData = await variantRes.json() as { data?: any; errors?: any };
         
+        if (variantData.errors) {
+          results.push({
+            variant_id: item.variant_id,
+            error: "バリアントGraphQLエラー",
+            errorType: "graphql",
+            failedStep: step,
+            graphqlErrors: variantData.errors,
+          });
+          continue;
+        }
+
         const variant = variantData.data?.productVariant;
         if (!variant) {
           results.push({
             variant_id: item.variant_id,
-            error: "バリアントが見つかりません"
+            error: "バリアントが見つかりません",
+            errorType: "logic",
+            failedStep: step,
           });
           continue;
         }
@@ -110,13 +127,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         if (!inventoryItemId) {
           results.push({
             variant_id: item.variant_id,
-            error: "inventory_item_idが取得できませんでした"
+            error: "inventory_item_idが取得できませんでした",
+            errorType: "logic",
+            failedStep: "inventoryItem",
           });
           continue;
         }
 
         // 2. 在庫追跡が無効の場合は有効にする
         if (!variant.inventoryItem.tracked) {
+          step = "inventoryItemUpdate";
           console.log(`在庫追跡を有効化: ${item.variant_id}`);
           
           const enableTrackingMutation = `
@@ -143,16 +163,33 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
           });
           
-          const trackingData = await trackingResult.json();
+          const trackingData = await trackingResult.json() as { data?: any; errors?: any };
+          if (trackingData.errors) {
+            results.push({
+              variant_id: item.variant_id,
+              error: "在庫追跡有効化GraphQLエラー",
+              errorType: "graphql",
+              failedStep: step,
+              graphqlErrors: trackingData.errors,
+            });
+            continue;
+          }
           if (trackingData.data?.inventoryItemUpdate?.userErrors?.length > 0) {
-            console.error("在庫追跡有効化エラー:", trackingData.data.inventoryItemUpdate.userErrors);
+            results.push({
+              variant_id: item.variant_id,
+              error: "在庫追跡有効化userError",
+              errorType: "userError",
+              failedStep: step,
+              errors: trackingData.data.inventoryItemUpdate.userErrors,
+            });
+            continue;
           }
         }
 
         // 3. バリアントの在庫管理設定を更新
         if (!variant.inventoryItem.tracked) {
           console.log(`在庫管理をShopifyに設定: ${item.variant_id}`);
-          
+          step = "productVariantUpdate";
           const variantUpdateMutation = `
             mutation($input: ProductVariantInput!) {
               productVariantUpdate(input: $input) {
@@ -177,17 +214,38 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
           });
           
-          const variantUpdateData = await variantUpdateResult.json();
+          const variantUpdateData = await variantUpdateResult.json() as { data?: any; errors?: any };
+          if (variantUpdateData.errors) {
+            results.push({
+              variant_id: item.variant_id,
+              error: "バリアント更新GraphQLエラー",
+              errorType: "graphql",
+              failedStep: step,
+              graphqlErrors: variantUpdateData.errors,
+            });
+            continue;
+          }
           if (variantUpdateData.data?.productVariantUpdate?.userErrors?.length > 0) {
-            console.error("バリアント更新エラー:", variantUpdateData.data.productVariantUpdate.userErrors);
+            results.push({
+              variant_id: item.variant_id,
+              error: "バリアント更新userError",
+              errorType: "userError",
+              failedStep: step,
+              errors: variantUpdateData.data.productVariantUpdate.userErrors,
+            });
+            continue;
           }
         }
 
         // 4. 在庫数量を調整 - ✅ 修正された部分（nameフィールド追加 + フォールバック戦略）
         let adjData: any = null;
         let success = false;
+        let adjUserErrors: UserError[] = [];
+        let adjGraphqlErrors: unknown = undefined;
+        let usedStrategy = "";
         
         // 戦略1: inventoryAdjustQuantities with name field
+        step = "inventoryAdjustQuantities";
         try {
           console.log("=== 戦略1: inventoryAdjustQuantities (name追加) ===");
           
@@ -237,19 +295,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             variables: mutationVariables
           });
           
-          adjData = await adjResult.json();
+          adjData = await adjResult.json() as { data?: any; errors?: any };
           console.log("戦略1 成功:", JSON.stringify(adjData, null, 2));
           
-          if (!adjData.errors && !adjData.data?.inventoryAdjustQuantities?.userErrors?.length) {
+          if (adjData.errors) {
+            adjGraphqlErrors = adjData.errors;
+          } else if (!adjData.data?.inventoryAdjustQuantities?.userErrors?.length) {
             success = true;
+            usedStrategy = "inventoryAdjustQuantities";
+          } else {
+            adjUserErrors = adjData.data.inventoryAdjustQuantities.userErrors;
           }
           
         } catch (strategy1Error) {
+          adjUserErrors = [{ message: String(strategy1Error) }];
           console.log("戦略1 失敗:", strategy1Error);
         }
         
         // 戦略2: inventorySetQuantities (フォールバック)
         if (!success) {
+          step = "inventorySetQuantities";
           try {
             console.log("=== 戦略2: inventorySetQuantities ===");
             
@@ -300,20 +365,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               variables: setQuantitiesVariables
             });
             
-            adjData = await setResult.json();
+            adjData = await setResult.json() as { data?: any; errors?: any };
             console.log("戦略2 成功:", JSON.stringify(adjData, null, 2));
             
-            if (!adjData.errors && !adjData.data?.inventorySetQuantities?.userErrors?.length) {
+            if (adjData.errors) {
+              adjGraphqlErrors = adjData.errors;
+            } else if (!adjData.data?.inventorySetQuantities?.userErrors?.length) {
               success = true;
+              usedStrategy = "inventorySetQuantities";
+            } else {
+              adjUserErrors = adjData.data.inventorySetQuantities.userErrors;
             }
             
           } catch (strategy2Error) {
+            adjUserErrors = [{ message: String(strategy2Error) }];
             console.log("戦略2 失敗:", strategy2Error);
           }
         }
         
         // 戦略3: Legacy inventoryBulkAdjustQuantityAtLocation (最終フォールバック)
         if (!success) {
+          step = "inventoryBulkAdjustQuantityAtLocation";
           try {
             console.log("=== 戦略3: Legacy inventoryBulkAdjustQuantityAtLocation ===");
             
@@ -350,83 +422,133 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               variables: legacyVariables
             });
             
-            adjData = await legacyResult.json();
+            adjData = await legacyResult.json() as { data?: any; errors?: any };
             console.log("戦略3 成功:", JSON.stringify(adjData, null, 2));
             
-            if (!adjData.errors && !adjData.data?.inventoryBulkAdjustQuantityAtLocation?.userErrors?.length) {
+            if (adjData.errors) {
+              adjGraphqlErrors = adjData.errors;
+            } else if (!adjData.data?.inventoryBulkAdjustQuantityAtLocation?.userErrors?.length) {
               success = true;
+              usedStrategy = "inventoryBulkAdjustQuantityAtLocation";
+            } else {
+              adjUserErrors = adjData.data.inventoryBulkAdjustQuantityAtLocation.userErrors;
             }
             
           } catch (strategy3Error) {
+            adjUserErrors = [{ message: String(strategy3Error) }];
             console.log("戦略3 失敗:", strategy3Error);
           }
         }
-
-        // エラーハンドリング
-        if (!success || !adjData) {
-          console.error("全ての戦略が失敗しました または adjData が null です");
+        // 成功時
+        if (success) {
           results.push({
             variant_id: item.variant_id,
-            error: "在庫調整に失敗しました - 全ての戦略が失敗"
+            product_title: variant.product.title,
+            before_quantity: variant.inventoryQuantity,
+            delta: item.quantity,
+            after_quantity: variant.inventoryQuantity + item.quantity,
+            tracking_enabled: variant.inventoryItem.tracked,
+            response: adjData?.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup || 
+                     adjData?.data?.inventorySetQuantities?.inventoryAdjustmentGroup ||
+                     adjData?.data?.inventoryBulkAdjustQuantityAtLocation?.inventoryLevels,
+            errors: [],
+            strategy_used: usedStrategy,
           });
-          continue;
+        } else {
+          // 失敗詳細を記録
+          results.push({
+            variant_id: item.variant_id,
+            error: "在庫調整に失敗しました",
+            errorType: adjGraphqlErrors ? "graphql" : (adjUserErrors.length ? "userError" : "unknown"),
+            failedStep: step,
+            errors: adjUserErrors,
+            graphqlErrors: adjGraphqlErrors,
+            strategy_used: usedStrategy || step,
+          });
         }
-
-        // GraphQLのトップレベルエラーチェック
-        if (adjData && adjData.errors) {
-          console.error("GraphQL errors:", JSON.stringify(adjData.errors, null, 2));
-        }
-
-        // userErrorsチェック（各戦略に応じて）
-        let userErrors: UserError[] = [];
-        if (adjData?.data?.inventoryAdjustQuantities?.userErrors) {
-          userErrors = adjData.data.inventoryAdjustQuantities.userErrors;
-        } else if (adjData?.data?.inventorySetQuantities?.userErrors) {
-          userErrors = adjData.data.inventorySetQuantities.userErrors;
-        } else if (adjData?.data?.inventoryBulkAdjustQuantityAtLocation?.userErrors) {
-          userErrors = adjData.data.inventoryBulkAdjustQuantityAtLocation.userErrors;
-        }
-        
-        if (userErrors.length > 0) {
-          console.error("User errors:", JSON.stringify(userErrors, null, 2));
-        }
-        
-        results.push({
-          variant_id: item.variant_id,
-          product_title: variant.product.title,
-          before_quantity: variant.inventoryQuantity,
-          delta: item.quantity,
-          after_quantity: variant.inventoryQuantity + item.quantity,
-          tracking_enabled: variant.inventoryItem.tracked,
-          response: adjData?.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup || 
-                   adjData?.data?.inventorySetQuantities?.inventoryAdjustmentGroup ||
-                   adjData?.data?.inventoryBulkAdjustQuantityAtLocation?.inventoryLevels,
-          errors: userErrors,
-          strategy_used: success ? "success" : "failed"
-        });
-
-        console.log(`在庫調整完了 - ${item.variant_id}:`, adjData ? JSON.stringify(adjData, null, 2) : "adjData is null");
-
       } catch (itemError) {
-        console.error(`アイテム処理エラー (${item.variant_id}):`, itemError);
         results.push({
           variant_id: item.variant_id,
-          error: itemError instanceof Error ? itemError.message : String(itemError)
+          error: itemError instanceof Error ? itemError.message : String(itemError),
+          errorType: "exception",
+          failedStep: step,
         });
       }
     }
-    
     return json({ results });
-    
   } catch (error) {
-    console.error("sync-stock エラー詳細:", {
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : undefined
-    });
     return json({ 
       error: error instanceof Error ? error.message : String(error),
       debug: error instanceof Error ? error.stack : undefined
     }, { status: 500 });
   }
 };
+
+//         // エラーハンドリング
+//         if (!success || !adjData) {
+//           console.error("全ての戦略が失敗しました または adjData が null です");
+//           results.push({
+//             variant_id: item.variant_id,
+//             error: "在庫調整に失敗しました - 全ての戦略が失敗"
+//           });
+//           continue;
+//         }
+
+//         // GraphQLのトップレベルエラーチェック
+//         if (adjData && adjData.errors) {
+//           console.error("GraphQL errors:", JSON.stringify(adjData.errors, null, 2));
+//         }
+
+//         // userErrorsチェック（各戦略に応じて）
+//         let userErrors: UserError[] = [];
+//         if (adjData?.data?.inventoryAdjustQuantities?.userErrors) {
+//           userErrors = adjData.data.inventoryAdjustQuantities.userErrors;
+//         } else if (adjData?.data?.inventorySetQuantities?.userErrors) {
+//           userErrors = adjData.data.inventorySetQuantities.userErrors;
+//         } else if (adjData?.data?.inventoryBulkAdjustQuantityAtLocation?.userErrors) {
+//           userErrors = adjData.data.inventoryBulkAdjustQuantityAtLocation.userErrors;
+//         }
+        
+//         if (userErrors.length > 0) {
+//           console.error("User errors:", JSON.stringify(userErrors, null, 2));
+//         }
+        
+//         results.push({
+//           variant_id: item.variant_id,
+//           product_title: variant.product.title,
+//           before_quantity: variant.inventoryQuantity,
+//           delta: item.quantity,
+//           after_quantity: variant.inventoryQuantity + item.quantity,
+//           tracking_enabled: variant.inventoryItem.tracked,
+//           response: adjData?.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup || 
+//                    adjData?.data?.inventorySetQuantities?.inventoryAdjustmentGroup ||
+//                    adjData?.data?.inventoryBulkAdjustQuantityAtLocation?.inventoryLevels,
+//           errors: userErrors,
+//           strategy_used: success ? "success" : "failed"
+//         });
+
+//         console.log(`在庫調整完了 - ${item.variant_id}:`, adjData ? JSON.stringify(adjData, null, 2) : "adjData is null");
+
+//       } catch (itemError) {
+//         console.error(`アイテム処理エラー (${item.variant_id}):`, itemError);
+//         results.push({
+//           variant_id: item.variant_id,
+//           error: itemError instanceof Error ? itemError.message : String(itemError)
+//         });
+//       }
+//     }
+    
+//     return json({ results });
+    
+//   } catch (error) {
+//     console.error("sync-stock エラー詳細:", {
+//       message: error instanceof Error ? error.message : String(error),
+//       stack: error instanceof Error ? error.stack : undefined,
+//       name: error instanceof Error ? error.name : undefined
+//     });
+//     return json({ 
+//       error: error instanceof Error ? error.message : String(error),
+//       debug: error instanceof Error ? error.stack : undefined
+//     }, { status: 500 });
+//   }
+// };
