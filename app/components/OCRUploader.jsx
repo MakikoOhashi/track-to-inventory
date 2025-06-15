@@ -158,10 +158,15 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         text = await imageToOcr(file);
       } else {
         setOcrError(t("ocrUploader.unsupportedFileType"));
+        return;
       }
       setOcrText(text);
       setOcrTextEdited(text);
       setFields(extractFields(text));
+    } catch (error) {
+      // ★ ここでエラーメッセージを適切に設定
+      console.error("OCR処理エラー:", error);
+      setOcrError(error.message || t("ocrUploader.ocrFailed"));
     } finally {
       setLoading(false);
     }
