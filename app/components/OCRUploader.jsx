@@ -35,6 +35,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   const [saveError, setSaveError] = useState("");
   const [isClient, setIsClient] = useState(false);
   const [usageInfo, setUsageInfo] = useState(null); // 使用状況情報を保存
+  const [showManualForm, setShowManualForm] = useState(false);
 
    // クライアント判定（SSR対策）
    useEffect(() => {
