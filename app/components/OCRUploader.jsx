@@ -664,7 +664,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Button
                 onClick={handleAiAssist}
-                disabled={aiLoading || (usageInfo?.plan === 'free')}
+                disabled={aiLoading}
               >
                 {t("ocrUploader.aiButton")}
               </Button>
