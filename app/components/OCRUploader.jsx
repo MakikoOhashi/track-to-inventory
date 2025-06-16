@@ -573,7 +573,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       )}
 
       {/* 画像＋OCRテキスト横並び または 手動入力フォーム */}
-      {(imageUrl && (ocrText || loading)) || showManualForm && (
+      {((imageUrl && (ocrText || loading)) || showManualForm) && (
         <div style={{ display: "flex", gap: 32, marginTop: 32, alignItems: "flex-start", flexWrap: "wrap" }}>
           {/* 画像プレビュー手動入力時は非表示 */}
           {imageUrl && !showManualForm && (
