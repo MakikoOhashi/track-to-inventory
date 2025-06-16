@@ -84,9 +84,9 @@ const plans = [
     ),
     highlight: true,
     badge: (
-      <Badge>
+      <div style={{ backgroundColor: "#6e38f7", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "500" }}>
         最も人気のある
-      </Badge>
+      </div>
     ),
   },
 ];
@@ -138,7 +138,7 @@ export default function Pricing() {
 
               <Card 
                 padding="0"
-                background={plan.highlight ? "bg-surface-secondary" : "bg-surface"}
+                background="bg-surface"
               >
                 <div
                   style={{
