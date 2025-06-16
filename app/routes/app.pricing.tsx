@@ -36,11 +36,7 @@ const plans = [
       </Button>
     ),
     highlight: false,
-    badge: (
-      <Badge tone="success">
-        現在のプラン
-      </Badge>
-    ),
+    badge: null,
   },
   {
     key: "basic",
