@@ -662,7 +662,17 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
                {!showManualForm && (
               <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Button onClick={handleAiAssist} disabled={aiLoading}>{t("ocrUploader.aiButton")}</Button>
+              <Button
+                onClick={handleAiAssist}
+                disabled={aiLoading || (usageInfo?.plan === 'free')}
+              >
+                {t("ocrUploader.aiButton")}
+              </Button>
+              {usageInfo?.plan === 'free' && (
+                <Text color="subdued" variant="bodySm" style={{ marginTop: 4 }}>
+                  この機能はFreeプランでは利用できません
+                </Text>
+              )}
                 {aiLoading && <Spinner size="small" />}
               </div>
                 {aiError && (
