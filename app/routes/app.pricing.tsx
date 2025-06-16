@@ -62,6 +62,7 @@ const plans = [
       </Button>
     ),
     highlight: false,
+    badge: undefined,
   },
   {
     key: "pro",
@@ -84,8 +85,37 @@ const plans = [
     ),
     highlight: true,
     badge: (
-      <div style={{ backgroundColor: "#6e38f7", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "500" }}>
+      // シンプルなリボン風
+      <div className="ribbon-badge">
         最も人気のある
+        <style>
+          {`
+          .ribbon-badge {
+            position: absolute;
+            top: -18px;
+            left: 0;
+            right: 0;
+            width: 160px;
+            margin: 0 auto;
+            padding: 4px 0;
+            background: #6e38f7;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            border-radius: 6px 6px 0 0;
+            box-shadow: 0 2px 8px rgba(110,56,247,0.11);
+            z-index: 11;
+            letter-spacing: 0.1em;
+          }
+          @media (max-width: 400px) {
+            .ribbon-badge {
+              width: 98vw;
+              font-size: 12px;
+            }
+          }
+          `}
+        </style>
       </div>
     ),
   },
@@ -122,19 +152,7 @@ export default function Pricing() {
           {plans.map((plan) => (
             <div key={plan.key} style={{ position: "relative" }}>
               {/* バッジ */}
-              {plan.badge && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "-12px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    zIndex: 10,
-                  }}
-                >
-                  {plan.badge}
-                </div>
-              )}
+              {plan.badge && plan.badge}
 
               <Card 
                 padding="0"
