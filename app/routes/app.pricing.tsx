@@ -61,8 +61,14 @@ const plans = [
         プランを選択
       </Button>
     ),
-    highlight: false,
+    highlight: true,
+    badge: (
+      <div style={{ backgroundColor: "#00a047", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "500" }}>
+        おすすめ
+      </div>
+    ),
   },
+  
   {
     key: "pro",
     name: "プロプラン",
@@ -85,7 +91,7 @@ const plans = [
     highlight: true,
     badge: (
       <div style={{ backgroundColor: "#6e38f7", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "500" }}>
-        最も人気のある
+        一番選ばれています
       </div>
     ),
   },
