@@ -189,7 +189,7 @@ export async function getUserUsage(userId: string) {
       }
     }
   } catch (error) {
-    console.error('SI件数取得エラー:', error)
+    console.error('SI件数取得エラー:', getErrorMessage(error))
     siCount = 0 // エラー時は0件として扱う
   }
 
@@ -271,12 +271,10 @@ export async function checkSILimit(userId: string): Promise<void> {
       throw new Error(`SI登録件数の上限（${limit}件）に達しました。プランをアップグレードしてください。`)
     }
   } catch (error) {
-    if (error instanceof Error && error.message.includes('SI登録件数の上限')) {
+    if (getErrorMessage(error).includes('SI登録件数の上限')) {
       throw error
     }
-     // それ以外は詳細を含めてthrow
-     const detail = error instanceof Error ? error.message : String(error)
-     throw new Error(`SI登録件数の確認中にエラーが発生しました。詳細: ${detail}`)
+    throw new Error(`SI登録件数の確認中にエラーが発生しました。詳細: ${getErrorMessage(error)}`)
   }
 }
 

@@ -55,6 +55,9 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         if (res.ok) {
           const data = await res.json();
           setUsageInfo(data.usage);
+        } else {
+          // APIレスポンスがokでない場合もエラー表示
+          setOcrError(t("ocrUploader.usageInfoFail", { message: `status: ${res.status}` }));
         }
       } catch (error) {
         console.error("使用状況の取得に失敗:", error);
@@ -70,13 +73,24 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         });
         
         if (res.status === 429) {
-          const data = await res.json();
+            let data;
+          try {
+            data = await res.json();
+          } catch {
+            data = {};
+          }
           throw new Error(data.error || "OCR使用回数の月間上限に達しました。プランをアップグレードしてください。");
         }
         
         if (!res.ok) {
-          throw new Error("OCR制限チェックに失敗しました");
+          let data;
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
         }
+        throw new Error(data.error || "OCR制限チェックに失敗しました");
+      }
         
         return true;
       } catch (error) {
@@ -95,6 +109,16 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         method: "POST",
         body: formData,
       });
+      if (!res.ok) {
+        let msg = t("ocrUploader.convertError");
+        try {
+          const data = await res.json();
+          msg = data.error ? `${msg}: ${data.error}` : msg;
+        } catch (e) {
+          // ignore
+        }
+        throw new Error(msg);
+      }
       const data = await res.json();
       if (!data.url) throw new Error(t("ocrUploader.convertError"));
   
@@ -120,8 +144,13 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   const imageToOcr = useCallback(
   async (imgFile) => {
     setImageUrl(URL.createObjectURL(imgFile));
-    const { data } = await Tesseract.recognize(imgFile, "eng");
-    return data.text;
+    try {
+      const { data } = await Tesseract.recognize(imgFile, "eng");
+      return data.text;
+    } catch (e) {
+      setOcrError(e.message || t("ocrUploader.ocrFailed"));
+      return "";
+    }
   },
   []
   );
@@ -295,7 +324,14 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       }
       
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        let msg = `HTTP error! status: ${res.status}`;
+        try {
+          data = await res.json();
+          msg = data.error ? `${msg}: ${data.error}` : msg;
+        } catch (e) {
+          // ignore
+        }
+        throw new Error(msg);
       }
       
       data = await res.json();
