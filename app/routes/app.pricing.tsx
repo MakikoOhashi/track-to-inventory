@@ -10,34 +10,6 @@ import {
 } from "@shopify/polaris";
 import { authenticate } from "~/shopify.server";
 
-// カスタムクラスでスタイルを調整
-const cardHighlightStyle: React.CSSProperties = {
-  border: "2px solid #6e38f7",
-  boxShadow: "0 0 0 3px #ede8fd",
-  position: "relative",
-  height: "100%",
-  width: "100%",
-  maxWidth: 340,
-  minWidth: 280,
-};
-
-const cardDefaultStyle: React.CSSProperties = {
-  border: "1px solid #e0e0e0",
-  boxShadow: "0 1px 3px #f6f6f6",
-  position: "relative",
-  height: "100%",
-  width: "100%",
-  maxWidth: 340,
-  minWidth: 280,
-};
-
-const cardWrapperStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  height: "100%",
-  minHeight: 520,
-};
-
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
   return json({});
@@ -123,208 +95,279 @@ export default function Pricing() {
   return (
     <Page title="サブスクリプションプラン">
       <Box paddingBlockStart="400" paddingBlockEnd="400">
-        {/* プランカード（横並び・横スクロール不要UI） */}
+        {/* プランカード - CSS Grid使用 */}
         <div
           style={{
-            display: "flex",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
             gap: "24px",
-            justifyContent: "center",
-            flexWrap: "wrap",
-            alignItems: "stretch",
+            maxWidth: "1200px",
+            margin: "0 auto",
+            padding: "0 16px",
           }}
         >
           {plans.map((plan) => (
             <div
               key={plan.key}
-              style={plan.highlight ? cardHighlightStyle : cardDefaultStyle}
+              style={{
+                position: "relative",
+                ...(plan.highlight ? {
+                  border: "2px solid #6e38f7",
+                  borderRadius: "8px",
+                  background: "linear-gradient(135deg, #fafbff 0%, #f5f3ff 100%)",
+                } : {
+                  border: "1px solid #e1e1e1",
+                  borderRadius: "8px",
+                  background: "#ffffff",
+                }),
+                boxShadow: plan.highlight 
+                  ? "0 8px 25px rgba(110, 56, 247, 0.15)" 
+                  : "0 2px 8px rgba(0, 0, 0, 0.08)",
+                transition: "all 0.3s ease",
+              }}
             >
-              <div style={cardWrapperStyle}>
-                <Card padding="0">
-                  {/* バッジ */}
-                  {plan.badge && (
-                    <div style={{
-                      position: "absolute",
-                      top: 18,
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      zIndex: 1,
-                    }}>
-                      {plan.badge}
-                    </div>
-                  )}
-                  
-                  {/* メインコンテンツ */}
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                    <Box
-                      paddingBlockStart="500"
-                      paddingBlockEnd="400"
-                      paddingInlineStart="400"
-                      paddingInlineEnd="400"
-                    >
-                      <Text as="h3" variant="headingMd" alignment="center">
+              {/* バッジ */}
+              {plan.badge && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "-12px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    zIndex: 10,
+                  }}
+                >
+                  {plan.badge}
+                </div>
+              )}
+
+              <Card padding="0">
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    minHeight: "500px",
+                  }}
+                >
+                  {/* ヘッダー部分 */}
+                  <Box paddingBlockStart="600" paddingBlockEnd="400" paddingInline="400">
+                    <div style={{ textAlign: "center" }}>
+                      <Text as="h3" variant="headingMd">
                         {plan.name}
                       </Text>
-                      <Box paddingBlockStart="100">
-                        <Text
-                          as="p"
-                          variant="headingLg"
-                          alignment="center"
-                          fontWeight="bold"
-                        >
+                      <Box paddingBlockStart="200">
+                        <Text as="p" variant="headingXl" fontWeight="bold">
                           {plan.price}
+                        </Text>
+                        <Text as="span" variant="bodyMd" tone="subdued">
+                          /月
                         </Text>
                       </Box>
                       <Box paddingBlockStart="100">
-                        <Text
-                          as="p"
-                          alignment="center"
-                          tone="subdued"
-                        >
+                        <Text as="p" variant="bodyMd" tone="subdued">
                           {plan.description}
                         </Text>
                       </Box>
-                    </Box>
-                    
-                    {/* 機能リスト */}
-                    <div style={{ flex: 1 }}>
-                      <Box 
-                        paddingInlineStart="400"
-                        paddingInlineEnd="400"
-                        paddingBlockEnd="400"
-                      >
-                        <ul style={{ 
-                          margin: 0, 
-                          paddingLeft: 20, 
-                          fontSize: 14,
-                          lineHeight: 1.5,
-                        }}>
-                          {plan.features.map((feature, i) => (
-                            <li key={i} style={{ marginBottom: "8px" }}>
-                              {feature}
-                            </li>
-                          ))}
-                        </ul>
-                      </Box>
                     </div>
+                  </Box>
+
+                  {/* 機能リスト */}
+                  <div style={{ flex: 1, padding: "0 24px" }}>
+                    <ul
+                      style={{
+                        listStyle: "none",
+                        padding: 0,
+                        margin: 0,
+                        fontSize: "14px",
+                        lineHeight: "1.6",
+                      }}
+                    >
+                      {plan.features.map((feature, i) => (
+                        <li
+                          key={i}
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            marginBottom: "12px",
+                            paddingLeft: "24px",
+                            position: "relative",
+                          }}
+                        >
+                          <span
+                            style={{
+                              position: "absolute",
+                              left: "0",
+                              top: "6px",
+                              width: "16px",
+                              height: "16px",
+                              borderRadius: "50%",
+                              backgroundColor: plan.highlight ? "#6e38f7" : "#00a047",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "10px",
+                              color: "white",
+                              flexShrink: 0,
+                            }}
+                          >
+                            ✓
+                          </span>
+                          <span style={{ color: "#202223" }}>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  
+
                   {/* ボタン */}
-                  <div style={{ marginTop: "auto" }}>
-                    <Box padding="400">
-                      {plan.button}
-                    </Box>
-                  </div>
-                </Card>
-              </div>
+                  <Box padding="400">
+                    {plan.button}
+                  </Box>
+                </div>
+              </Card>
             </div>
           ))}
         </div>
       </Box>
 
       {/* 機能比較表 */}
-      <Box paddingBlockStart="400" paddingBlockEnd="400">
+      <Box paddingBlockStart="600" paddingBlockEnd="400">
         <Card>
           <Box padding="400">
-            <Text as="h2" variant="headingMd">
+            <Text as="h2" variant="headingLg">
               プランと機能を比較
             </Text>
-            <div style={{ overflowX: "auto", marginTop: 24 }}>
-              <table style={{ 
-                width: "100%", 
-                borderCollapse: "collapse", 
-                fontSize: 14,
-                minWidth: 600,
-              }}>
-                <thead>
-                  <tr>
-                    <th style={{ 
-                      padding: 12, 
-                      borderBottom: "1px solid #ccc", 
-                      background: "#f9f9f9", 
-                      textAlign: "left",
-                      minWidth: 200,
-                    }}>
-                      機能
-                    </th>
-                    <th style={{ 
-                      padding: 12, 
-                      borderBottom: "1px solid #ccc", 
-                      background: "#f9f9f9",
-                      textAlign: "center",
-                      minWidth: 100,
-                    }}>
-                      無料
-                    </th>
-                    <th style={{ 
-                      padding: 12, 
-                      borderBottom: "1px solid #ccc", 
-                      background: "#f9f9f9",
-                      textAlign: "center",
-                      minWidth: 120,
-                    }}>
-                      ベーシック
-                    </th>
-                    <th style={{ 
-                      padding: 12, 
-                      borderBottom: "1px solid #ccc", 
-                      background: "#f9f9f9",
-                      textAlign: "center",
-                      minWidth: 100,
-                    }}>
-                      プロ
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ["割引バリアントの制限", "100", "20", "無制限"],
-                    ["ボリュームディスカウントの階層", "1", "5", "無制限"],
-                    ["カート値に基づく割引階層（カート目標）", "1", "5", "無制限"],
-                    ["SI登録件数（同時保有）", "2", "20", "無制限"],
-                    ["SI削除回数（月）", "2回", "無制限", "無制限"],
-                    ["OCR回数", "5回", "50回", "無制限"],
-                    ["AI利用回数", "5回", "50回", "無制限"],
-                    ["Shopify在庫連携", "×", "○", "○"],
-                    ["サポート", "なし", "通常", "優先"],
-                    ["ファイル保存容量", "最大10MB×4枚", "最大10MB×4枚", "最大10MB×4枚（※制限の可能性あり）"],
-                  ].map((row, i) => (
-                    <tr key={i}>
-                      <td style={{ 
-                        padding: 12, 
-                        borderBottom: "1px solid #eee",
-                        verticalAlign: "top",
-                      }}>
-                        {row[0]}
-                      </td>
-                      <td style={{ 
-                        padding: 12, 
-                        borderBottom: "1px solid #eee", 
-                        textAlign: "center",
-                        verticalAlign: "top",
-                      }}>
-                        {row[1]}
-                      </td>
-                      <td style={{ 
-                        padding: 12, 
-                        borderBottom: "1px solid #eee", 
-                        textAlign: "center",
-                        verticalAlign: "top",
-                      }}>
-                        {row[2]}
-                      </td>
-                      <td style={{ 
-                        padding: 12, 
-                        borderBottom: "1px solid #eee", 
-                        textAlign: "center",
-                        verticalAlign: "top",
-                      }}>
-                        {row[3]}
-                      </td>
+            <Box paddingBlockStart="400">
+              <div style={{ overflowX: "auto" }}>
+                <table
+                  style={{
+                    width: "100%",
+                    minWidth: "700px",
+                    borderCollapse: "collapse",
+                    fontSize: "14px",
+                    backgroundColor: "#ffffff",
+                  }}
+                >
+                  <thead>
+                    <tr>
+                      <th
+                        style={{
+                          padding: "16px 12px",
+                          borderBottom: "2px solid #e1e1e1",
+                          backgroundColor: "#f9fafb",
+                          textAlign: "left",
+                          fontWeight: "600",
+                          color: "#202223",
+                        }}
+                      >
+                        機能
+                      </th>
+                      <th
+                        style={{
+                          padding: "16px 12px",
+                          borderBottom: "2px solid #e1e1e1",
+                          backgroundColor: "#f9fafb",
+                          textAlign: "center",
+                          fontWeight: "600",
+                          color: "#202223",
+                          minWidth: "100px",
+                        }}
+                      >
+                        無料
+                      </th>
+                      <th
+                        style={{
+                          padding: "16px 12px",
+                          borderBottom: "2px solid #e1e1e1",
+                          backgroundColor: "#f9fafb",
+                          textAlign: "center",
+                          fontWeight: "600",
+                          color: "#202223",
+                          minWidth: "120px",
+                        }}
+                      >
+                        ベーシック
+                      </th>
+                      <th
+                        style={{
+                          padding: "16px 12px",
+                          borderBottom: "2px solid #e1e1e1",
+                          backgroundColor: "#f9fafb",
+                          textAlign: "center",
+                          fontWeight: "600",
+                          color: "#202223",
+                          minWidth: "100px",
+                        }}
+                      >
+                        プロ
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {[
+                      ["割引バリアントの制限", "100", "20", "無制限"],
+                      ["ボリュームディスカウントの階層", "1", "5", "無制限"],
+                      ["カート値に基づく割引階層（カート目標）", "1", "5", "無制限"],
+                      ["SI登録件数（同時保有）", "2", "20", "無制限"],
+                      ["SI削除回数（月）", "2回", "無制限", "無制限"],
+                      ["OCR回数", "5回", "50回", "無制限"],
+                      ["AI利用回数", "5回", "50回", "無制限"],
+                      ["Shopify在庫連携", "×", "○", "○"],
+                      ["サポート", "なし", "通常", "優先"],
+                      ["ファイル保存容量", "最大10MB×4枚", "最大10MB×4枚", "最大10MB×4枚※"],
+                    ].map((row, i) => (
+                      <tr
+                        key={i}
+                        style={{
+                          backgroundColor: i % 2 === 0 ? "#ffffff" : "#fafbfc",
+                        }}
+                      >
+                        <td
+                          style={{
+                            padding: "14px 12px",
+                            borderBottom: "1px solid #e1e1e1",
+                            color: "#202223",
+                            fontWeight: "500",
+                          }}
+                        >
+                          {row[0]}
+                        </td>
+                        <td
+                          style={{
+                            padding: "14px 12px",
+                            borderBottom: "1px solid #e1e1e1",
+                            textAlign: "center",
+                            color: "#6d7175",
+                          }}
+                        >
+                          {row[1]}
+                        </td>
+                        <td
+                          style={{
+                            padding: "14px 12px",
+                            borderBottom: "1px solid #e1e1e1",
+                            textAlign: "center",
+                            color: "#6d7175",
+                          }}
+                        >
+                          {row[2]}
+                        </td>
+                        <td
+                          style={{
+                            padding: "14px 12px",
+                            borderBottom: "1px solid #e1e1e1",
+                            textAlign: "center",
+                            color: "#6d7175",
+                            fontWeight: "600",
+                          }}
+                        >
+                          {row[3]}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Box>
           </Box>
         </Card>
       </Box>
