@@ -171,8 +171,8 @@ export default function Index() {
   const handleProductMouseEnter = (e: MouseEvent<HTMLElement>, name: string) => {
     if (popupTimeout.current) clearTimeout(popupTimeout.current);
     const rect = e.currentTarget.getBoundingClientRect();
-    let x = rect.right + window.scrollX + 10;
-    let y = rect.top + window.scrollY + 10;
+    let x = rect.left;
+    let y = rect.bottom + 4;
 
 
     // 右端はみ出し防止
@@ -181,7 +181,7 @@ export default function Index() {
     }
     // 下端はみ出し防止
     if (y + POPUP_HEIGHT > window.innerHeight) {
-      y = window.innerHeight - POPUP_HEIGHT - 10;
+      y = rect.top - POPUP_HEIGHT - 4;
     }
     // 上端にもはみ出さないようにする
     if (y < 0) y = 10;
