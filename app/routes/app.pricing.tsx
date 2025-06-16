@@ -95,31 +95,39 @@ export default function Pricing() {
   return (
     <Page title="サブスクリプションプラン">
       <Box paddingBlockStart="400" paddingBlockEnd="400">
-        {/* プランカード - CSS Grid使用 */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: "24px",
-            maxWidth: "1200px",
-            margin: "0 auto",
-            padding: "0 16px",
-          }}
-        >
+        {/* プランカード - レスポンシブGrid */}
+        <style>
+          {`
+            .pricing-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 24px;
+              max-width: 1200px;
+              margin: 0 auto;
+              padding: 0 16px;
+            }
+            @media (max-width: 1024px) {
+              .pricing-grid {
+                grid-template-columns: repeat(2, 1fr);
+              }
+            }
+            @media (max-width: 640px) {
+              .pricing-grid {
+                grid-template-columns: 1fr;
+              }
+            }
+          `}
+        </style>
+        <div className="pricing-grid">
           {plans.map((plan) => (
             <div
               key={plan.key}
               style={{
                 position: "relative",
-                ...(plan.highlight ? {
-                  border: "2px solid #6e38f7",
-                  borderRadius: "8px",
-                  background: "linear-gradient(135deg, #fafbff 0%, #f5f3ff 100%)",
-                } : {
-                  border: "1px solid #e1e1e1",
-                  borderRadius: "8px",
-                  background: "#ffffff",
-                }),
+                borderRadius: "8px",
+                background: plan.highlight 
+                  ? "linear-gradient(135deg, #fafbff 0%, #f5f3ff 100%)" 
+                  : "#ffffff",
                 boxShadow: plan.highlight 
                   ? "0 8px 25px rgba(110, 56, 247, 0.15)" 
                   : "0 2px 8px rgba(0, 0, 0, 0.08)",
