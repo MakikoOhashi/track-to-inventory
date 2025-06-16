@@ -120,20 +120,7 @@ export default function Pricing() {
         </style>
         <div className="pricing-grid">
           {plans.map((plan) => (
-            <div
-              key={plan.key}
-              style={{
-                position: "relative",
-                borderRadius: "8px",
-                background: plan.highlight 
-                  ? "linear-gradient(135deg, #fafbff 0%, #f5f3ff 100%)" 
-                  : "#ffffff",
-                boxShadow: plan.highlight 
-                  ? "0 8px 25px rgba(110, 56, 247, 0.15)" 
-                  : "0 2px 8px rgba(0, 0, 0, 0.08)",
-                transition: "all 0.3s ease",
-              }}
-            >
+            <div key={plan.key} style={{ position: "relative" }}>
               {/* バッジ */}
               {plan.badge && (
                 <div
@@ -149,7 +136,10 @@ export default function Pricing() {
                 </div>
               )}
 
-              <Card padding="0">
+              <Card 
+                padding="0"
+                background={plan.highlight ? "bg-surface-secondary" : "bg-surface"}
+              >
                 <div
                   style={{
                     display: "flex",
@@ -231,7 +221,7 @@ export default function Pricing() {
                     {plan.button}
                   </Box>
                 </div>
-              </Card>
+                </Card>
             </div>
           ))}
         </div>
