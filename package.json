@@ -48,6 +48,7 @@
     "react-dom": "^18.2.0",
     "react-i18next": "^15.5.2",
     "remix-i18next": "^6.4.0",
+    "resend": "^4.6.0",
     "tesseract.js": "^6.0.1",
     "vite-tsconfig-paths": "^5.0.1"
   },
