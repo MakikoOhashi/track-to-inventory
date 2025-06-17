@@ -1,14 +1,16 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useActionData, Form, useNavigation } from "@remix-run/react";
+import { useActionData, useLoaderData, useNavigation } from "@remix-run/react";
 import { Page, Card, Layout, Text, TextField, Button, DropZone, Banner } from "@shopify/polaris";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { authenticate } from "~/shopify.server";
 
-// 認証
+// 認証＋reCAPTCHA SITE KEYを渡す
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
-  return json({});
+  return json({
+    RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY, // サーバーから渡す
+  });
 };
 
 // お問い合わせフォームのメール送信（Resend利用）＋reCAPTCHA検証
@@ -20,11 +22,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const recaptcha = formData.get("g-recaptcha-response") as string;
   const file = formData.get("file") as File | null;
 
-  // reCAPTCHA検証（オプション・サイトキー/シークレットは .env で管理推奨）
+  // reCAPTCHA検証
   if (!recaptcha) {
     return json({ error: "reCAPTCHA認証に失敗しました。" }, { status: 400 });
   }
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+  if (!secretKey) throw new Error("RECAPTCHA_SECRET_KEY is not set");
   const verifyRes = await fetch(
     `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptcha}`,
     { method: "POST" }
@@ -62,6 +65,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function Contact() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
+  const { RECAPTCHA_SITE_KEY } = useLoaderData<typeof loader>();
 
   // Polaris用state
   const [name, setName] = useState("");
@@ -77,6 +81,33 @@ export default function Contact() {
     []
   );
 
+  // reCAPTCHAトークン用ref
+  const recaptchaRef = useRef<HTMLInputElement>(null);
+
+  // reCAPTCHAコールバック登録（windowグローバルに関数を用意）
+  useEffect(() => {
+    // @ts-ignore
+    window.onRecaptchaSuccess = (token: string) => {
+      if (recaptchaRef.current) recaptchaRef.current.value = token;
+      // Polarisの<Form>はonSubmitが効かないので、通常の<form>でsubmit
+      (document.getElementById("contact-form")as HTMLFormElement)?.submit();
+    };
+  }, []);
+
+  // 通常の<form>でonSubmitハンドラ
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // v2 invisibleの場合はexecute()を呼ぶ。checkboxの場合は不要。
+    // window.grecaptcha.execute();
+    // checkboxの場合はsubmit時にtokenがhidden inputに入っていればOK
+    // ここでは念のためtokenチェックし、不足ならalert
+    if (!recaptchaRef.current?.value) {
+      alert("reCAPTCHAを完了してください。");
+      return;
+    }
+    e.currentTarget.submit();
+  };
+
   return (
     <Page title="お問い合わせ">
       <Layout>
@@ -91,14 +122,18 @@ export default function Contact() {
               {actionData && 'error' in actionData && (
                 <Banner tone="critical">{actionData.error}</Banner>
               )}
-              <Form method="post" encType="multipart/form-data">
+              <form
+                id="contact-form"
+                method="post"
+                encType="multipart/form-data"
+                onSubmit={handleSubmit}
+              >
                 <TextField
                   label="お名前"
                   name="name"
                   value={name}
                   onChange={setName}
                   autoComplete="name"
-                  
                 />
                 <br />
                 <TextField
@@ -108,7 +143,6 @@ export default function Contact() {
                   value={email}
                   onChange={setEmail}
                   autoComplete="email"
-                  
                 />
                 <br />
                 <TextField
@@ -134,15 +168,17 @@ export default function Contact() {
                   <input type="hidden" name="file" />
                 </DropZone>
                 <br />
-                {/* reCAPTCHA (v2) */}
+                {/* reCAPTCHA v2 checkbox版 */}
+                <input type="hidden" name="g-recaptcha-response" ref={recaptchaRef} />
                 <div style={{ marginBottom: 20, marginTop: 10 }}>
                   <div
                     className="g-recaptcha"
-                    data-sitekey={process.env.RECAPTCHA_SITE_KEY}
+                    data-sitekey={RECAPTCHA_SITE_KEY}
+                    data-callback="onRecaptchaSuccess"
                   ></div>
                 </div>
                 <Button variant="primary" submit loading={navigation.state === "submitting"}>送信</Button>
-              </Form>
+              </form>
             </div>
           </Card>
         </Layout.Section>
