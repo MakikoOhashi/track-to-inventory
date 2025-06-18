@@ -6,16 +6,42 @@ import { useState, useCallback, useRef } from "react";
 import { useEffect } from "react";
 import { authenticate } from "~/shopify.server";
 
-// 認証＋reCAPTCHA SITE KEYを渡す
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-  return json({
-    RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY, // サーバーから渡す
-  });
+type LoaderData = {
+  RECAPTCHA_SITE_KEY: string | undefined;
+  shop: string | null;
+  isAdmin: boolean;
+  error?: string;
 };
 
-// お問い合わせフォームのメール送信（Resend利用）＋reCAPTCHA v3検証
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  try {
+    // 認証 (管理者)
+    const ctx = await authenticate.admin(request);
+    const shop = ctx.session?.shop ?? null;
+    return json<LoaderData>({
+      RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY,
+      shop,
+      isAdmin: true,
+    });
+  } catch (e) {
+    return json<LoaderData>({
+      RECAPTCHA_SITE_KEY: undefined,
+      shop: null,
+      isAdmin: false,
+      error: "Shopify管理者のみアクセスできます。ログインし直してください。",
+    });
+  }
+};
+
 export const action = async ({ request }: ActionFunctionArgs) => {
+  let shop = "";
+  try {
+    const ctx = await authenticate.admin(request);
+    shop = ctx.session?.shop ?? "";
+  } catch {
+    return json({ error: "Shopify認証エラー。再ログインしてください。" }, { status: 401 });
+  }
+
   const formData = await request.formData();
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
@@ -34,7 +60,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     { method: "POST" }
   );
   const verifyData = await verifyRes.json();
-  // v3ではscoreも判定
   if (!verifyData.success || verifyData.score < 0.5) {
     return json({ error: "reCAPTCHAスコアが低すぎます（botの可能性があります）。" }, { status: 400 });
   }
@@ -52,10 +77,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
   try {
     await resend.emails.send({
-      from: "onboarding@resend.dev", // ご自身のドメインに合わせてください
+      from: "onboarding@resend.dev",
       to: "makiron19831014@gmail.com",
-      subject: `お問い合わせ from ${name}`,
-      text: `名前: ${name}\nメール: ${email}\n内容: ${message}`,
+      subject: `お問い合わせ from ${name} [${shop}]`,
+      text: `ショップ: ${shop}\n名前: ${name}\nメール: ${email}\n内容: ${message}`,
       attachments,
     });
     return json({ ok: true });
@@ -67,7 +92,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function Contact() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  const { RECAPTCHA_SITE_KEY } = useLoaderData<typeof loader>();
+  const { RECAPTCHA_SITE_KEY, shop, isAdmin, error } = useLoaderData<LoaderData>();
 
   // Polaris用state
   const [name, setName] = useState("");
@@ -88,7 +113,7 @@ export default function Contact() {
 
   // reCAPTCHA v3スクリプトをinject
   useEffect(() => {
-    if (!document.querySelector(`#recaptcha-v3-script`)) {
+    if (RECAPTCHA_SITE_KEY && !document.querySelector(`#recaptcha-v3-script`)) {
       const script = document.createElement("script");
       script.id = "recaptcha-v3-script";
       script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
@@ -107,7 +132,6 @@ export default function Contact() {
       return;
     }
     try {
-      // v3: action名は自由（ここでは"contact"）
       // @ts-ignore
       const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: "contact" });
       if (recaptchaRef.current) {
@@ -119,6 +143,25 @@ export default function Contact() {
     }
   };
 
+  // 管理者でなければフォーム非表示
+  if (!isAdmin) {
+    return (
+      <Page title="お問い合わせ">
+        <Layout>
+          <Layout.Section>
+            <Card>
+              <div style={{ padding: '20px', maxWidth: 500 }}>
+                <Banner tone="critical">
+                  {error ?? "Shopify管理者のみアクセスできます。"}
+                </Banner>
+              </div>
+            </Card>
+          </Layout.Section>
+        </Layout>
+      </Page>
+    );
+  }
+
   return (
     <Page title="お問い合わせ">
       <Layout>
@@ -127,6 +170,9 @@ export default function Contact() {
             <div style={{ padding: '20px', maxWidth: 500 }}>
               <Text as="h2" variant="headingMd">お問い合わせフォーム</Text>
               <br />
+              <div style={{ marginBottom: "1em", fontSize: "0.9em", color: "#666" }}>
+                ご利用ショップ: <b>{shop ?? "不明"}</b>
+              </div>
               {actionData && 'ok' in actionData && actionData.ok &&(
                 <Banner tone="success">送信が完了しました！</Banner>
               )}
