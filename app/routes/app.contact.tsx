@@ -2,12 +2,10 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useActionData, useLoaderData, useNavigation } from "@remix-run/react";
 import { Page, Card, Layout, Text, TextField, Button, DropZone, Banner } from "@shopify/polaris";
-import { useState, useCallback, useRef } from "react";
-import { useEffect } from "react";
+import { useState, useCallback } from "react";
 import { authenticate } from "~/shopify.server";
 
 type LoaderData = {
-  RECAPTCHA_SITE_KEY: string | undefined;
   shop: string | null;
   isAdmin: boolean;
   error?: string;
@@ -15,17 +13,14 @@ type LoaderData = {
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
-    // 認証 (管理者)
     const ctx = await authenticate.admin(request);
     const shop = ctx.session?.shop ?? null;
     return json<LoaderData>({
-      RECAPTCHA_SITE_KEY: process.env.RECAPTCHA_SITE_KEY,
       shop,
-      isAdmin: true,
+      isAdmin: !!shop, // shopが取得できた場合のみフォーム送信許可
     });
   } catch (e) {
     return json<LoaderData>({
-      RECAPTCHA_SITE_KEY: undefined,
       shop: null,
       isAdmin: false,
       error: "Shopify管理者のみアクセスできます。ログインし直してください。",
@@ -38,6 +33,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     const ctx = await authenticate.admin(request);
     shop = ctx.session?.shop ?? "";
+    if (!shop) {
+      return json({ error: "ストアIDが取得できません。Shopify管理者として再ログインしてください。" }, { status: 401 });
+    }
   } catch {
     return json({ error: "Shopify認証エラー。再ログインしてください。" }, { status: 401 });
   }
@@ -46,23 +44,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const message = formData.get("message") as string;
-  const recaptcha = formData.get("g-recaptcha-response") as string;
   const file = formData.get("file") as File | null;
-
-  // reCAPTCHA v3検証
-  if (!recaptcha) {
-    return json({ error: "reCAPTCHA認証に失敗しました。" }, { status: 400 });
-  }
-  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
-  if (!secretKey) throw new Error("RECAPTCHA_SECRET_KEY is not set");
-  const verifyRes = await fetch(
-    `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptcha}`,
-    { method: "POST" }
-  );
-  const verifyData = await verifyRes.json();
-  if (!verifyData.success || verifyData.score < 0.5) {
-    return json({ error: "reCAPTCHAスコアが低すぎます（botの可能性があります）。" }, { status: 400 });
-  }
 
   // Resendでメール送信
   const { Resend } = await import("resend");
@@ -92,7 +74,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function Contact() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  const { RECAPTCHA_SITE_KEY, shop, isAdmin, error } = useLoaderData<LoaderData>();
+  const { shop, isAdmin, error } = useLoaderData<LoaderData>();
 
   // Polaris用state
   const [name, setName] = useState("");
@@ -108,59 +90,10 @@ export default function Contact() {
     []
   );
 
-  // reCAPTCHAトークン用ref
-  const recaptchaRef = useRef<HTMLInputElement>(null);
-
-  // reCAPTCHA v3スクリプトをinject
-  useEffect(() => {
-    if (RECAPTCHA_SITE_KEY && !document.querySelector(`#recaptcha-v3-script`)) {
-      const script = document.createElement("script");
-      script.id = "recaptcha-v3-script";
-      script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
-      script.async = true;
-      script.defer = true;
-      document.body.appendChild(script);
-    }
-  }, [RECAPTCHA_SITE_KEY]);
-
-  // 通常の<form>でonSubmitハンドラ（v3: submit前にトークン取得）
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // @ts-ignore
-    if (!window.grecaptcha) {
-      alert("reCAPTCHAのスクリプトが読み込まれていません。");
-      return;
-    }
-    try {
-      // @ts-ignore
-      const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: "contact" });
-      if (recaptchaRef.current) {
-        recaptchaRef.current.value = token;
-      }
-      e.currentTarget.submit();
-    } catch (error) {
-      alert("reCAPTCHAトークン取得に失敗しました。");
-    }
+  // 通常の<form>でonSubmitハンドラ
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    // バリデーション入れたければここで
   };
-
-  // 管理者でなければフォーム非表示
-  if (!isAdmin) {
-    return (
-      <Page title="お問い合わせ">
-        <Layout>
-          <Layout.Section>
-            <Card>
-              <div style={{ padding: '20px', maxWidth: 500 }}>
-                <Banner tone="critical">
-                  {error ?? "Shopify管理者のみアクセスできます。"}
-                </Banner>
-              </div>
-            </Card>
-          </Layout.Section>
-        </Layout>
-      </Page>
-    );
-  }
 
   return (
     <Page title="お問い合わせ">
@@ -173,6 +106,11 @@ export default function Contact() {
               <div style={{ marginBottom: "1em", fontSize: "0.9em", color: "#666" }}>
                 ご利用ショップ: <b>{shop ?? "不明"}</b>
               </div>
+              {!isAdmin && (
+                <Banner tone="critical">
+                  {error ?? "Shopify管理者のみアクセスできます。"}
+                </Banner>
+              )}
               {actionData && 'ok' in actionData && actionData.ok &&(
                 <Banner tone="success">送信が完了しました！</Banner>
               )}
@@ -191,6 +129,7 @@ export default function Contact() {
                   value={name}
                   onChange={setName}
                   autoComplete="name"
+                  disabled={!isAdmin}
                 />
                 <br />
                 <TextField
@@ -200,6 +139,7 @@ export default function Contact() {
                   value={email}
                   onChange={setEmail}
                   autoComplete="email"
+                  disabled={!isAdmin}
                 />
                 <br />
                 <TextField
@@ -209,12 +149,14 @@ export default function Contact() {
                   onChange={setMessage}
                   multiline={6}
                   autoComplete="off"
+                  disabled={!isAdmin}
                 />
                 <br />
                 <DropZone
                   accept="image/*"
                   onDrop={handleDrop}
                   allowMultiple={false}
+                  disabled={!isAdmin}
                 >
                   {!file ? (
                     <DropZone.FileUpload actionTitle="画像ファイルをここにドラッグ＆ドロップ、またはクリックで選択" />
@@ -225,9 +167,15 @@ export default function Contact() {
                   <input type="hidden" name="file" />
                 </DropZone>
                 <br />
-                {/* reCAPTCHA v3: hidden inputのみ */}
-                <input type="hidden" name="g-recaptcha-response" ref={recaptchaRef} />
-                <Button variant="primary" submit loading={navigation.state === "submitting"}>送信</Button>
+                <Button
+                  variant="primary"
+                  submit
+                  loading={navigation.state === "submitting"}
+                  disabled={!isAdmin}
+                  aria-disabled={!isAdmin}
+                >
+                  送信
+                </Button>
               </form>
             </div>
           </Card>
