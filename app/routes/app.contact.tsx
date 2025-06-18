@@ -2,7 +2,8 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useActionData, useLoaderData, useNavigation } from "@remix-run/react";
 import { Page, Card, Layout, Text, TextField, Button, DropZone, Banner } from "@shopify/polaris";
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
+import { useEffect } from "react";
 import { authenticate } from "~/shopify.server";
 
 // 認証＋reCAPTCHA SITE KEYを渡す
@@ -13,7 +14,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   });
 };
 
-// お問い合わせフォームのメール送信（Resend利用）＋reCAPTCHA検証
+// お問い合わせフォームのメール送信（Resend利用）＋reCAPTCHA v3検証
 export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const name = formData.get("name") as string;
@@ -22,7 +23,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const recaptcha = formData.get("g-recaptcha-response") as string;
   const file = formData.get("file") as File | null;
 
-  // reCAPTCHA検証
+  // reCAPTCHA v3検証
   if (!recaptcha) {
     return json({ error: "reCAPTCHA認証に失敗しました。" }, { status: 400 });
   }
@@ -33,8 +34,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     { method: "POST" }
   );
   const verifyData = await verifyRes.json();
-  if (!verifyData.success) {
-    return json({ error: "reCAPTCHA検証に失敗しました。" }, { status: 400 });
+  // v3ではscoreも判定
+  if (!verifyData.success || verifyData.score < 0.5) {
+    return json({ error: "reCAPTCHAスコアが低すぎます（botの可能性があります）。" }, { status: 400 });
   }
 
   // Resendでメール送信
@@ -84,28 +86,37 @@ export default function Contact() {
   // reCAPTCHAトークン用ref
   const recaptchaRef = useRef<HTMLInputElement>(null);
 
-  // reCAPTCHAコールバック登録（windowグローバルに関数を用意）
+  // reCAPTCHA v3スクリプトをinject
   useEffect(() => {
-    // @ts-ignore
-    window.onRecaptchaSuccess = (token: string) => {
-      if (recaptchaRef.current) recaptchaRef.current.value = token;
-      // Polarisの<Form>はonSubmitが効かないので、通常の<form>でsubmit
-      (document.getElementById("contact-form")as HTMLFormElement)?.submit();
-    };
-  }, []);
+    if (!document.querySelector(`#recaptcha-v3-script`)) {
+      const script = document.createElement("script");
+      script.id = "recaptcha-v3-script";
+      script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
+      script.async = true;
+      script.defer = true;
+      document.body.appendChild(script);
+    }
+  }, [RECAPTCHA_SITE_KEY]);
 
-  // 通常の<form>でonSubmitハンドラ
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  // 通常の<form>でonSubmitハンドラ（v3: submit前にトークン取得）
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // v2 invisibleの場合はexecute()を呼ぶ。checkboxの場合は不要。
-    // window.grecaptcha.execute();
-    // checkboxの場合はsubmit時にtokenがhidden inputに入っていればOK
-    // ここでは念のためtokenチェックし、不足ならalert
-    if (!recaptchaRef.current?.value) {
-      alert("reCAPTCHAを完了してください。");
+    // @ts-ignore
+    if (!window.grecaptcha) {
+      alert("reCAPTCHAのスクリプトが読み込まれていません。");
       return;
     }
-    e.currentTarget.submit();
+    try {
+      // v3: action名は自由（ここでは"contact"）
+      // @ts-ignore
+      const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: "contact" });
+      if (recaptchaRef.current) {
+        recaptchaRef.current.value = token;
+      }
+      e.currentTarget.submit();
+    } catch (error) {
+      alert("reCAPTCHAトークン取得に失敗しました。");
+    }
   };
 
   return (
@@ -168,23 +179,14 @@ export default function Contact() {
                   <input type="hidden" name="file" />
                 </DropZone>
                 <br />
-                {/* reCAPTCHA v2 checkbox版 */}
+                {/* reCAPTCHA v3: hidden inputのみ */}
                 <input type="hidden" name="g-recaptcha-response" ref={recaptchaRef} />
-                <div style={{ marginBottom: 20, marginTop: 10 }}>
-                  <div
-                    className="g-recaptcha"
-                    data-sitekey={RECAPTCHA_SITE_KEY}
-                    data-callback="onRecaptchaSuccess"
-                  ></div>
-                </div>
                 <Button variant="primary" submit loading={navigation.state === "submitting"}>送信</Button>
               </form>
             </div>
           </Card>
         </Layout.Section>
       </Layout>
-      {/* reCAPTCHAスクリプト */}
-      <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     </Page>
   );
 }
