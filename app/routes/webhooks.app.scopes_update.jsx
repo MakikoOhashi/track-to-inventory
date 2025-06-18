@@ -1,4 +1,4 @@
-import { authenticate } from "../shopify.server";
+import { authenticate } from "~/shopify.server";
 import db from "../db.server";
 
 export const action = async ({ request }) => {

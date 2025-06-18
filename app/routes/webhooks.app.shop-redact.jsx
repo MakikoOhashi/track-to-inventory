@@ -1,4 +1,4 @@
-import { authenticate } from "../../shopify.server";
+import { authenticate } from "~/shopify.server";
 
 export const action = async ({ request }) => {
   // Shopify Webhook認証 & ペイロード取得
