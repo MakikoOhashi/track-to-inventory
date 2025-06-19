@@ -14,6 +14,17 @@ import {
 } from '@shopify/polaris';
 import ShopifyVariantSelector from './ShopifyVariantSelector';
 
+// ステータスの英語キーと日本語の変換マップ
+const statusJaToKey = {
+  "SI発行済": "siIssued",
+  "船積スケジュール確定": "scheduleConfirmed",
+  "船積中": "shipping",
+  "輸入通関中": "customsClearance",
+  "倉庫着": "warehouseArrival",
+  "同期済み": "synced"
+};
+
+const statusKeyToJa = Object.fromEntries(Object.entries(statusJaToKey).map(([ja, key]) => [key, ja]));
 
 const CustomModal = ({ shipment, onClose, onUpdated }) => {
   const { t } = useTranslation('common'); // 'common'はnamespace名、必要に応じて変更
@@ -22,51 +33,15 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   const [syncing, setSyncing] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-
-// 削除ハンドラ
-const handleDelete = async () => {
-  if (!window.confirm(t('modal.messages.deleteShipmentConfirm') || "本当に削除してよいですか？（削除後は戻せません）")) return;
-  setDeleting(true);
-  try {
-    const res = await fetch('/api/delete-shipment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        shop_id: shipment.shop_id,
-        si_number: shipment.si_number,
-        plan: shipment.plan, // 必要に応じて
-      }),
-    });
-    const json = await res.json();
-    if (json.error) throw new Error(json.error);
-    alert(t('modal.messages.deleteSuccess') || '削除しました');
-    if (onUpdated) onUpdated();
-    onClose();
-  } catch (e) {
-    alert(e.message || '削除に失敗しました');
-  } finally {
-    setDeleting(false);
-  }
-};
-
-
-const FILE_TYPES = [
-  { label: t('modal.fileTypes.invoice'), key: 'invoice' },
-  { label: t('modal.fileTypes.pl'), key: 'pl' },
-  { label: t('modal.fileTypes.si'), key: 'si' },
-  { label: t('modal.fileTypes.other'), key: 'other' },
-];
-
-  // ステータスオプションを翻訳可能にする
+  // ステータスオプションを英語キーで統一
   const STATUS_OPTIONS = [
-    { label: t('modal.status.siIssued'), value: "SI発行済" },
-    { label: t('modal.status.scheduleConfirmed'), value: "船積スケジュール確定" },
-    { label: t('modal.status.shipping'), value: "船積中" },
-    { label: t('modal.status.customsClearance'), value: "輸入通関中" },
-    { label: t('modal.status.warehouseArrival'), value: "倉庫着" },
-    { label: t('modal.status.synced'), value: "同期済み" },
+    { label: t('modal.status.siIssued'), value: "siIssued" },
+    { label: t('modal.status.scheduleConfirmed'), value: "scheduleConfirmed" },
+    { label: t('modal.status.shipping'), value: "shipping" },
+    { label: t('modal.status.customsClearance'), value: "customsClearance" },
+    { label: t('modal.status.warehouseArrival'), value: "warehouseArrival" },
+    { label: t('modal.status.synced'), value: "synced" },
   ];
-
 
   useEffect(() => {
     if (shipment) setFormData(shipment);
@@ -93,11 +68,11 @@ const FILE_TYPES = [
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          shipment: { ...formData, status: "同期済み" }
+          shipment: { ...formData, status: "synced" }
         }),
       });
       if (!updateRes.ok) throw new Error('ステータス更新に失敗しました');
-      setFormData(prev => ({ ...prev, status: "同期済み" }));
+      setFormData(prev => ({ ...prev, status: "synced" }));
       alert(t('modal.messages.syncSuccess'));
       // 3. モーダル閉じる or 親にデータ更新通知
       setSyncing(false);
@@ -189,6 +164,8 @@ const FILE_TYPES = [
     alert(t('modal.messages.deleteSuccess'));
   };
 
+  // 既存データが日本語の場合は変換
+  const statusKey = statusJaToKey[shipment.status] || shipment.status;
 
   return (
     <Modal
@@ -215,7 +192,7 @@ const FILE_TYPES = [
               value={formData.status || ""}
               options={STATUS_OPTIONS}
               onChange={v => setFormData(prev => ({ ...prev, status: v }))}
-              disabled={formData.status === "同期済み"}
+              disabled={formData.status === "synced"}
             />
             {/* 輸送手段 */}
             <TextField
@@ -366,9 +343,9 @@ const FILE_TYPES = [
           </BlockStack>
         ) : (
           <BlockStack gap="300">
-          <Text><b>{t('modal.fields.status')}:</b> {shipment.status}</Text>
+          <Text><b>{t('modal.fields.status')}:</b> {t('modal.status.' + statusKey)}</Text>
           {/* --- Shopify同期ボタン表示ロジック --- */}
-          {shipment.status === "倉庫着" && (
+          {shipment.status === "warehouseArrival" && (
               <Button
                 primary
                 loading={syncing}
@@ -380,7 +357,7 @@ const FILE_TYPES = [
               </Button>
             )}
             {/* --- 同期済みバナー --- */}
-            {shipment.status === "同期済み" && (
+            {shipment.status === "synced" && (
               <Banner status="success" title={t('modal.messages.alreadySynced')}>
                 {t('modal.messages.alreadySyncedDetail')}
               </Banner>
