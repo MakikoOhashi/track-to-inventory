@@ -174,6 +174,32 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   // 既存データが日本語の場合は変換
   const statusKey = statusJaToKey[shipment.status] || shipment.status;
 
+  // handleDeleteを復元
+  const handleDelete = async () => {
+    if (!window.confirm(t('modal.messages.deleteShipmentConfirm') || "本当に削除してよいですか？（削除後は戻せません）")) return;
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/delete-shipment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: shipment.shop_id,
+          si_number: shipment.si_number,
+          plan: shipment.plan, // 必要に応じて
+        }),
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      alert(t('modal.messages.deleteSuccess') || '削除しました');
+      if (onUpdated) onUpdated();
+      onClose();
+    } catch (e) {
+      alert(e.message || '削除に失敗しました');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <Modal
       open={!!shipment}
