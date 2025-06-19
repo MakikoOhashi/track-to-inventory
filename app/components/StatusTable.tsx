@@ -5,12 +5,17 @@ import { useTranslation } from 'react-i18next';
 import { Checkbox, DataTable, Text } from '@shopify/polaris';
 import type { Shipment } from "../../types/Shipment";
 
-type StatusTableProps = {
-  shipments: Shipment[];
-  onSelectShipment: (shipment: Shipment) => void;
+// ステータス日本語→英語キー変換マップ
+const statusJaToKey = {
+  "SI発行済": "siIssued",
+  "船積スケジュール確定": "scheduleConfirmed",
+  "船積中": "shipping",
+  "輸入通関中": "customsClearance",
+  "倉庫着": "warehouseArrival",
+  "同期済み": "synced"
 };
 
-const StatusTable: React.FC<StatusTableProps> = ({ shipments, onSelectShipment }) => {
+const StatusTable: React.FC<{ shipments: Shipment[]; onSelectShipment: (shipment: Shipment) => void; }> = ({ shipments, onSelectShipment }) => {
   const { t } = useTranslation('common');
   const [showArchived, setShowArchived] = useState(false);
 
@@ -18,7 +23,9 @@ const StatusTable: React.FC<StatusTableProps> = ({ shipments, onSelectShipment }
     ? shipments
     : shipments.filter((s) => !s.is_archived);
 
-    const rows = filteredShipments.map((s) => [
+  const rows = filteredShipments.map((s) => {
+    const statusKey = statusJaToKey[s.status] || s.status;
+    return [
       <Text as="span">
         <span
           onClick={() => onSelectShipment(s)}
@@ -30,17 +37,18 @@ const StatusTable: React.FC<StatusTableProps> = ({ shipments, onSelectShipment }
         {s.si_number}
         </span>
       </Text>,
-      s.status,
+      t('modal.status.' + statusKey),
       s.eta,
-    ]);
-  
-    const columnContentTypes: ("text" | "numeric")[] = ['text', 'text', 'text'];
-  
-    const headings = [
-      t('statusTable.siNumber'),
-      t('statusTable.status'),
-      t('statusTable.eta'),
     ];
+  });
+
+  const columnContentTypes: ("text" | "numeric")[] = ['text', 'text', 'text'];
+
+  const headings = [
+    t('statusTable.siNumber'),
+    t('statusTable.status'),
+    t('statusTable.eta'),
+  ];
 
   return (
     <div>
@@ -52,14 +60,11 @@ const StatusTable: React.FC<StatusTableProps> = ({ shipments, onSelectShipment }
         />
       </div>
 
-
       <DataTable
         columnContentTypes={columnContentTypes}
         headings={headings}
         rows={rows}
-        
       />
-      
     </div>
   );
 }

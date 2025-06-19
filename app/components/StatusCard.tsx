@@ -5,12 +5,17 @@ import { useTranslation } from 'react-i18next';
 import { Card, Text,BlockStack } from '@shopify/polaris';
 import type { Shipment } from "../../types/Shipment";
 
-type StatusCardProps = Shipment & {
-  onSelectShipment: () => void;
+// ステータス日本語→英語キー変換マップ
+const statusJaToKey = {
+  "SI発行済": "siIssued",
+  "船積スケジュール確定": "scheduleConfirmed",
+  "船積中": "shipping",
+  "輸入通関中": "customsClearance",
+  "倉庫着": "warehouseArrival",
+  "同期済み": "synced"
 };
 
-
-const StatusCard: React.FC<StatusCardProps> = ({
+const StatusCard: React.FC<Shipment & { onSelectShipment: () => void }> = ({
   si_number,
   shop_id,
   status,
@@ -32,6 +37,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
 }) => {
 
   const { t } = useTranslation('common');
+  const statusKey = statusJaToKey[status] || status;
   
   return (
     <Card>
@@ -64,7 +70,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
             <Text variant="bodyMd" fontWeight="semibold" as="span">
               {t('statusCard.status')}
             </Text>
-            {status}
+            {t('modal.status.' + statusKey)}
           </Text>
           
           <Text as="p">

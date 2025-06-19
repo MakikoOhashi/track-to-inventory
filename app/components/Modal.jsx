@@ -26,6 +26,14 @@ const statusJaToKey = {
 
 const statusKeyToJa = Object.fromEntries(Object.entries(statusJaToKey).map(([ja, key]) => [key, ja]));
 
+// ファイル種別の定義を復元
+const FILE_TYPES = [
+  { label: t('modal.fileTypes.invoice'), key: 'invoice' },
+  { label: t('modal.fileTypes.pl'), key: 'pl' },
+  { label: t('modal.fileTypes.si'), key: 'si' },
+  { label: t('modal.fileTypes.other'), key: 'other' },
+];
+
 const CustomModal = ({ shipment, onClose, onUpdated }) => {
   const { t } = useTranslation('common'); // 'common'はnamespace名、必要に応じて変更
   const [editMode, setEditMode] = useState(false);

@@ -110,17 +110,32 @@ export default function Index() {
   const POPUP_WIDTH = 320;
   const POPUP_HEIGHT = 180;
 
-  // ステータスの翻訳マッピング
-  const statusTranslationMap: Record<string, string> = {
-    "SI発行済": t('status.siIssued'),
-    "船積スケジュール確定": t('status.scheduleConfirmed'),
-    "船積中": t('status.shipping'),
-    "輸入通関中": t('status.customsClearance'),
-    "倉庫着": t('status.warehouseArrived'),
-    "同期済み": t('status.synced'), 
-    "未設定": t('status.notSet'),
+  // ステータス日本語→英語キー変換マップ
+  const statusJaToKey = {
+    "SI発行済": "siIssued",
+    "船積スケジュール確定": "scheduleConfirmed",
+    "船積中": "shipping",
+    "輸入通関中": "customsClearance",
+    "倉庫着": "warehouseArrival",
+    "同期済み": "synced"
   };
 
+  // statusTranslationMapの定義を修正
+  const statusTranslationMap: Record<string, string> = {
+    "SI発行済": t('modal.status.siIssued'),
+    "船積スケジュール確定": t('modal.status.scheduleConfirmed'),
+    "船積中": t('modal.status.shipping'),
+    "輸入通関中": t('modal.status.customsClearance'),
+    "倉庫着": t('modal.status.warehouseArrival'),
+    "同期済み": t('modal.status.synced'),
+    "siIssued": t('modal.status.siIssued'),
+    "scheduleConfirmed": t('modal.status.scheduleConfirmed'),
+    "shipping": t('modal.status.shipping'),
+    "customsClearance": t('modal.status.customsClearance'),
+    "warehouseArrival": t('modal.status.warehouseArrival'),
+    "synced": t('modal.status.synced'),
+    "未設定": t('status.notSet'),
+  };
 
   const statusOrder = ["SI発行済", "船積スケジュール確定", "船積中", "輸入通関中", "倉庫着","商品同期", "同期済み"];
 
