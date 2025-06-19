@@ -120,7 +120,7 @@ export default function Index() {
     "同期済み": "synced"
   };
 
-  // statusTranslationMapの定義を修正
+  // statusTranslationMapの定義も関数内で
   const statusTranslationMap: Record<string, string> = {
     "SI発行済": t('modal.status.siIssued'),
     "船積スケジュール確定": t('modal.status.scheduleConfirmed'),
