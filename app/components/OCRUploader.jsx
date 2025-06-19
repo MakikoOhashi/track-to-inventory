@@ -8,6 +8,7 @@ import {
   TextField,
   Button,
   Banner,
+  Select,
 } from "@shopify/polaris";
 import { useTranslation } from "react-i18next";
 import Tesseract from "tesseract.js";
@@ -506,6 +507,16 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       </Card>
     );
   }
+
+  // ステータスは英語キーで管理
+  const STATUS_OPTIONS = [
+    { label: t('modal.status.siIssued'), value: "siIssued" },
+    { label: t('modal.status.scheduleConfirmed'), value: "scheduleConfirmed" },
+    { label: t('modal.status.shipping'), value: "shipping" },
+    { label: t('modal.status.customsClearance'), value: "customsClearance" },
+    { label: t('modal.status.warehouseArrival'), value: "warehouseArrival" },
+    { label: t('modal.status.synced'), value: "synced" },
+  ];
 
   return (
     <Card sectioned>

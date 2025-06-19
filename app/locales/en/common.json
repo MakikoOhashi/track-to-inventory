@@ -27,7 +27,8 @@
     "statusChart": "Status Chart",
     "productNameOrder": "Product Name Order",
     "productNameAsc": "▲ Product Name Asc",
-    "productNameDesc": "▼ Product Name Desc"
+    "productNameDesc": "▼ Product Name Desc",
+    "showGuide": "Show Guide"
   },
   "placeholder": {
     "shopId": "e.g.: test-owner",
@@ -258,5 +259,40 @@
       "select": "Select Plan",
       "badge": "Most Popular"
     }
+  },
+  "startGuide": {
+    "title": "Easily Manage Imported Goods!",
+    "badge": "See at a glance when your overseas goods arrive at the warehouse and when they become inventory. The whole process is visualized and automatically synced to Shopify.",
+    "closeDetail": "Close Details",
+    "openDetail": "Show Details",
+    "mainDescription1": "📦 Streamline your receiving checks with automation!",
+    "mainDescription2": "With this app, you can fully automate the process from overseas shipment to Shopify inventory update.",
+    "mainDescription3": "Just upload your documents and the flow to inventory update is smooth.",
+    "step1": {
+      "title": "Upload Documents",
+      "desc1": "Just upload your shipping documents",
+      "desc2": "Upload images of invoices or delivery notes and the app will automatically extract the information and create a receiving record.",
+      "desc3": "No more tedious manual entry.",
+      "desc4": "🔍 Supported documents: Packing List, Invoice, Delivery Note, etc.",
+      "button": "Go to Upload Section"
+    },
+    "step2": {
+      "title": "Check Shipping Status at a Glance",
+      "desc1": "Where is it coming from? What's arriving? Instantly visible.",
+      "desc2": "Uploaded information is listed in the shipping list.",
+      "desc3": "Check expected delivery date, current status, and arrival status all in one place.",
+      "desc4": "✨ You can also check product names, SKUs, and expected arrival dates here.",
+      "button": "View Shipping List"
+    },
+    "step3": {
+      "title": "View & Edit Details",
+      "desc1": "Tap to view details and edit if needed.",
+      "desc2": "Tap a shipping card (each product) to view and edit detailed information.",
+      "desc3": "Easily mark as 'Arrived' or adjust quantities.",
+      "button": "Try the Editor (Click the relevant card)"
+    },
+    "tutorial": "View Tutorial",
+    "footer": "Use these features as needed. You can always return here.",
+    "closeGuide": "Close Guide"
   }
 }
