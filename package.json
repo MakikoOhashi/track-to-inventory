@@ -16,7 +16,10 @@
     "shopify": "shopify",
     "prisma": "prisma",
     "graphql-codegen": "graphql-codegen",
-    "vite": "vite"
+    "vite": "vite",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui"
   },
   "type": "module",
   "engines": {
@@ -27,7 +30,7 @@
     "@prisma/client": "^6.2.1",
     "@remix-run/dev": "^2.16.1",
     "@remix-run/fs-routes": "^2.16.1",
-    "@remix-run/node": "^2.16.1",
+    "@remix-run/node": "^2.16.8",
     "@remix-run/react": "^2.16.1",
     "@remix-run/serve": "^2.16.1",
     "@shopify/app-bridge-react": "^4.1.6",
@@ -56,19 +59,22 @@
     "@remix-run/eslint-config": "^2.16.1",
     "@remix-run/route-config": "^2.16.1",
     "@shopify/api-codegen-preset": "^1.1.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
     "@types/eslint": "^9.6.1",
     "@types/formidable": "^3.4.5",
-    "@types/jest": "^30.0.0",
     "@types/node": "^22.15.31",
     "@types/react": "^18.2.31",
     "@types/react-dom": "^18.2.14",
+    "@types/testing-library__react": "^10.2.0",
+    "@vitest/ui": "^3.2.4",
     "eslint": "^8.42.0",
     "eslint-config-prettier": "^10.0.1",
-    "jest": "^30.0.0",
+    "jest-environment-jsdom": "^30.0.0",
     "prettier": "^3.2.4",
-    "ts-jest": "^29.4.0",
     "typescript": "^5.2.2",
-    "vite": "^6.2.2"
+    "vite": "^6.2.2",
+    "vitest": "^3.2.4"
   },
   "workspaces": [
     "extensions/*"
