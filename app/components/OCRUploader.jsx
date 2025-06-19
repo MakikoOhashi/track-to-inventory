@@ -13,10 +13,8 @@ import {
 import { useTranslation } from "react-i18next";
 import Tesseract from "tesseract.js";
 
-
-
 export default function OCRUploader({ shopId, onSaveSuccess }) {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
   const [file, setFile] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
   const [ocrText, setOcrText] = useState("");
