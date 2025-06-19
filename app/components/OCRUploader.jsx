@@ -564,10 +564,10 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       {!showManualForm && (
         <div style={{ marginBottom: '24px' }}>
           <Button onClick={handleOpenManualForm}>
-            手動でSI情報を入力
+            {t("ocrUploader.manualInputButton")}
           </Button>
           <Text variant="bodySm" color="subdued" style={{ marginTop: 8 }}>
-            OCRを使わずに直接入力する場合はこちら
+            {t("ocrUploader.manualInputDescription")}
           </Text>
         </div>
       )}
@@ -598,8 +598,8 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
             {/* 手動入力時のヘッダー */}
             {showManualForm && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <Text variant="headingMd">手動でSI情報を入力</Text>
-                <Button size="slim" onClick={handleCloseManualForm}>閉じる</Button>
+                <Text variant="headingMd">{t("ocrUploader.manualInputHeader")}</Text>
+                <Button size="slim" onClick={handleCloseManualForm}>{t("ocrUploader.closeButton")}</Button>
               </div>
             )}
 
@@ -670,7 +670,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
               </Button>
               {usageInfo?.plan === 'free' && (
                 <Text color="subdued" variant="bodySm" style={{ marginTop: 4 }}>
-                  この機能はFreeプランでは利用できません
+                  {t("ocrUploader.freePlanRestriction")}
                 </Text>
               )}
                 {aiLoading && <Spinner size="small" />}

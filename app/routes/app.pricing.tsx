@@ -9,93 +9,104 @@ import {
   Box,
 } from "@shopify/polaris";
 import { authenticate } from "~/shopify.server";
+import { useTranslation } from "react-i18next";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
   return json({});
 };
 
-const plans = [
-  {
-    key: "free",
-    name: "無料プラン",
-    price: "¥0",
-    description: "基本機能が無料！",
-    features: [
-      "最大2件のSI登録（同時保有）",
-      "月2回までのSI削除",
-      "月5回のOCR利用",
-      "各ファイル最大10MB・最大4枚（計40MB）",
-      "Shopify在庫連携なし",
-      "サポートなし",
-      "AI利用：月5回まで",
-    ],
-    button: (
-      <Button disabled fullWidth>
-        現在のプラン
-      </Button>
-    ),
-    highlight: false,
-    badge: null,
-  },
-  {
-    key: "basic",
-    name: "ベーシックプラン",
-    price: "¥980",
-    description: "追加機能とサポートがご利用いただけます。",
-    features: [
-      "最大20件のSI登録（同時保有）",
-      "SI削除：無制限",
-      "月50回のOCR利用",
-      "各ファイル最大10MB・最大4枚（計40MB）",
-      "Shopify在庫連携あり",
-      "通常サポート",
-      "AI利用：月50回まで",
-    ],
-    button: (
-      <Button url="https://your-billing-link/basic" fullWidth variant="primary">
-        プランを選択
-      </Button>
-    ),
-    highlight: true,
-    badge: (
-      <div style={{ backgroundColor: "#00a047", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "500" }}>
-        おすすめ
-      </div>
-    ),
-  },
-  
-  {
-    key: "pro",
-    name: "プロプラン",
-    price: "¥2,980",
-    description: "すべての機能と優先サポートがご利用いただけます。",
-    features: [
-      "SI登録：無制限",
-      "SI削除：無制限",
-      "OCR利用：無制限",
-      "各ファイル最大10MB・最大4枚（計40MB）※使用状況に応じ制限の可能性あり",
-      "Shopify在庫連携あり",
-      "優先サポート",
-      "AI利用：無制限（※過剰使用時は制限の可能性あり）",
-    ],
-    button: (
-      <Button url="https://your-billing-link/pro" fullWidth variant="primary">
-        プランを選択
-      </Button>
-    ),
-    highlight: true,
-    badge: (
-      <div style={{ backgroundColor: "#6e38f7", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "500" }}>
-        一番選ばれています
-      </div>
-    ),
-  },
-];
-
 export default function Pricing() {
+  const { t } = useTranslation("common");
+  const plans = [
+    {
+      key: "free",
+      name: t("plan.free.name"),
+      price: t("plan.free.price"),
+      description: t("plan.free.description"),
+      features: [
+        t("plan.free.feature1"),
+        t("plan.free.feature2"),
+        t("plan.free.feature3"),
+        t("plan.free.feature4"),
+        t("plan.free.feature5"),
+        t("plan.free.feature6"),
+        t("plan.free.feature7"),
+      ],
+      button: (
+        <Button disabled fullWidth>
+          {t("plan.free.current")}
+        </Button>
+      ),
+      highlight: false,
+      badge: null,
+    },
+    {
+      key: "basic",
+      name: t("plan.basic.name"),
+      price: t("plan.basic.price"),
+      description: t("plan.basic.description"),
+      features: [
+        t("plan.basic.feature1"),
+        t("plan.basic.feature2"),
+        t("plan.basic.feature3"),
+        t("plan.basic.feature4"),
+        t("plan.basic.feature5"),
+        t("plan.basic.feature6"),
+        t("plan.basic.feature7"),
+      ],
+      button: (
+        <Button url="https://your-billing-link/basic" fullWidth variant="primary">
+          {t("plan.basic.select")}
+        </Button>
+      ),
+      highlight: true,
+      badge: (
+        <div style={{ backgroundColor: "#00a047", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "500" }}>
+          {t("plan.basic.badge")}
+        </div>
+      ),
+    },
+    {
+      key: "pro",
+      name: t("plan.pro.name"),
+      price: t("plan.pro.price"),
+      description: t("plan.pro.description"),
+      features: [
+        t("plan.pro.feature1"),
+        t("plan.pro.feature2"),
+        t("plan.pro.feature3"),
+        t("plan.pro.feature4"),
+        t("plan.pro.feature5"),
+        t("plan.pro.feature6"),
+        t("plan.pro.feature7"),
+      ],
+      button: (
+        <Button url="https://your-billing-link/pro" fullWidth variant="primary">
+          {t("plan.pro.select")}
+        </Button>
+      ),
+      highlight: true,
+      badge: (
+        <div style={{ backgroundColor: "#6e38f7", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "500" }}>
+          {t("plan.pro.badge")}
+        </div>
+      ),
+    },
+  ];
+
+  const comparisonRows = [
+    [t("pricing.comparison.siCount"), "2", "20", t("pricing.comparison.unlimited")],
+    [t("pricing.comparison.siDelete"), "2" + t("pricing.comparison.times"), t("pricing.comparison.unlimited"), t("pricing.comparison.unlimited")],
+    [t("pricing.comparison.ocrCount"), "5" + t("pricing.comparison.times"), "50" + t("pricing.comparison.times"), t("pricing.comparison.unlimited")],
+    [t("pricing.comparison.aiCount"), "5" + t("pricing.comparison.times"), "50" + t("pricing.comparison.times"), t("pricing.comparison.unlimited")],
+    [t("pricing.comparison.shopifySync"), t("pricing.comparison.no"), t("pricing.comparison.yes"), t("pricing.comparison.yes")],
+    [t("pricing.comparison.support"), t("pricing.comparison.none"), t("pricing.comparison.normal"), t("pricing.comparison.priority")],
+    [t("pricing.comparison.fileCapacity"), t("pricing.comparison.fileCapacityValue"), t("pricing.comparison.fileCapacityValue"), t("pricing.comparison.fileCapacityValuePro")],
+  ];
+
   return (
-    <Page title="サブスクリプションプラン">
+    <Page title={t("pricing.title")}>
       <Box paddingBlockStart="400" paddingBlockEnd="400">
         {/* プランカード - レスポンシブGrid */}
         <style>
@@ -160,7 +171,7 @@ export default function Pricing() {
                           {plan.price}
                         </Text>
                         <Text as="span" variant="bodyMd" tone="subdued">
-                          /月
+                          {t("pricing.perMonth")}
                         </Text>
                       </Box>
                       <Box paddingBlockStart="100">
@@ -234,7 +245,7 @@ export default function Pricing() {
         <Card>
           <Box padding="400">
             <Text as="h2" variant="headingLg">
-              プランと機能を比較
+              {t("pricing.comparison.title")}
             </Text>
             <Box paddingBlockStart="400">
               <div style={{ overflowX: "auto" }}>
@@ -259,7 +270,7 @@ export default function Pricing() {
                           color: "#202223",
                         }}
                       >
-                        機能
+                        {t("pricing.comparison.feature")}
                       </th>
                       <th
                         style={{
@@ -272,7 +283,7 @@ export default function Pricing() {
                           minWidth: "100px",
                         }}
                       >
-                        無料
+                        {t("plan.free.name")}
                       </th>
                       <th
                         style={{
@@ -285,7 +296,7 @@ export default function Pricing() {
                           minWidth: "120px",
                         }}
                       >
-                        ベーシック
+                        {t("plan.basic.name")}
                       </th>
                       <th
                         style={{
@@ -298,20 +309,12 @@ export default function Pricing() {
                           minWidth: "100px",
                         }}
                       >
-                        プロ
+                        {t("plan.pro.name")}
                       </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {[
-                      ["SI登録件数（同時保有）", "2", "20", "無制限"],
-                      ["SI削除回数（月）", "2回", "無制限", "無制限"],
-                      ["OCR回数", "5回", "50回", "無制限"],
-                      ["AI利用回数", "5回", "50回", "無制限"],
-                      ["Shopify在庫連携", "×", "○", "○"],
-                      ["サポート", "なし", "通常", "優先"],
-                      ["ファイル保存容量", "1件あたり最大10MB×4枚", "1件あたり最大10MB×4枚", "1件あたり最大10MB×4枚※使用状況に応じ制限の可能性あり"],
-                    ].map((row, i) => (
+                    {comparisonRows.map((row, i) => (
                       <tr
                         key={i}
                         style={{

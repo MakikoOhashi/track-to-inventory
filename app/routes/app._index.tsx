@@ -347,9 +347,9 @@ export default function Index() {
                   onClick={handleShowGuide}
                   variant="plain"
                   size="large"
-                  accessibilityLabel="ガイドを再表示"
+                  accessibilityLabel={t('button.showGuide')}
                 >
-                  ガイドを表示
+                  {t('button.showGuide')}
                 </Button>
               </InlineStack>
             </Box>

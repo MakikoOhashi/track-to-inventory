@@ -4,6 +4,7 @@ import { useActionData, useLoaderData, useNavigation } from "@remix-run/react";
 import { Page, Card, Layout, Text, TextField, Button, DropZone, Banner } from "@shopify/polaris";
 import { useState, useCallback } from "react";
 import { authenticate } from "~/shopify.server";
+import { useTranslation } from "react-i18next";
 
 type LoaderData = {
   shop: string | null;
@@ -72,6 +73,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Contact() {
+  const { t } = useTranslation("common");
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const { shop, isAdmin, error } = useLoaderData<LoaderData>();
@@ -96,26 +98,26 @@ export default function Contact() {
   };
 
   return (
-    <Page title="お問い合わせ">
+    <Page title={t("contact.title")}>
       <Layout>
         <Layout.Section>
           <Card>
             <div style={{ padding: '20px', maxWidth: 500 }}>
-              <Text as="h2" variant="headingMd">お問い合わせフォーム</Text>
+              <Text as="h2" variant="headingMd">{t("contact.formTitle")}</Text>
               <br />
               <div style={{ marginBottom: "1em", fontSize: "0.9em", color: "#666" }}>
-                ご利用ショップ: <b>{shop ?? "不明"}</b>
+                {t("contact.shopLabel")}: <b>{shop ?? t("contact.unknown")}</b>
               </div>
               {!isAdmin && (
                 <Banner tone="critical">
-                  {error ?? "Shopify管理者のみアクセスできます。"}
+                  {error ?? t("contact.adminOnly")}
                 </Banner>
               )}
               {actionData && 'ok' in actionData && actionData.ok &&(
-                <Banner tone="success">送信が完了しました！</Banner>
+                <Banner tone="success">{t("contact.success")}</Banner>
               )}
               {actionData && 'error' in actionData && (
-                <Banner tone="critical">{actionData.error}</Banner>
+                <Banner tone="critical">{actionData.error ?? t("contact.error")}</Banner>
               )}
               <form
                 id="contact-form"

@@ -71,19 +71,7 @@
     "eta": "ETA: "
   },
   "modal": {
-    "title": "SI Details",
-    "buttons": {
-      "save": "Save",
-      "edit": "Edit",
-      "cancel": "Cancel",
-      "close": "Close",
-      "delete": "Delete",
-      "addItem": "Add Item",
-      "viewFile": "View uploaded {{fileType}}",
-      "viewFileType": "View {{fileType}} file",
-      "syncShopify": "Synced to Shopify",
-      "deleteShipment": "Delete this SI"
-    },
+    "title": "Shipment Details",
     "fields": {
       "status": "Status",
       "transportType": "Transport Type",
@@ -91,30 +79,28 @@
       "eta": "ETA",
       "delayed": "Delayed",
       "clearanceDate": "Clearance Date",
-      "arrivalDate": "Arrival Date",
+      "arrivalDate": "Warehouse Arrival Date",
       "supplier": "Supplier",
       "memo": "Memo",
       "archive": "Archive",
       "itemName": "Item Name",
-      "quantity": "Quantity",
-      "shopifyVariantId": "Shopify Variant ID",
-      "sku": "SKU"
+      "quantity": "Quantity"
     },
     "sections": {
       "itemList": "Item List",
       "relatedFiles": "Related Files"
     },
     "fileTypes": {
-      "invoice": "Invoice File",
-      "pl": "PL File",
-      "si": "SI File",
-      "other": "Other File"
+      "invoice": "Invoice",
+      "pl": "Packing List",
+      "si": "SI",
+      "other": "Other"
     },
     "status": {
       "siIssued": "SI Issued",
-      "scheduleConfirmed": "Shipping Schedule Confirmed",
+      "scheduleConfirmed": "Schedule Confirmed",
       "shipping": "Shipping",
-      "customsClearance": "Import Customs Clearance",
+      "customsClearance": "Customs Clearance",
       "warehouseArrival": "Warehouse Arrival",
       "synced": "Synced"
     },
@@ -125,22 +111,33 @@
     "labels": {
       "tbd": "TBD",
       "none": "None",
-      "pieces": " pcs"
+      "pieces": "pcs"
+    },
+    "buttons": {
+      "edit": "Edit",
+      "save": "Save",
+      "cancel": "Cancel",
+      "close": "Close",
+      "delete": "Delete",
+      "addItem": "Add Item",
+      "deleteShipment": "Delete Shipment",
+      "syncShopify": "Sync with Shopify",
+      "viewFile": "View File",
+      "viewFileType": "View {{fileType}}"
     },
     "messages": {
-      "saveFailed": "Save failed",
-      "saveSuccess": "Saved successfully!",
-      "uploadFailed": "Upload failed",
-      "uploadSuccess": "Upload completed!",
-      "deleteFailed": "Delete failed",
-      "deleteSuccess": "Deleted successfully",
+      "deleteShipmentConfirm": "Are you sure you want to delete? (This cannot be undone)",
       "deleteConfirm": "Are you sure you want to delete?",
-      "alreadySynced": "Alreadt Synced",
-      "alreadySyncedDetail": "This SI has already been synced to Shopify. If you want to re-sync, please change the status to 'SI Issued' or 'Shipping' and try again.",
-      "syncSuccess": "Successfully synced to Shopify!",
-      "fileTooLarge": "The file size must be up to 10MB",
-      "deleteShipmentConfirm": "Are you sure you want to delete? (Once deleted, it cannot be recovered)",
-      "deleteShipmentSuccess": "Deleted successfully"
+      "deleteSuccess": "Deleted successfully",
+      "deleteFailed": "Failed to delete",
+      "saveSuccess": "Saved successfully",
+      "saveFailed": "Failed to save",
+      "uploadSuccess": " uploaded successfully",
+      "uploadFailed": "Upload failed",
+      "fileTooLarge": "File size must be up to 10MB",
+      "syncSuccess": "Successfully synced with Shopify",
+      "alreadySynced": "Already Synced with Shopify",
+      "alreadySyncedDetail": "This shipment is already synced with Shopify."
     }
   },
   "ocrUploader": {
@@ -174,11 +171,92 @@
     "apiJsonFail": "Failed to parse API response as JSON",
     "apiLogicFail": "API processing error",
     "saveSuccess": "Data was saved successfully!",
-    "saveFail": "Failed to save: {{message}}"
+    "saveFail": "Failed to save: {{message}}",
+    "manualInputButton": "Enter SI information manually",
+    "manualInputDescription": "Use this to enter information directly without OCR",
+    "manualInputHeader": "Enter SI information manually",
+    "closeButton": "Close",
+    "freePlanRestriction": "This feature is not available on the Free plan"
   },
   "tabs": {
     "search": "Search by SI Number",
     "product": "Planned arrivals by product",
     "status": "Status-wise chart"
+  },
+  "contact": {
+    "title": "Contact",
+    "formTitle": "Contact Form",
+    "shopLabel": "Shop",
+    "unknown": "Unknown",
+    "adminOnly": "Only Shopify admin can access.",
+    "success": "Submission completed!",
+    "error": "Failed to submit."
+  },
+  "pricing": {
+    "title": "Subscription Plans",
+    "perMonth": "/month",
+    "comparison": {
+      "title": "Plan & Feature Comparison",
+      "feature": "Feature",
+      "siCount": "Max SI registrations (simultaneous)",
+      "siDelete": "SI deletions (per month)",
+      "ocrCount": "OCR usage",
+      "aiCount": "AI usage",
+      "shopifySync": "Shopify inventory sync",
+      "support": "Support",
+      "fileCapacity": "File storage capacity",
+      "unlimited": "Unlimited",
+      "times": " times",
+      "no": "No",
+      "yes": "Yes",
+      "none": "None",
+      "normal": "Standard",
+      "priority": "Priority",
+      "fileCapacityValue": "Up to 10MB × 4 files per record",
+      "fileCapacityValuePro": "Up to 10MB × 4 files per record (may be limited depending on usage)"
+    }
+  },
+  "plan": {
+    "free": {
+      "name": "Free Plan",
+      "price": "¥0",
+      "description": "Basic features are free!",
+      "feature1": "Up to 2 SI registrations (simultaneous)",
+      "feature2": "Up to 2 SI deletions per month",
+      "feature3": "Up to 5 OCR uses per month",
+      "feature4": "Up to 10MB per file, 4 files (total 40MB)",
+      "feature5": "No Shopify inventory sync",
+      "feature6": "No support",
+      "feature7": "AI usage: up to 5 times/month",
+      "current": "Current Plan"
+    },
+    "basic": {
+      "name": "Basic Plan",
+      "price": "¥980",
+      "description": "Additional features and support available.",
+      "feature1": "Up to 20 SI registrations (simultaneous)",
+      "feature2": "Unlimited SI deletions",
+      "feature3": "Up to 50 OCR uses per month",
+      "feature4": "Up to 10MB per file, 4 files (total 40MB)",
+      "feature5": "Shopify inventory sync available",
+      "feature6": "Standard support",
+      "feature7": "AI usage: up to 50 times/month",
+      "select": "Select Plan",
+      "badge": "Recommended"
+    },
+    "pro": {
+      "name": "Pro Plan",
+      "price": "¥2,980",
+      "description": "All features and priority support available.",
+      "feature1": "Unlimited SI registrations",
+      "feature2": "Unlimited SI deletions",
+      "feature3": "Unlimited OCR usage",
+      "feature4": "Up to 10MB per file, 4 files (total 40MB, may be limited depending on usage)",
+      "feature5": "Shopify inventory sync available",
+      "feature6": "Priority support",
+      "feature7": "Unlimited AI usage (may be limited if overused)",
+      "select": "Select Plan",
+      "badge": "Most Popular"
+    }
   }
 }

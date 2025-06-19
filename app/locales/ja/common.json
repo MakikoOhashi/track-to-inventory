@@ -71,19 +71,7 @@
     "eta": "到着予定日："
   },
   "modal": {
-    "title": "SI詳細",
-    "buttons": {
-      "save": "保存",
-      "edit": "編集",
-      "cancel": "キャンセル",
-      "close": "閉じる",
-      "delete": "削除",
-      "addItem": "商品追加",
-      "viewFile": "アップロード済み{{fileType}}を見る",
-      "viewFileType": "{{fileType}}ファイルを見る",
-      "syncShopify": "Shopifyと同期",
-      "deleteShipment": "このSIを削除する"
-    },
+    "title": "入荷詳細",
     "fields": {
       "status": "ステータス",
       "transportType": "輸送手段",
@@ -96,19 +84,17 @@
       "memo": "メモ",
       "archive": "アーカイブ",
       "itemName": "商品名",
-      "quantity": "数量",
-      "shopifyVariantId": "ShopifyバリアントID",
-      "sku": "SKU"
+      "quantity": "数量"
     },
     "sections": {
       "itemList": "積載商品リスト",
       "relatedFiles": "関連ファイル"
     },
     "fileTypes": {
-      "invoice": "インボイスファイル",
-      "pl": "PLファイル",
-      "si": "SIファイル",
-      "other": "その他ファイル"
+      "invoice": "インボイス",
+      "pl": "パッキングリスト",
+      "si": "SI",
+      "other": "その他"
     },
     "status": {
       "siIssued": "SI発行済",
@@ -116,31 +102,42 @@
       "shipping": "船積中",
       "customsClearance": "輸入通関中",
       "warehouseArrival": "倉庫着",
-      "synced": "同期済み" 
+      "synced": "同期済み"
     },
     "options": {
-      "yes": "あり",
-      "no": "なし"
+      "yes": "はい",
+      "no": "いいえ"
     },
     "labels": {
       "tbd": "未定",
       "none": "なし",
       "pieces": "個"
     },
+    "buttons": {
+      "edit": "編集",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "close": "閉じる",
+      "delete": "削除",
+      "addItem": "商品を追加",
+      "deleteShipment": "入荷情報を削除",
+      "syncShopify": "Shopify在庫と同期",
+      "viewFile": "ファイルを表示",
+      "viewFileType": "{{fileType}}を表示"
+    },
     "messages": {
-      "saveFailed": "保存に失敗しました",
-      "saveSuccess": "保存しました！",
-      "uploadFailed": "アップロード失敗",
-      "uploadSuccess": "アップロード完了！",
-      "deleteFailed": "削除に失敗しました",
-      "deleteSuccess": "削除しました",
-      "deleteConfirm": "本当に削除してよろしいですか？",
-      "alreadySynced": "すでにShopifyと同期済みです",
-      "alreadySyncedDetail": "この出荷データはShopifyと同期済みです。再度同期したい場合はステータスを戻してください。",
-      "syncSuccess": "Shopify同期が完了しました",
-      "fileTooLarge": "ファイルサイズは10MBまでです",
       "deleteShipmentConfirm": "本当に削除してよいですか？（削除後は戻せません）",
-      "deleteShipmentSuccess": "削除しました"
+      "deleteConfirm": "本当に削除しますか？",
+      "deleteSuccess": "削除しました",
+      "deleteFailed": "削除に失敗しました",
+      "saveSuccess": "保存しました",
+      "saveFailed": "保存に失敗しました",
+      "uploadSuccess": "のアップロード成功",
+      "uploadFailed": "アップロード失敗",
+      "fileTooLarge": "ファイルサイズは10MBまでです",
+      "syncSuccess": "Shopify同期に成功しました",
+      "alreadySynced": "Shopify同期済み",
+      "alreadySyncedDetail": "この入荷情報はすでにShopifyと同期されています。"
     }
   },
   "ocrUploader": {
@@ -174,11 +171,92 @@
     "apiJsonFail": "APIレスポンスのJSON解析に失敗しました",
     "apiLogicFail": "API処理エラー",
     "saveSuccess": "データが正常に保存されました！",
-    "saveFail": "保存に失敗しました: {{message}}"
+    "saveFail": "保存に失敗しました: {{message}}",
+    "manualInputButton": "手動でSI情報を入力",
+    "manualInputDescription": "OCRを使わずに直接入力する場合はこちら",
+    "manualInputHeader": "手動でSI情報を入力",
+    "closeButton": "閉じる",
+    "freePlanRestriction": "この機能はFreeプランでは利用できません"
   },
   "tabs": {
     "search": "SI番号で検索",
     "product": "商品別の入荷予定",
     "status": "ステータスごとのチャート"
+  },
+  "contact": {
+    "title": "お問い合わせ",
+    "formTitle": "お問い合わせフォーム",
+    "shopLabel": "ご利用ショップ",
+    "unknown": "不明",
+    "adminOnly": "Shopify管理者のみアクセスできます。",
+    "success": "送信が完了しました！",
+    "error": "送信に失敗しました。"
+  },
+  "pricing": {
+    "title": "サブスクリプションプラン",
+    "perMonth": "/月",
+    "comparison": {
+      "title": "プランと機能を比較",
+      "feature": "機能",
+      "siCount": "SI登録件数（同時保有）",
+      "siDelete": "SI削除回数（月）",
+      "ocrCount": "OCR回数",
+      "aiCount": "AI利用回数",
+      "shopifySync": "Shopify在庫連携",
+      "support": "サポート",
+      "fileCapacity": "ファイル保存容量",
+      "unlimited": "無制限",
+      "times": "回",
+      "no": "×",
+      "yes": "○",
+      "none": "なし",
+      "normal": "通常",
+      "priority": "優先",
+      "fileCapacityValue": "1件あたり最大10MB×4枚",
+      "fileCapacityValuePro": "1件あたり最大10MB×4枚※使用状況に応じ制限の可能性あり"
+    }
+  },
+  "plan": {
+    "free": {
+      "name": "無料プラン",
+      "price": "¥0",
+      "description": "基本機能が無料！",
+      "feature1": "最大2件のSI登録（同時保有）",
+      "feature2": "月2回までのSI削除",
+      "feature3": "月5回のOCR利用",
+      "feature4": "各ファイル最大10MB・最大4枚（計40MB）",
+      "feature5": "Shopify在庫連携なし",
+      "feature6": "サポートなし",
+      "feature7": "AI利用：月5回まで",
+      "current": "現在のプラン"
+    },
+    "basic": {
+      "name": "ベーシックプラン",
+      "price": "¥980",
+      "description": "追加機能とサポートがご利用いただけます。",
+      "feature1": "最大20件のSI登録（同時保有）",
+      "feature2": "SI削除：無制限",
+      "feature3": "月50回のOCR利用",
+      "feature4": "各ファイル最大10MB・最大4枚（計40MB）",
+      "feature5": "Shopify在庫連携あり",
+      "feature6": "通常サポート",
+      "feature7": "AI利用：月50回まで",
+      "select": "プランを選択",
+      "badge": "おすすめ"
+    },
+    "pro": {
+      "name": "プロプラン",
+      "price": "¥2,980",
+      "description": "すべての機能と優先サポートがご利用いただけます。",
+      "feature1": "SI登録：無制限",
+      "feature2": "SI削除：無制限",
+      "feature3": "OCR利用：無制限",
+      "feature4": "各ファイル最大10MB・最大4枚（計40MB）※使用状況に応じ制限の可能性あり",
+      "feature5": "Shopify在庫連携あり",
+      "feature6": "優先サポート",
+      "feature7": "AI利用：無制限（※過剰使用時は制限の可能性あり）",
+      "select": "プランを選択",
+      "badge": "一番選ばれています"
+    }
   }
 }
