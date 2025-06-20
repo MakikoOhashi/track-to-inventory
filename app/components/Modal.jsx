@@ -27,7 +27,7 @@ const statusJaToKey = {
 const statusKeyToJa = Object.fromEntries(Object.entries(statusJaToKey).map(([ja, key]) => [key, ja]));
 
 const CustomModal = ({ shipment, onClose, onUpdated }) => {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation(locale);
   // FILE_TYPESの定義を関数内に移動
   const FILE_TYPES = [
     { label: t('modal.fileTypes.invoice'), key: 'invoice' },

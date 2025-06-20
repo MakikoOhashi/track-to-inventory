@@ -3,12 +3,13 @@
 client_id = "54d683ca896f499d837fee84e21f76a3"
 name = "TrackToInventory"
 handle = "tracktoinventory"
-application_url = "https://track-to-inventory.onrender.com"
+application_url = "https://transform-inventory-fake-courier.trycloudflare.com"
 embedded = true
 
 [build]
 include_config_on_deploy = true
 app_url = "https://track-to-inventory.onrender.com"
+automatically_update_urls_on_dev = true
 
 [webhooks]
 api_version = "2025-04"
@@ -27,9 +28,9 @@ scopes = "read_products,write_products,write_inventory,read_locations"
 
 [auth]
 redirect_urls = [
-  "https://track-to-inventory.onrender.com/auth/callback",
-  "https://track-to-inventory.onrender.com/auth/shopify/callback",
-  "https://track-to-inventory.onrender.com/api/auth/callback"
+  "https://transform-inventory-fake-courier.trycloudflare.com/auth/callback",
+  "https://transform-inventory-fake-courier.trycloudflare.com/auth/shopify/callback",
+  "https://transform-inventory-fake-courier.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
