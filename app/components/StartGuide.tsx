@@ -125,7 +125,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                 </InlineStack>
               </BlockStack>
 
-              <Divider />ぎ
+              <Divider />
 
               {/* Step 3 */}
               <BlockStack gap="300">
