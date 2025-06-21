@@ -300,11 +300,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           
           if (adjData.errors) {
             adjGraphqlErrors = adjData.errors;
+            console.error("GraphQL Errors in strategy 1:", adjData.errors);
           } else if (!adjData.data?.inventoryAdjustQuantities?.userErrors?.length) {
             success = true;
             usedStrategy = "inventoryAdjustQuantities";
           } else {
             adjUserErrors = adjData.data.inventoryAdjustQuantities.userErrors;
+            console.error("User Errors in strategy 1:", adjUserErrors);
           }
           
         } catch (strategy1Error) {
@@ -370,11 +372,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             
             if (adjData.errors) {
               adjGraphqlErrors = adjData.errors;
+              console.error("GraphQL Errors in strategy 2:", adjData.errors);
             } else if (!adjData.data?.inventorySetQuantities?.userErrors?.length) {
               success = true;
               usedStrategy = "inventorySetQuantities";
             } else {
               adjUserErrors = adjData.data.inventorySetQuantities.userErrors;
+              console.error("User Errors in strategy 2:", adjUserErrors);
             }
             
           } catch (strategy2Error) {
@@ -427,11 +431,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             
             if (adjData.errors) {
               adjGraphqlErrors = adjData.errors;
+              console.error("GraphQL Errors in strategy 3:", adjData.errors);
             } else if (!adjData.data?.inventoryBulkAdjustQuantityAtLocation?.userErrors?.length) {
               success = true;
               usedStrategy = "inventoryBulkAdjustQuantityAtLocation";
             } else {
               adjUserErrors = adjData.data.inventoryBulkAdjustQuantityAtLocation.userErrors;
+              console.error("User Errors in strategy 3:", adjUserErrors);
             }
             
           } catch (strategy3Error) {
@@ -439,6 +445,67 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             console.log("戦略3 失敗:", strategy3Error);
           }
         }
+        
+        // 戦略4: 最新のinventoryAdjustQuantityAtLocation (最新フォールバック)
+        if (!success) {
+          step = "inventoryAdjustQuantityAtLocation";
+          try {
+            console.log("=== 戦略4: inventoryAdjustQuantityAtLocation ===");
+            
+            const latestMutation = `
+              mutation($input: InventoryAdjustQuantityAtLocationInput!) {
+                inventoryAdjustQuantityAtLocation(input: $input) {
+                  inventoryLevel {
+                    available
+                    item {
+                      id
+                    }
+                    location {
+                      id
+                    }
+                  }
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }
+            `;
+            
+            const latestVariables = {
+              input: {
+                inventoryItemId: inventoryItemId,
+                locationId: locationId,
+                delta: item.quantity
+              }
+            };
+            
+            console.log("Latest variables:", JSON.stringify(latestVariables, null, 2));
+            
+            const latestResult = await admin.graphql(latestMutation, {
+              variables: latestVariables
+            });
+            
+            adjData = await latestResult.json() as { data?: any; errors?: any };
+            console.log("戦略4 成功:", JSON.stringify(adjData, null, 2));
+            
+            if (adjData.errors) {
+              adjGraphqlErrors = adjData.errors;
+              console.error("GraphQL Errors in strategy 4:", adjData.errors);
+            } else if (!adjData.data?.inventoryAdjustQuantityAtLocation?.userErrors?.length) {
+              success = true;
+              usedStrategy = "inventoryAdjustQuantityAtLocation";
+            } else {
+              adjUserErrors = adjData.data.inventoryAdjustQuantityAtLocation.userErrors;
+              console.error("User Errors in strategy 4:", adjUserErrors);
+            }
+            
+          } catch (strategy4Error) {
+            adjUserErrors = [{ message: String(strategy4Error) }];
+            console.log("戦略4 失敗:", strategy4Error);
+          }
+        }
+        
         // 成功時
         if (success) {
           results.push({

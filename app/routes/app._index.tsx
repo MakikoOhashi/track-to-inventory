@@ -18,6 +18,7 @@ import {
   Layout,
 } from '@shopify/polaris';
 import { QuestionCircleIcon } from '@shopify/polaris-icons';
+import { ErrorBoundary } from 'react-error-boundary';
 
 import CustomModal from '../components/Modal';
 import StatusCard from '../components/StatusCard';
@@ -38,6 +39,36 @@ import { i18n } from "~/utils/i18n.server";
 // --- ① LoaderでShopifyセッションからshop（Shop ID）を取得 ---
 import { authenticate } from "~/shopify.server"; // ←例: Shopify Remix SDK
 
+// Error Fallback Component for the main app
+function AppErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+  return (
+    <Page>
+      <Card>
+        <BlockStack gap="400">
+          <Text variant="headingLg" as="h2">エラーが発生しました</Text>
+          <Text as="p">申し訳ございませんが、アプリケーションでエラーが発生しました。</Text>
+          <Button onClick={resetErrorBoundary} variant="primary">
+            再試行
+          </Button>
+          {process.env.NODE_ENV === 'development' && (
+            <details>
+              <summary>エラー詳細</summary>
+              <pre style={{ 
+                backgroundColor: '#f5f5f5', 
+                padding: '10px', 
+                overflow: 'auto',
+                fontSize: '12px'
+              }}>
+                {error.message}
+                {error.stack}
+              </pre>
+            </details>
+          )}
+        </BlockStack>
+      </Card>
+    </Page>
+  );
+}
 
 type StatusTableProps = {
   shipments: Shipment[];
@@ -322,11 +353,14 @@ export default function Index() {
       ];
     });
 
-    
+    // Safe rendering checks
+    const safeShipments = shipments || [];
+    const safeUpcomingShipments = upcomingShipments || [];
+    const safeFilteredShipments = filteredShipments || [];
 
   // --- JSX ---
   return (
-  
+    <ErrorBoundary FallbackComponent={AppErrorFallback}>
       <Page
         title={t('title.shipmentsByOwner')}
        
@@ -384,11 +418,11 @@ export default function Index() {
           <Text as="h2" variant="headingLg" id="card-edit">{t('title.upcomingArrivals')}</Text>
           {/* <Text as="p" variant="bodyMd" tone="subdued">{t('message.upcomingArrivals')}</Text>
          */}
-        {shipments.length === 0 ? (
+        {safeShipments.length === 0 ? (
             <Banner tone="info">{t('message.noData')}</Banner>
           ) : (
         <ul style={{ listStyle: 'none', padding: 0 }}>
-          {upcomingShipments.map((s) => (
+          {safeUpcomingShipments.map((s) => (
             <li key={s.si_number} style={{ cursor: 'pointer', marginBottom: '0.5rem' }}>
             <span onClick={() => setSelectedShipment(s)}>
               {s.si_number} - <strong>ETA:</strong> {s.eta}
@@ -421,7 +455,7 @@ export default function Index() {
       
       {viewMode === 'card' ? (
         <InlineStack gap="400" wrap>
-          {shipments.map((s) => (
+          {safeShipments.map((s) => (
              <StatusCard
              key={s.si_number}
              {...s}
@@ -431,7 +465,7 @@ export default function Index() {
         </InlineStack>
       ) : (
         <StatusTable 
-        shipments={shipments} 
+        shipments={safeShipments} 
         onSelectShipment={(shipment) => setSelectedShipment(shipment)}
         />
       )}
@@ -489,7 +523,7 @@ export default function Index() {
         <DataTable
             columnContentTypes={['text', 'numeric']}
             headings={[t('label.productName'), t('label.totalQuantity')]}
-            rows={getProductStats(shipments, productStatsSort).map(([name, qty]) => [
+            rows={getProductStats(safeShipments, productStatsSort).map(([name, qty]) => [
               <span
               key={name}
               onMouseEnter={e => handleProductMouseEnter(e, name)}
@@ -511,7 +545,7 @@ export default function Index() {
     <BlockStack gap="500">
     <Text as="h3" variant="headingMd">{t('title.statusChart')}</Text>
       {statusOrder.map(status => {
-        const shipmentsForStatus = getStatusStats(shipments)[status] || [];
+        const shipmentsForStatus = getStatusStats(safeShipments)[status] || [];
         const rows = shipmentsForStatus.flatMap(s =>
           (s.items || []).map(item => [
             <span
@@ -568,7 +602,7 @@ export default function Index() {
               <DataTable
                 columnContentTypes={['text', 'text', 'text']}
                 headings={[t('label.siNumber'), t('label.eta'), t('label.supplier')]}
-                rows={filteredShipments.map((s, idx) => [
+                rows={safeFilteredShipments.map((s, idx) => [
                   <span
                     style={{ color: "#2a5bd7", cursor: "pointer", textDecoration: "underline" }}
                     onClick={() => setSelectedShipment(s)}
@@ -583,7 +617,7 @@ export default function Index() {
                   s.supplier_name
                 ])}
               />
-              {filteredShipments.length === 0 && (
+              {safeFilteredShipments.length === 0 && (
                 <Banner tone="info">{t('message.noMatchingSi')}</Banner>
               )}
             </>
@@ -651,12 +685,15 @@ export default function Index() {
   <Box paddingBlockEnd="1200" />
 
       {/* モーダル表示 */}
-      <CustomModal
-        shipment={selectedShipment}
-        onClose={handleModalClose}
-        onUpdated={() => fetchShipments(shopId)}
-      />
+      {selectedShipment && (
+        <CustomModal
+          shipment={selectedShipment}
+          onClose={handleModalClose}
+          onUpdated={() => fetchShipments(shopId)}
+        />
+      )}
     </Page>
+    </ErrorBoundary>
   );
 }
 
