@@ -28,34 +28,46 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // ファイルパス抽出ロジックを改善
     let filePath = "";
     
-    // URLが署名付きURLの場合（token=を含む場合）
-    if (url.includes('token=')) {
+    console.log('Attempting to extract file path from:', { si_number, type, url });
+    
+    // 1. まず、URLがファイルパスそのものかチェック
+    if (url && !url.includes('http') && !url.includes('token=')) {
+      // URLがファイルパスそのものの場合
+      filePath = url;
+      console.log('Using URL as direct file path:', filePath);
+    }
+    // 2. URLが署名付きURLの場合（token=を含む場合）
+    else if (url && url.includes('token=')) {
       try {
         const urlObj = new URL(url);
         const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/sign\/shipment-files\/(.+)/);
         if (pathMatch) {
           filePath = pathMatch[1];
+          console.log('Extracted file path from signed URL:', filePath);
         }
       } catch (urlError) {
         console.error('URL parsing error:', urlError);
       }
     }
-    
-    // ファイルパスが抽出できなかった場合、従来の方法を試す
+    // 3. 従来の方法（URLからファイル名を抽出してパスを構築）
     if (!filePath) {
       const matches = url.match(/\/([^/]+)\.([a-zA-Z0-9]+)$/);
       if (matches) {
         filePath = `${si_number}/${type}.${matches[2]}`;
+        console.log('Constructed file path from URL pattern:', filePath);
       }
     }
     
     // ファイルパスが特定できない場合
     if (!filePath) {
       console.error('Could not determine file path from URL:', url);
-      return json({ error: "ファイルパス特定失敗" }, { status: 400 });
+      return json({ 
+        error: "ファイルパス特定失敗",
+        details: { si_number, type, url }
+      }, { status: 400 });
     }
 
-    console.log('Deleting file path:', filePath);
+    console.log('Final file path for deletion:', filePath);
 
     const { error } = await supabase
       .storage

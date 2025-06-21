@@ -214,46 +214,50 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       console.log('Upload successful:', json); // Debug log
       console.log('Setting formData with new file path:', { field: `${type}_url`, filePath: json.filePath });
       
-      // 状態更新を安全に行う
-      setFormData((prev) => {
-        const newData = {
-          ...prev,
-          [`${type}_url`]: json.filePath, // ファイルパスを保存
-        };
-        console.log('Updated formData:', newData);
-        return newData;
-      });
-      
       // ファイルアップロード成功後に即座にデータベースに保存
       try {
         console.log('Auto-saving after file upload...');
-        const updatedFormData = {
-          ...formData,
-          [`${type}_url`]: json.filePath, // ファイルパスを保存
-        };
         
-        const saveRes = await fetch('/api/updateShipment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shipment: updatedFormData }),
+        // 最新の状態を取得してから保存
+        setFormData((prev) => {
+          const updatedFormData = {
+            ...prev,
+            [`${type}_url`]: json.filePath, // ファイルパスを保存
+          };
+          
+          // 非同期でデータベースに保存
+          (async () => {
+            try {
+              const saveRes = await fetch('/api/updateShipment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ shipment: updatedFormData }),
+              });
+              
+              if (!saveRes.ok) {
+                const errorText = await saveRes.text();
+                console.error('Auto-save failed:', saveRes.status, errorText);
+                alert(`${type.toUpperCase()}アップロード成功しましたが、データベースへの保存に失敗しました: ${errorText}`);
+                return;
+              }
+              
+              const saveJson = await saveRes.json();
+              if (saveJson.error) {
+                console.error('Auto-save failed with error:', saveJson.error);
+                alert(`${type.toUpperCase()}アップロード成功しましたが、データベースへの保存に失敗しました: ${saveJson.error}`);
+                return;
+              }
+              
+              console.log('Auto-save successful');
+              if (onUpdated) onUpdated(); // 親コンポーネントに更新を通知
+            } catch (saveError) {
+              console.error('Auto-save error:', saveError);
+              alert(`${type.toUpperCase()}アップロード成功しましたが、データベースへの保存に失敗しました: ${saveError.message}`);
+            }
+          })();
+          
+          return updatedFormData;
         });
-        
-        if (!saveRes.ok) {
-          const errorText = await saveRes.text();
-          console.error('Auto-save failed:', saveRes.status, errorText);
-          alert(`${type.toUpperCase()}アップロード成功しましたが、データベースへの保存に失敗しました: ${errorText}`);
-          return;
-        }
-        
-        const saveJson = await saveRes.json();
-        if (saveJson.error) {
-          console.error('Auto-save failed with error:', saveJson.error);
-          alert(`${type.toUpperCase()}アップロード成功しましたが、データベースへの保存に失敗しました: ${saveJson.error}`);
-          return;
-        }
-        
-        console.log('Auto-save successful');
-        if (onUpdated) onUpdated(); // 親コンポーネントに更新を通知
       } catch (saveError) {
         console.error('Auto-save error:', saveError);
         alert(`${type.toUpperCase()}アップロード成功しましたが、データベースへの保存に失敗しました: ${saveError.message}`);
@@ -298,33 +302,47 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     // ファイル削除成功後に即座にデータベースに保存
     try {
       console.log('Auto-saving after file deletion...');
-      const updatedFormData = {
-        ...formData,
-        [`${type}_url`]: undefined,
-      };
       
-      const saveRes = await fetch('/api/updateShipment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shipment: updatedFormData }),
+      // 最新の状態を取得してから保存
+      setFormData((prev) => {
+        const updatedFormData = {
+          ...prev,
+          [`${type}_url`]: undefined,
+        };
+        
+        // 非同期でデータベースに保存
+        (async () => {
+          try {
+            const saveRes = await fetch('/api/updateShipment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ shipment: updatedFormData }),
+            });
+            
+            if (!saveRes.ok) {
+              const errorText = await saveRes.text();
+              console.error('Auto-save after deletion failed:', saveRes.status, errorText);
+              alert(`ファイル削除成功しましたが、データベースへの保存に失敗しました: ${errorText}`);
+              return;
+            }
+            
+            const saveJson = await saveRes.json();
+            if (saveJson.error) {
+              console.error('Auto-save after deletion failed with error:', saveJson.error);
+              alert(`ファイル削除成功しましたが、データベースへの保存に失敗しました: ${saveJson.error}`);
+              return;
+            }
+            
+            console.log('Auto-save after deletion successful');
+            if (onUpdated) onUpdated(); // 親コンポーネントに更新を通知
+          } catch (saveError) {
+            console.error('Auto-save after deletion error:', saveError);
+            alert(`ファイル削除成功しましたが、データベースへの保存に失敗しました: ${saveError.message}`);
+          }
+        })();
+        
+        return updatedFormData;
       });
-      
-      if (!saveRes.ok) {
-        const errorText = await saveRes.text();
-        console.error('Auto-save after deletion failed:', saveRes.status, errorText);
-        alert(`ファイル削除成功しましたが、データベースへの保存に失敗しました: ${errorText}`);
-        return;
-      }
-      
-      const saveJson = await saveRes.json();
-      if (saveJson.error) {
-        console.error('Auto-save after deletion failed with error:', saveJson.error);
-        alert(`ファイル削除成功しましたが、データベースへの保存に失敗しました: ${saveJson.error}`);
-        return;
-      }
-      
-      console.log('Auto-save after deletion successful');
-      if (onUpdated) onUpdated(); // 親コンポーネントに更新を通知
     } catch (saveError) {
       console.error('Auto-save after deletion error:', saveError);
       alert(`ファイル削除成功しましたが、データベースへの保存に失敗しました: ${saveError.message}`);

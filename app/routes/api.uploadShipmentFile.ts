@@ -107,6 +107,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ error: "Supabase設定エラー" }, { status: 500 });
     }
 
+    console.log('Supabase configuration:', {
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Missing',
+      key: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'Missing'
+    });
+
     const { error: uploadError } = await supabase.storage
       .from("shipment-files")
       .upload(filePath, uint8Array, { 
@@ -116,9 +121,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     if (uploadError) {
       console.error('Supabase upload error:', uploadError);
+      console.error('Upload details:', {
+        bucket: 'shipment-files',
+        filePath,
+        fileSize: uint8Array.length,
+        contentType: mimeType
+      });
       return json({ 
         error: `アップロードエラー: ${uploadError.message}`,
-        details: uploadError
+        details: uploadError,
+        filePath,
+        fileSize: uint8Array.length
       }, { status: 500 });
     }
 
@@ -126,7 +139,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     
     // Private bucket用: ファイルパスのみを返す（署名付きURLは表示時に生成）
     console.log('File path for database:', filePath); // Debug log
-    return json({ filePath: filePath });
+    return json({ 
+      filePath: filePath,
+      message: 'ファイルが正常にアップロードされました'
+    });
 
   } catch (error) {
     console.error('Unexpected error in uploadShipmentFile:', error);
