@@ -103,7 +103,10 @@ export default function Index() {
     console.error('Translation hook error:', error);
     // フォールバック
     translationHook = {
-      t: (key: string) => key,
+      t: (key: string) => {
+        console.warn(`Translation key not found: ${key}`);
+        return key;
+      },
       i18n: { changeLanguage: () => {} }
     };
   }
@@ -172,31 +175,42 @@ export default function Index() {
     "同期済み": "synced"
   };
 
+  // 安全な翻訳関数
+  const safeTranslate = (key: string, fallback: string) => {
+    try {
+      const result = t(key);
+      return result && result !== key ? result : fallback;
+    } catch (error) {
+      console.warn(`Translation error for key: ${key}`, error);
+      return fallback;
+    }
+  };
+
   // statusTranslationMapの定義も関数内で
   const statusTranslationMap: Record<string, string> = {
-    "SI発行済": t('modal.status.siIssued') || 'SI Issued',
-    "船積スケジュール確定": t('modal.status.scheduleConfirmed') || 'Schedule Confirmed',
-    "船積中": t('modal.status.shipping') || 'Shipping',
-    "輸入通関中": t('modal.status.customsClearance') || 'Customs Clearance',
-    "倉庫着": t('modal.status.warehouseArrival') || 'Warehouse Arrival',
-    "同期済み": t('modal.status.synced') || 'Synced',
-    "siIssued": t('modal.status.siIssued') || 'SI Issued',
-    "scheduleConfirmed": t('modal.status.scheduleConfirmed') || 'Schedule Confirmed',
-    "shipping": t('modal.status.shipping') || 'Shipping',
-    "customsClearance": t('modal.status.customsClearance') || 'Customs Clearance',
-    "warehouseArrival": t('modal.status.warehouseArrival') || 'Warehouse Arrival',
-    "synced": t('modal.status.synced') || 'Synced',
-    "未設定": t('status.notSet') || 'Not Set',
+    "SI発行済": safeTranslate('modal.status.siIssued', 'SI Issued'),
+    "船積スケジュール確定": safeTranslate('modal.status.scheduleConfirmed', 'Schedule Confirmed'),
+    "船積中": safeTranslate('modal.status.shipping', 'Shipping'),
+    "輸入通関中": safeTranslate('modal.status.customsClearance', 'Customs Clearance'),
+    "倉庫着": safeTranslate('modal.status.warehouseArrival', 'Warehouse Arrival'),
+    "同期済み": safeTranslate('modal.status.synced', 'Synced'),
+    "siIssued": safeTranslate('modal.status.siIssued', 'SI Issued'),
+    "scheduleConfirmed": safeTranslate('modal.status.scheduleConfirmed', 'Schedule Confirmed'),
+    "shipping": safeTranslate('modal.status.shipping', 'Shipping'),
+    "customsClearance": safeTranslate('modal.status.customsClearance', 'Customs Clearance'),
+    "warehouseArrival": safeTranslate('modal.status.warehouseArrival', 'Warehouse Arrival'),
+    "synced": safeTranslate('modal.status.synced', 'Synced'),
+    "未設定": safeTranslate('status.notSet', 'Not Set'),
   };
 
   const statusOrder = [
-    t('modal.status.siIssued') || 'SI Issued',
-    t('modal.status.scheduleConfirmed') || 'Schedule Confirmed',
-    t('modal.status.shipping') || 'Shipping',
-    t('modal.status.customsClearance') || 'Customs Clearance',
-    t('modal.status.warehouseArrival') || 'Warehouse Arrival',
-    t('status.productSync') || 'Product Sync',
-    t('modal.status.synced') || 'Synced'
+    safeTranslate('modal.status.siIssued', 'SI Issued'),
+    safeTranslate('modal.status.scheduleConfirmed', 'Schedule Confirmed'),
+    safeTranslate('modal.status.shipping', 'Shipping'),
+    safeTranslate('modal.status.customsClearance', 'Customs Clearance'),
+    safeTranslate('modal.status.warehouseArrival', 'Warehouse Arrival'),
+    safeTranslate('status.productSync', 'Product Sync'),
+    safeTranslate('modal.status.synced', 'Synced')
   ];
 
   // 修正1: supabaseで直接取得→API経由に変更
@@ -376,7 +390,7 @@ export default function Index() {
           onClick={() => setSelectedShipment(s)}
           tabIndex={0}
           onKeyDown={e => { if (e.key === 'Enter') setSelectedShipment(s); }}
-          title={t('message.clickForDetails') || 'Click for details'}
+          title={safeTranslate('message.clickForDetails', 'Click for details')}
           key={s.si_number}
           role="button"
         >
@@ -397,7 +411,7 @@ export default function Index() {
   return (
     <ErrorBoundary FallbackComponent={AppErrorFallback}>
       <Page
-        title={t('title.shipmentsByOwner') || 'Shipments by Owner'}
+        title={safeTranslate('title.shipmentsByOwner', 'Shipments by Owner')}
        
         primaryAction={<LanguageSwitcher value={lang} onChange={setLang} />}
       >
@@ -439,9 +453,9 @@ export default function Index() {
                   onClick={handleShowGuide}
                   variant="plain"
                   size="large"
-                  accessibilityLabel={t('button.showGuide') || 'Show Guide'}
+                  accessibilityLabel={safeTranslate('button.showGuide', 'Show Guide')}
                 >
-                  {t('button.showGuide') || 'Show Guide'}
+                  {safeTranslate('button.showGuide', 'Show Guide')}
                 </Button>
               </InlineStack>
             </Box>
@@ -450,11 +464,11 @@ export default function Index() {
         <Card>
         
           <BlockStack gap="400"> 
-          <Text as="h2" variant="headingLg" id="card-edit">{t('title.upcomingArrivals') || 'Upcoming Arrivals'}</Text>
+          <Text as="h2" variant="headingLg" id="card-edit">{safeTranslate('title.upcomingArrivals', 'Upcoming Arrivals')}</Text>
           {/* <Text as="p" variant="bodyMd" tone="subdued">{t('message.upcomingArrivals')}</Text>
          */}
         {safeShipments.length === 0 ? (
-            <Banner tone="info">{t('message.noData') || 'No data available'}</Banner>
+            <Banner tone="info">{safeTranslate('message.noData', 'No data available')}</Banner>
           ) : (
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {safeUpcomingShipments.map((s) => (
@@ -472,12 +486,12 @@ export default function Index() {
       
        <BlockStack gap="500">
         
-        <Text as="h2" variant="headingLg">{t('title.arrivalStatus') || 'Arrival Status'}</Text>
+        <Text as="h2" variant="headingLg">{safeTranslate('title.arrivalStatus', 'Arrival Status')}</Text>
         {/* ▼▼▼ ここが変更点 ▼▼▼ */}
         <Tabs
           tabs={[
-            { id: 'card', content: t('button.cardView') || 'Card View' },
-            { id: 'table', content: t('button.tableView') || 'Table View' }
+            { id: 'card', content: safeTranslate('button.cardView', 'Card View') },
+            { id: 'table', content: safeTranslate('button.tableView', 'Table View') }
           ]}
           selected={viewMode === 'card' ? 0 : 1}
           onSelect={selectedIndex => {
@@ -516,7 +530,7 @@ export default function Index() {
 <Card>
   <BlockStack gap="500">
 
-  <Text as="h2" variant="headingLg" id="detail-section">{t('title.detailDisplay')}</Text>
+  <Text as="h2" variant="headingLg" id="detail-section">{safeTranslate('title.detailDisplay', 'Detail Display')}</Text>
 
 
                 <Tabs 
@@ -539,7 +553,7 @@ export default function Index() {
        {detailViewMode === 'product' && (
       <BlockStack gap="400">
       <InlineStack align="space-between">
-      <Text as="h3" variant="headingMd">{t('title.productArrivals')}</Text>
+      <Text as="h3" variant="headingMd">{safeTranslate('title.productArrivals', 'Product Arrivals')}</Text>
           
         <Button
           onClick={() =>
@@ -551,13 +565,13 @@ export default function Index() {
           size="slim"
           variant="plain"
         >
-          {productStatsSort === 'name-asc' ?t('button.productNameAsc') : t('button.productNameDesc')}
+          {productStatsSort === 'name-asc' ? safeTranslate('button.productNameAsc', 'Product Name (A-Z)') : safeTranslate('button.productNameDesc', 'Product Name (Z-A)')}
         </Button>
       </InlineStack>
 
         <DataTable
             columnContentTypes={['text', 'numeric']}
-            headings={[t('label.productName'), t('label.totalQuantity')]}
+            headings={[safeTranslate('label.productName', 'Product Name'), safeTranslate('label.totalQuantity', 'Total Quantity')]}
             rows={getProductStats(safeShipments, productStatsSort).map(([name, qty]) => [
               <span
               key={name}
@@ -578,7 +592,7 @@ export default function Index() {
      {/* ステータスごとのチャート */}
      {detailViewMode === 'status' && (
     <BlockStack gap="500">
-    <Text as="h3" variant="headingMd">{t('title.statusChart')}</Text>
+    <Text as="h3" variant="headingMd">{safeTranslate('title.statusChart', 'Status Chart')}</Text>
       {statusOrder.map(status => {
         const shipmentsForStatus = getStatusStats(safeShipments)[status] || [];
         const rows = shipmentsForStatus.flatMap(s =>
@@ -588,7 +602,7 @@ export default function Index() {
             onClick={() => setSelectedShipment(s)}
             tabIndex={0}
             onKeyDown={e => { if (e.key === 'Enter') setSelectedShipment(s); }}
-            title={t('message.clickForDetails')}
+            title={safeTranslate('message.clickForDetails', 'Click for details')}
             key={s.si_number + item.name}
           >
             {s.si_number}
@@ -603,7 +617,7 @@ export default function Index() {
             <Text as="h4" variant="headingMd">{status}</Text>
             <DataTable
               columnContentTypes={['text', 'text', 'numeric']}
-              headings={[t('label.siNumber'), t('label.productName'), t('label.quantity')]}
+              headings={[safeTranslate('label.siNumber', 'SI Number'), safeTranslate('label.productName', 'Product Name'), safeTranslate('label.quantity', 'Quantity')]}
               rows={rows}
             />
           </BlockStack>
@@ -618,14 +632,14 @@ export default function Index() {
         {/* SI番号で検索 */}
         {detailViewMode === 'search' && (
             <BlockStack gap="400">
-              <Text as="h3" variant="headingMd">{t('title.siSearch')}</Text>
+              <Text as="h3" variant="headingMd">{safeTranslate('title.siSearch', 'SI Search')}</Text>
               <Box maxWidth="400px">
               <TextField
-                label={t('label.siNumber')}
+                label={safeTranslate('label.siNumber', 'SI Number')}
                 value={siQuery}
                 onChange={setSiQuery}
                 autoComplete="off"
-                placeholder={t('placeholder.siNumber')}
+                placeholder={safeTranslate('placeholder.siNumber', 'Enter SI number')}
                 clearButton
                 onClearButtonClick={() => setSiQuery('')}
               />
@@ -636,7 +650,7 @@ export default function Index() {
 
               <DataTable
                 columnContentTypes={['text', 'text', 'text']}
-                headings={[t('label.siNumber'), t('label.eta'), t('label.supplier')]}
+                headings={[safeTranslate('label.siNumber', 'SI Number'), safeTranslate('label.eta', 'ETA'), safeTranslate('label.supplier', 'Supplier')]}
                 rows={safeFilteredShipments.map((s, idx) => [
                   <span
                     style={{ color: "#2a5bd7", cursor: "pointer", textDecoration: "underline" }}
@@ -644,7 +658,7 @@ export default function Index() {
                     key={s.si_number}
                     tabIndex={0}
                     onKeyDown={e => { if (e.key === 'Enter') setSelectedShipment(s); }}
-                    title={t('message.clickForDetails')}
+                    title={safeTranslate('message.clickForDetails', 'Click for details')}
                   >
                     {s.si_number}
                   </span>,
@@ -653,7 +667,7 @@ export default function Index() {
                 ])}
               />
               {safeFilteredShipments.length === 0 && (
-                <Banner tone="info">{t('message.noMatchingSi')}</Banner>
+                <Banner tone="info">{safeTranslate('message.noMatchingSi', 'No matching SI numbers found')}</Banner>
               )}
             </>
             )}
@@ -707,10 +721,10 @@ export default function Index() {
           <DataTable
             columnContentTypes={['text', 'text', 'numeric', 'text']}
             headings={[
-              t('label.siNumber'),
-              t('label.productName'),
-              t('label.quantity'),
-              t('label.status')
+              safeTranslate('label.siNumber', 'SI Number'),
+              safeTranslate('label.productName', 'Product Name'),
+              safeTranslate('label.quantity', 'Quantity'),
+              safeTranslate('label.status', 'Status')
             ]}
             rows={rows}
           />
