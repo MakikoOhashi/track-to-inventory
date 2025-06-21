@@ -15,12 +15,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     const { filePath } = await request.json();
 
+    console.log('Received file path request:', { filePath, type: typeof filePath });
+
     if (!filePath) {
       return json({ error: "ファイルパスが指定されていません" }, { status: 400 });
     }
 
-    // パスのバリデーション（セキュリティ）
-    if (/[\\/:*?"<>|]/.test(filePath)) {
+    // パスのバリデーション（セキュリティ）- ディレクトリトラバーサル攻撃を防止
+    // 許可: 英数字、ハイフン、アンダースコア、ドット、スラッシュ
+    // 禁止: バックスラッシュ、特殊文字、パストラバーサル文字
+    if (/[\\:*?"<>|]/.test(filePath) || filePath.includes('..') || filePath.startsWith('/')) {
+      console.error('Invalid file path detected:', filePath);
       return json({ error: "不正なファイルパスです" }, { status: 400 });
     }
 

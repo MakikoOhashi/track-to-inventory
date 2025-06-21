@@ -365,6 +365,8 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   // ファイル表示用のsigned URL取得関数
   const getSignedUrl = async (filePath) => {
     try {
+      console.log('getSignedUrl called with:', filePath);
+      
       // 署名付きURLの場合は、ファイルパスを抽出
       let actualFilePath = filePath;
       
@@ -375,11 +377,14 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
           const pathMatch = url.pathname.match(/\/storage\/v1\/object\/sign\/shipment-files\/(.+)/);
           if (pathMatch) {
             actualFilePath = pathMatch[1];
+            console.log('Extracted file path from signed URL:', actualFilePath);
           }
         } catch (urlError) {
           console.error('URL parsing error:', urlError);
           // URL解析に失敗した場合は、元のパスを使用
         }
+      } else {
+        console.log('Using original file path (not a signed URL):', actualFilePath);
       }
       
       // ファイルパスが空の場合はエラー
