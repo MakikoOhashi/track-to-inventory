@@ -3,7 +3,7 @@
 client_id = "54d683ca896f499d837fee84e21f76a3"
 name = "TrackToInventory"
 handle = "tracktoinventory"
-application_url = "https://nj-complicated-involve-nicole.trycloudflare.com"
+application_url = "https://payment-copyrights-montreal-kids.trycloudflare.com"
 embedded = true
 
 [build]
@@ -12,7 +12,7 @@ app_url = "https://track-to-inventory.onrender.com"
 automatically_update_urls_on_dev = true
 
 [webhooks]
-api_version = "2025-04"
+api_version = "2024-10"
 
   [[webhooks.subscriptions]]
   topics = [ "app/uninstalled" ]
@@ -28,9 +28,9 @@ scopes = "read_products,write_products,write_inventory,read_locations"
 
 [auth]
 redirect_urls = [
-  "https://nj-complicated-involve-nicole.trycloudflare.com/auth/callback",
-  "https://nj-complicated-involve-nicole.trycloudflare.com/auth/shopify/callback",
-  "https://nj-complicated-involve-nicole.trycloudflare.com/api/auth/callback"
+  "https://payment-copyrights-montreal-kids.trycloudflare.com/auth/callback",
+  "https://payment-copyrights-montreal-kids.trycloudflare.com/auth/shopify/callback",
+  "https://payment-copyrights-montreal-kids.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

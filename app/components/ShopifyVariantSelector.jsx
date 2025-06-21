@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Select, Spinner, Button, Text } from '@shopify/polaris';
 import { useTranslation } from 'react-i18next';
 
@@ -100,51 +100,83 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
   const [selectedVariantId, setSelectedVariantId] = useState(value || "");
   const [apiError, setApiError] = useState("");
 
-  useEffect(() => {
-    setLoadingProducts(true);
-    fetchProductsWithVariants()
-      .then(products => {
-        setAllProducts(products);
-        setLoadingProducts(false);
-        setApiError("");
-      })
-      .catch(e => {
-        setAllProducts([]);
-        setLoadingProducts(false);
-        setApiError(t('shopifyVariantSelector.fetchError', { message: e.message }));
-      });
+  // 商品データ取得をuseCallbackでメモ化
+  const loadProducts = useCallback(async () => {
+    try {
+      setLoadingProducts(true);
+      setApiError("");
+      const products = await fetchProductsWithVariants();
+      setAllProducts(products);
+    } catch (error) {
+      console.error("Failed to load products:", error);
+      setAllProducts([]);
+      setApiError(t('shopifyVariantSelector.fetchError', { message: error.message }));
+    } finally {
+      setLoadingProducts(false);
+    }
   }, [t]);
 
+  // 初期化時に商品データを取得
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  // 選択された商品が変更された時の処理
   useEffect(() => {
     if (!selectedProductId) {
       setVariantOptions([]);
       setSelectedVariantId("");
       return;
     }
+    
     const product = allProducts.find((p) => p.id === selectedProductId);
     if (product && product.variants) {
-      setVariantOptions(product.variants.map((v) => ({
+      const newVariantOptions = product.variants.map((v) => ({
         label: `${v.title}（SKU: ${v.sku || '-' }）` + 
           (v.selectedOptions && v.selectedOptions.length
             ? ` / ${v.selectedOptions.map(opt => `${opt.name}:${opt.value}`).join(', ')}`
             : ''),
         value: v.id,
         variant: v,
-      })));
+      }));
+      setVariantOptions(newVariantOptions);
     } else {
       setVariantOptions([]);
     }
     setSelectedVariantId("");
   }, [selectedProductId, allProducts]);
 
+  // 選択されたバリアントが変更された時の処理
   useEffect(() => {
-    if (!selectedVariantId) return;
+    if (!selectedVariantId || !onChange) return;
+    
     const product = allProducts.find((p) => p.id === selectedProductId);
     const variant = variantOptions.find((v) => v.value === selectedVariantId)?.variant;
+    
     if (product && variant) {
-      onChange?.(selectedVariantId, { product, variant });
+      onChange(selectedVariantId, { product, variant });
     }
-  }, [selectedVariantId]);
+  }, [selectedVariantId, selectedProductId, allProducts, variantOptions, onChange]);
+
+  // 選択クリア処理
+  const handleClearSelection = useCallback(() => {
+    setSelectedProductId("");
+    setVariantOptions([]);
+    setSelectedVariantId("");
+    if (onChange) {
+      onChange("", {});
+    }
+  }, [onChange]);
+
+  // 商品選択処理
+  const handleProductChange = useCallback((value) => {
+    setSelectedProductId(value);
+  }, []);
+
+  // バリアント選択処理
+  const handleVariantChange = useCallback((value) => {
+    setSelectedVariantId(value);
+  }, []);
 
   return (
     <div>
@@ -164,7 +196,7 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
               })),
             ]}
             value={selectedProductId}
-            onChange={(value) => setSelectedProductId(value)}
+            onChange={handleProductChange}
           />
           {variantOptions.length > 0 && (
             <Select
@@ -177,19 +209,14 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
                 })),
               ]}
               value={selectedVariantId}
-              onChange={(value) => setSelectedVariantId(value)}
+              onChange={handleVariantChange}
               disabled={!selectedProductId}
             />
           )}
           {(selectedProductId || selectedVariantId) && (
             <Button
               size="slim"
-              onClick={() => {
-                setSelectedProductId("");
-                setVariantOptions([]);
-                setSelectedVariantId("");
-                onChange?.("", {});
-              }}
+              onClick={handleClearSelection}
               style={{ marginTop: 4 }}
             >
               {t('shopifyVariantSelector.clearSelection')}

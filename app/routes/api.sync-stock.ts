@@ -238,24 +238,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         }
 
-        // 4. 在庫数量を調整 - 3段階のフォールバック戦略
+        // 4. 在庫数量を調整 - 安定版APIに合わせて修正
         let adjData: any = null;
         let success = false;
         let adjUserErrors: UserError[] = [];
         let adjGraphqlErrors: unknown = undefined;
         let usedStrategy = "";
         
-        // 戦略1: inventoryAdjustQuantities with name field
+        // 戦略1: inventoryAdjustQuantities (安定版)
         step = "inventoryAdjustQuantities";
         try {
-          console.log("=== 戦略1: inventoryAdjustQuantities (name追加) ===");
+          console.log("=== 戦略1: inventoryAdjustQuantities (安定版) ===");
           
           const adjMutation = `
             mutation($input: InventoryAdjustQuantitiesInput!) {
               inventoryAdjustQuantities(input: $input) {
                 inventoryAdjustmentGroup {
                   reason
-                  referenceDocumentUri
                   changes {
                     delta
                     quantityAfterChange
@@ -278,7 +277,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           const mutationVariables = {
             input: {
               reason: "correction",
-              name: "available",
               changes: [
                 {
                   delta: item.quantity,
@@ -289,27 +287,30 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
           };
           
-          console.log("Variables with name field:", JSON.stringify(mutationVariables, null, 2));
+          console.log("Variables:", JSON.stringify(mutationVariables, null, 2));
           
           const adjResult = await admin.graphql(adjMutation, {
             variables: mutationVariables
           });
           
           adjData = await adjResult.json() as { data?: any; errors?: any };
-          console.log("戦略1 成功:", JSON.stringify(adjData, null, 2));
+          console.log("戦略1 結果:", JSON.stringify(adjData, null, 2));
           
           if (adjData.errors) {
             adjGraphqlErrors = adjData.errors;
+            console.error("戦略1 GraphQLエラー:", adjData.errors);
           } else if (!adjData.data?.inventoryAdjustQuantities?.userErrors?.length) {
             success = true;
             usedStrategy = "inventoryAdjustQuantities";
+            console.log("戦略1 成功");
           } else {
             adjUserErrors = adjData.data.inventoryAdjustQuantities.userErrors;
+            console.error("戦略1 userErrors:", adjUserErrors);
           }
           
         } catch (strategy1Error) {
           adjUserErrors = [{ message: String(strategy1Error) }];
-          console.log("戦略1 失敗:", strategy1Error);
+          console.log("戦略1 例外:", strategy1Error);
         }
         
         // 戦略2: inventorySetQuantities (フォールバック)
@@ -366,20 +367,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             });
             
             adjData = await setResult.json() as { data?: any; errors?: any };
-            console.log("戦略2 成功:", JSON.stringify(adjData, null, 2));
+            console.log("戦略2 結果:", JSON.stringify(adjData, null, 2));
             
             if (adjData.errors) {
               adjGraphqlErrors = adjData.errors;
+              console.error("戦略2 GraphQLエラー:", adjData.errors);
             } else if (!adjData.data?.inventorySetQuantities?.userErrors?.length) {
               success = true;
               usedStrategy = "inventorySetQuantities";
+              console.log("戦略2 成功");
             } else {
               adjUserErrors = adjData.data.inventorySetQuantities.userErrors;
+              console.error("戦略2 userErrors:", adjUserErrors);
             }
             
           } catch (strategy2Error) {
             adjUserErrors = [{ message: String(strategy2Error) }];
-            console.log("戦略2 失敗:", strategy2Error);
+            console.log("戦略2 例外:", strategy2Error);
           }
         }
         
@@ -423,20 +427,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             });
             
             adjData = await legacyResult.json() as { data?: any; errors?: any };
-            console.log("戦略3 成功:", JSON.stringify(adjData, null, 2));
+            console.log("戦略3 結果:", JSON.stringify(adjData, null, 2));
             
             if (adjData.errors) {
               adjGraphqlErrors = adjData.errors;
+              console.error("戦略3 GraphQLエラー:", adjData.errors);
             } else if (!adjData.data?.inventoryBulkAdjustQuantityAtLocation?.userErrors?.length) {
               success = true;
               usedStrategy = "inventoryBulkAdjustQuantityAtLocation";
+              console.log("戦略3 成功");
             } else {
               adjUserErrors = adjData.data.inventoryBulkAdjustQuantityAtLocation.userErrors;
+              console.error("戦略3 userErrors:", adjUserErrors);
             }
             
           } catch (strategy3Error) {
             adjUserErrors = [{ message: String(strategy3Error) }];
-            console.log("戦略3 失敗:", strategy3Error);
+            console.log("戦略3 例外:", strategy3Error);
           }
         }
         
