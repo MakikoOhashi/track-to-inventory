@@ -71,7 +71,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                   </Box>
                
                   <BlockStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
+                    <Text as="h3" variant="bodyMd" fontWeight="semibold">
                       {t('startGuide.step1.title')}
                     </Text>
                     <Text as="p" variant="bodySm" tone="subdued">
@@ -103,7 +103,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                   </Box>
                
                   <BlockStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
+                    <Text as="h3" variant="bodyMd" fontWeight="semibold">
                       {t('startGuide.step2.title')}
                     </Text>
                     <Text as="p" variant="bodySm" tone="subdued">
@@ -135,7 +135,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                   </Box>
                 
                   <BlockStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
+                    <Text as="h3" variant="bodyMd" fontWeight="semibold">
                       {t('startGuide.step3.title')}
                     </Text>
                     <Text as="p" variant="bodySm" tone="subdued">
@@ -161,7 +161,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
               {/* フッター */}
               <InlineStack align="center" gap="200">
                 <Text as="span" variant="bodyMd">✨</Text>
-                <Text as="span" variant="bodyMd" tone="subdued">
+                <Text as="p" variant="bodyMd" tone="subdued">
                   {t('startGuide.footer')}
                 </Text>
               </InlineStack>

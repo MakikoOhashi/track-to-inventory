@@ -41,17 +41,17 @@ const StatusTable: React.FC<{ shipments: Shipment[]; onSelectShipment: (shipment
   const rows = filteredShipments.map((s) => {
     const statusKey = statusToKey[s.status ?? ""] || "notSet";
     return [
-      <Text as="span">
-        <span
-          onClick={() => onSelectShipment(s)}
-          style={{ cursor: 'pointer', textDecoration: 'underline' }}
-          tabIndex={0}
-          onKeyDown={e => { if (e.key === 'Enter') onSelectShipment(s); }}
-          title={t('message.clickForDetails')}
-        >
+      <span
+        key={`si-${s.si_number}`}
+        onClick={() => onSelectShipment(s)}
+        style={{ cursor: 'pointer', textDecoration: 'underline' }}
+        tabIndex={0}
+        onKeyDown={e => { if (e.key === 'Enter') onSelectShipment(s); }}
+        title={t('message.clickForDetails')}
+        role="button"
+      >
         {s.si_number}
-        </span>
-      </Text>,
+      </span>,
       t('modal.status.' + statusKey),
       s.eta,
     ];

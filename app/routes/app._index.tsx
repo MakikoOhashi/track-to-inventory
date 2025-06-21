@@ -92,15 +92,33 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function Index() {
   // --- ② useLoaderDataでshopを受け取る ---
   const { shop, locale } = useLoaderData<typeof loader>();
-  const { t, i18n } = useTranslation();
-  const [lang, setLang] = useState(locale);
+  
+  // 安全な初期化
+  let translationHook;
+  try {
+    translationHook = useTranslation();
+  } catch (error) {
+    console.error('Translation hook error:', error);
+    // フォールバック
+    translationHook = {
+      t: (key: string) => key,
+      i18n: { changeLanguage: () => {} }
+    };
+  }
+  
+  const { t, i18n } = translationHook;
+  const [lang, setLang] = useState(locale || 'ja');
 
   // --- ③ shopId関連のstateを初期化・同期 ---
-  const [shopIdInput, setShopIdInput] = useState<string>(shop); // ←初期値にshopを使う
-  const [shopId, setShopId] = useState<string>(shop);
+  const [shopIdInput, setShopIdInput] = useState<string>(shop || ''); // ←初期値にshopを使う
+  const [shopId, setShopId] = useState<string>(shop || '');
 
   useEffect(() => {
-    i18n.changeLanguage(lang);
+    try {
+      i18n.changeLanguage(lang);
+    } catch (error) {
+      console.error('Language change error:', error);
+    }
   }, [lang, i18n]);
 
 

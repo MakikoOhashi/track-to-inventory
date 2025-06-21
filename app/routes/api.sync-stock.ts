@@ -47,11 +47,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     `;
     
     console.log("Location取得開始");
+    console.log("GraphQL Query:", locationsQuery);
+    
     const locationResult = await admin.graphql(locationsQuery);
     
     // ✅ 修正：GraphQLレスポンスを正しく処理
-    const locationData = await locationResult.json();
-    console.log("Location取得結果:", locationData);
+    const locationData = await locationResult.json() as { data?: any; errors?: any[] };
+    console.log("Location取得結果:", JSON.stringify(locationData, null, 2));
+    
+    // GraphQLエラーチェック
+    if (locationData.errors && Array.isArray(locationData.errors) && locationData.errors.length > 0) {
+      console.error("Location GraphQL Errors:", JSON.stringify(locationData.errors, null, 2));
+      return json({ 
+        error: "ロケーション情報の取得でGraphQLエラーが発生しました",
+        graphQLErrors: locationData.errors,
+        debug: locationData 
+      }, { status: 400 });
+    }
     
     if (!locationData || !locationData.data || !locationData.data.locations) {
       return json({ 
