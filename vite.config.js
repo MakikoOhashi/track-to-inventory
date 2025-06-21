@@ -79,6 +79,10 @@ export default defineConfig({
     "@shopify/polaris"
   ],
   },
+  // JSONインポートを有効にする
+  json: {
+    stringify: true,
+  },
   // ===== TEST =====
   test: {
     environment: "jsdom",
