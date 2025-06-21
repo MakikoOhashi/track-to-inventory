@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, Text,BlockStack } from '@shopify/polaris';
 import type { Shipment } from "../../types/Shipment";
 
-// ステータス日本語→英語キー変換マップ
+// ステータス日本語→英語キー変換マップ（全パターン対応）
 const statusToKey: Record<string, string> = {
   "SI発行済": "siIssued",
   "SI Issued": "siIssued",

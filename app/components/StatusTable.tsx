@@ -5,14 +5,29 @@ import { useTranslation } from 'react-i18next';
 import { Checkbox, DataTable, Text } from '@shopify/polaris';
 import type { Shipment } from "../../types/Shipment";
 
-// ステータス日本語→英語キー変換マップ
-const statusJaToKey = {
+// ステータス日本語→英語キー変換マップ（全パターン対応）
+const statusToKey: Record<string, string> = {
   "SI発行済": "siIssued",
+  "SI Issued": "siIssued",
+  "siIssued": "siIssued",
   "船積スケジュール確定": "scheduleConfirmed",
+  "Shipping Schedule Confirmed": "scheduleConfirmed",
+  "scheduleConfirmed": "scheduleConfirmed",
   "船積中": "shipping",
+  "Shipping": "shipping",
+  "shipping": "shipping",
   "輸入通関中": "customsClearance",
+  "Import Customs Clearance": "customsClearance",
+  "customsClearance": "customsClearance",
   "倉庫着": "warehouseArrival",
-  "同期済み": "synced"
+  "Warehouse Arrival": "warehouseArrival",
+  "warehouseArrival": "warehouseArrival",
+  "同期済み": "synced",
+  "Synced": "synced",
+  "synced": "synced",
+  "未設定": "notSet",
+  "Not Set": "notSet",
+  "notSet": "notSet"
 };
 
 const StatusTable: React.FC<{ shipments: Shipment[]; onSelectShipment: (shipment: Shipment) => void; }> = ({ shipments, onSelectShipment }) => {
@@ -24,7 +39,7 @@ const StatusTable: React.FC<{ shipments: Shipment[]; onSelectShipment: (shipment
     : shipments.filter((s) => !s.is_archived);
 
   const rows = filteredShipments.map((s) => {
-    const statusKey = s.status ? (statusJaToKey[s.status as keyof typeof statusJaToKey] || s.status) : '';
+    const statusKey = statusToKey[s.status ?? ""] || "notSet";
     return [
       <Text as="span">
         <span
