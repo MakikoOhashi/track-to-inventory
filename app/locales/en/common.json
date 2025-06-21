@@ -294,5 +294,15 @@
     "tutorial": "View Tutorial",
     "footer": "Use these features as needed. You can always return here.",
     "closeGuide": "Close Guide"
+  },
+  "shopifyVariantSelector": {
+    "title": "Shopify Product & Variant Selection",
+    "productSelectLabel": "Select Product",
+    "variantSelectLabel": "Select Variant",
+    "pleaseSelect": "Please select",
+    "clearSelection": "Clear Selection",
+    "selectedVariantId": "Selected Variant ID: {{variantId}}",
+    "loadingProducts": "Loading product list",
+    "fetchError": "Failed to fetch product list: {{message}}"
   }
 }

@@ -294,5 +294,15 @@
     "tutorial": "チュートリアルを見る",
     "footer": "これらの機能は必要に応じてご利用ください。いつでもここに戻ってこれます。",
     "closeGuide": "ガイドを閉じる"
+  },
+  "shopifyVariantSelector": {
+    "title": "Shopify商品・バリアント選択",
+    "productSelectLabel": "商品を選択",
+    "variantSelectLabel": "バリアントを選択",
+    "pleaseSelect": "選択してください",
+    "clearSelection": "選択をクリア",
+    "selectedVariantId": "選択中バリアントID: {{variantId}}",
+    "loadingProducts": "商品リスト取得中",
+    "fetchError": "商品一覧の取得に失敗しました: {{message}}"
   }
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Select, Spinner, Button, Text } from '@shopify/polaris';
+import { useTranslation } from 'react-i18next';
 
 // GraphQLで商品とバリアントを取得するAPI呼び出し（デバッグ版）
 async function fetchProductsWithVariants() {
@@ -90,6 +91,7 @@ async function fetchProductsWithVariants() {
 }
 
 const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
+  const { t } = useTranslation();
   const [allProducts, setAllProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
@@ -109,9 +111,9 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
       .catch(e => {
         setAllProducts([]);
         setLoadingProducts(false);
-        setApiError("商品一覧の取得に失敗しました: " + e.message);
+        setApiError(t('shopifyVariantSelector.fetchError', { message: e.message }));
       });
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!selectedProductId) {
@@ -146,16 +148,16 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
 
   return (
     <div>
-      <Text variant="headingSm">Shopify商品・バリアント選択</Text>
+      <Text variant="headingSm">{t('shopifyVariantSelector.title')}</Text>
       {apiError && <Text tone="critical">{apiError}</Text>}
       {loadingProducts ? (
-        <Spinner accessibilityLabel="商品リスト取得中" size="small" />
+        <Spinner accessibilityLabel={t('shopifyVariantSelector.loadingProducts')} size="small" />
       ) : (
         <>
           <Select
-            label="商品を選択"
+            label={t('shopifyVariantSelector.productSelectLabel')}
             options={[
-              { label: "選択してください", value: "" },
+              { label: t('shopifyVariantSelector.pleaseSelect'), value: "" },
               ...allProducts.map((p) => ({
                 label: p.title,
                 value: p.id,
@@ -166,9 +168,9 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
           />
           {variantOptions.length > 0 && (
             <Select
-              label="バリアントを選択"
+              label={t('shopifyVariantSelector.variantSelectLabel')}
               options={[
-                { label: "選択してください", value: "" },
+                { label: t('shopifyVariantSelector.pleaseSelect'), value: "" },
                 ...variantOptions.map((v) => ({
                   label: v.label,
                   value: v.value,
@@ -190,14 +192,14 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
               }}
               style={{ marginTop: 4 }}
             >
-              選択をクリア
+              {t('shopifyVariantSelector.clearSelection')}
             </Button>
           )}
         </>
       )}
       {selectedVariantId && (
         <Text variant="bodySm" tone="subdued">
-          選択中バリアントID: {selectedVariantId}
+          {t('shopifyVariantSelector.selectedVariantId', { variantId: selectedVariantId })}
         </Text>
       )}
     </div>
