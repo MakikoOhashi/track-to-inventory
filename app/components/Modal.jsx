@@ -60,15 +60,38 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   const handleSyncShopify = async () => {
     setSyncing(true);
     try {
-      // 1. Shopify同期API呼び出し（エンドポイントは適宜変更）
+      // variant_idが設定されているアイテムのみをフィルタリング
+      const itemsWithVariantId = (shipment.items || []).filter(item => item.variant_id);
+      
+      if (itemsWithVariantId.length === 0) {
+        throw new Error('同期する商品にShopify variant IDが設定されていません。商品を選択してください。');
+      }
+
+      // 1. Shopify同期API呼び出し
       const res = await fetch('/api/sync-stock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({  items: shipment.items }) // id等は型に合わせて
+        body: JSON.stringify({ items: itemsWithVariantId })
       });
-      if (!res.ok) throw new Error(t('modal.messages.syncFailed'));
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`同期に失敗しました: HTTP ${res.status} - ${errorText}`);
+      }
+      
       const json = await res.json();
       if (json.error) throw new Error(json.error);
+
+      // 結果の確認
+      if (json.results && json.results.length > 0) {
+        const failedItems = json.results.filter(result => result.error);
+        if (failedItems.length > 0) {
+          const errorMessages = failedItems.map(item => 
+            `${item.variant_id}: ${item.error}`
+          ).join('\n');
+          throw new Error(`一部の商品の同期に失敗しました:\n${errorMessages}`);
+        }
+      }
 
       // 2. ステータスを「同期済み」に更新
       const updateRes = await fetch('/api/updateShipment', {

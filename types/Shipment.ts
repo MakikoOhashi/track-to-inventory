@@ -3,6 +3,7 @@
 export type ShipmentItem = {
     name: string;
     quantity: number;
+    variant_id?: string;  // Shopify variant ID for inventory sync
   };
   
   export type Shipment = {
