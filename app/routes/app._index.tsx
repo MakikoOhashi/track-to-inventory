@@ -25,7 +25,7 @@ import StatusCard from '../components/StatusCard';
 import StatusTable from '../components/StatusTable';
 import OCRUploader from "../components/OCRUploader";
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
-import StartGuide from '~/components/StartGuide';
+import StartGuide from '../components/StartGuide';
 
 import type { Shipment,ShipmentItem } from '../../types/Shipment';
 
@@ -357,11 +357,11 @@ export default function Index() {
     
   // Polaris用タブ
   const tabs = [
-    { id: 'search', content: t('tabs.search') },
-    { id: 'product', content: t('tabs.product') },
-    { id: 'status', content: t('tabs.status') },
+    { id: 'search', content: safeTranslate('tabs.search', 'Search') },
+    { id: 'product', content: safeTranslate('tabs.product', 'Product') },
+    { id: 'status', content: safeTranslate('tabs.status', 'Status') },
   ];
-  const selectedTab = tabs.findIndex(tab => tab.id === detailViewMode);
+  const selectedTab = Math.max(0, tabs.findIndex(tab => tab.id === detailViewMode));
 
   // OCRUploader用のコールバック関数 - 新しい出荷データが保存された時にリフレッシュ
   const handleOcrSaveSuccess = () => {
@@ -372,8 +372,8 @@ export default function Index() {
   .filter(s => (s.items || []).some(item => item.name === hoveredProduct))
   .sort((a, b) => {
     // まずstatus順
-    const aStatus = a.status ?? (t('status.notSet') || 'Not Set');
-    const bStatus = b.status ?? (t('status.notSet') || 'Not Set');
+    const aStatus = a.status ?? (t('status.notSet') ?? 'Not Set');
+    const bStatus = b.status ?? (t('status.notSet') ?? 'Not Set');
     const statusDiff = statusOrder.indexOf(aStatus) - statusOrder.indexOf(bStatus);
     if (statusDiff !== 0) return statusDiff;
     // 同じstatusならETA順（undefinedならInfinityで一番後ろへ）

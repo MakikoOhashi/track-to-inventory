@@ -1,17 +1,17 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+// 静的インポートで翻訳ファイルを読み込み
+import enCommon from './locales/en/common.json';
+import jaCommon from './locales/ja/common.json';
+import enForms from './locales/en/forms.json';
+import jaForms from './locales/ja/forms.json';
+import enNavigation from './locales/en/navigation.json';
+import jaNavigation from './locales/ja/navigation.json';
+
 // 安全な翻訳ファイル読み込み
 const loadTranslations = () => {
   try {
-    // 静的インポートで翻訳ファイルを読み込み
-    const enCommon = require("./locales/en/common.json");
-    const jaCommon = require("./locales/ja/common.json");
-    const enForms = require("./locales/en/forms.json");
-    const jaForms = require("./locales/ja/forms.json");
-    const enNavigation = require("./locales/en/navigation.json");
-    const jaNavigation = require("./locales/ja/navigation.json");
-    
     return {
       en: {
         common: enCommon,
