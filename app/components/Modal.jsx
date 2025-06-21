@@ -66,7 +66,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({  items: shipment.items }) // id等は型に合わせて
       });
-      if (!res.ok) throw new Error('Shopify同期に失敗しました');
+      if (!res.ok) throw new Error(t('modal.messages.syncFailed'));
       const json = await res.json();
       if (json.error) throw new Error(json.error);
 
@@ -78,7 +78,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
           shipment: { ...formData, status: "synced" }
         }),
       });
-      if (!updateRes.ok) throw new Error('ステータス更新に失敗しました');
+      if (!updateRes.ok) throw new Error(t('modal.messages.statusUpdateFailed'));
       setFormData(prev => ({ ...prev, status: "synced" }));
       alert(t('modal.messages.syncSuccess'));
       // 3. モーダル閉じる or 親にデータ更新通知
@@ -87,7 +87,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       onClose();
     } catch (e) {
       setSyncing(false);
-      alert(e.message || "同期に失敗しました");
+      alert(e.message || t('modal.messages.syncGeneralFailed'));
     }
   };
 
@@ -189,12 +189,12 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
         }),
       });
       const json = await res.json();
-      if (json.error) throw new Error(json.error);
+      if (json.error) throw new Error(t('modal.messages.deleteGeneralFailed'));
       alert(t('modal.messages.deleteSuccess') || '削除しました');
       if (onUpdated) onUpdated();
       onClose();
     } catch (e) {
-      alert(e.message || '削除に失敗しました');
+      alert(e.message || t('modal.messages.deleteGeneralFailed'));
     } finally {
       setDeleting(false);
     }

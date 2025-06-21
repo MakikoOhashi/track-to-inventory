@@ -137,7 +137,15 @@ export default function Index() {
     "未設定": t('status.notSet'),
   };
 
-  const statusOrder = ["SI発行済", "船積スケジュール確定", "船積中", "輸入通関中", "倉庫着","商品同期", "同期済み"];
+  const statusOrder = [
+    t('modal.status.siIssued'),
+    t('modal.status.scheduleConfirmed'),
+    t('modal.status.shipping'),
+    t('modal.status.customsClearance'),
+    t('modal.status.warehouseArrival'),
+    t('status.productSync'),
+    t('modal.status.synced')
+  ];
 
   // 修正1: supabaseで直接取得→API経由に変更
   const fetchShipments = async (shopIdValue: string) => {
@@ -176,7 +184,7 @@ export default function Index() {
   const getStatusStats = (shipments: Shipment[]): StatusStats => {
     const stats: StatusStats = {};
     shipments.forEach((s) => {
-      const status = s.status || "未設定";
+      const status = s.status || t('status.notSet');
       if (!stats[status]) stats[status] = [];
       stats[status].push(s);
     });
@@ -286,7 +294,7 @@ export default function Index() {
   .filter(s => (s.items || []).some(item => item.name === hoveredProduct))
   .sort((a, b) => {
     // まずstatus順
-    const statusDiff = statusOrder.indexOf(a.status ?? "未設定") - statusOrder.indexOf(b.status ?? "未設定");
+    const statusDiff = statusOrder.indexOf(a.status ?? t('status.notSet')) - statusOrder.indexOf(b.status ?? t('status.notSet'));
     if (statusDiff !== 0) return statusDiff;
     // 同じstatusならETA順（undefinedならInfinityで一番後ろへ）
     const aEta = a.eta ? new Date(a.eta).getTime() : Infinity;

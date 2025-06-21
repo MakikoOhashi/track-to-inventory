@@ -48,7 +48,8 @@
     "customsClearance": "輸入通関中",
     "warehouseArrived": "倉庫着",
     "synced": "同期済み",
-    "notSet": "未設定"
+    "notSet": "未設定",
+    "productSync": "商品同期"
   },
   "sort": {
     "ascending": "▲ {{field}}",
@@ -138,7 +139,11 @@
       "fileTooLarge": "ファイルサイズは10MBまでです",
       "syncSuccess": "Shopify同期に成功しました",
       "alreadySynced": "Shopify同期済み",
-      "alreadySyncedDetail": "この入荷情報はすでにShopifyと同期されています。"
+      "alreadySyncedDetail": "この入荷情報はすでにShopifyと同期されています。",
+      "syncFailed": "Shopify同期に失敗しました",
+      "statusUpdateFailed": "ステータス更新に失敗しました",
+      "syncGeneralFailed": "同期に失敗しました",
+      "deleteGeneralFailed": "削除に失敗しました"
     }
   },
   "ocrUploader": {

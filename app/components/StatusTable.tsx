@@ -24,7 +24,7 @@ const StatusTable: React.FC<{ shipments: Shipment[]; onSelectShipment: (shipment
     : shipments.filter((s) => !s.is_archived);
 
   const rows = filteredShipments.map((s) => {
-    const statusKey = statusJaToKey[s.status] || s.status;
+    const statusKey = s.status ? (statusJaToKey[s.status as keyof typeof statusJaToKey] || s.status) : '';
     return [
       <Text as="span">
         <span
@@ -32,7 +32,7 @@ const StatusTable: React.FC<{ shipments: Shipment[]; onSelectShipment: (shipment
           style={{ cursor: 'pointer', textDecoration: 'underline' }}
           tabIndex={0}
           onKeyDown={e => { if (e.key === 'Enter') onSelectShipment(s); }}
-          title="詳細を表示"
+          title={t('message.clickForDetails')}
         >
         {s.si_number}
         </span>

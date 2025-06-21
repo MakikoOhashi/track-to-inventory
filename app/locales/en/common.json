@@ -48,7 +48,8 @@
     "customsClearance": "Import Customs Clearance",
     "warehouseArrived": "Warehouse Arrived",
     "synced": "Synced",
-    "notSet": "Not Set"
+    "notSet": "Not Set",
+    "productSync": "Product Sync"
   },
   "sort": {
     "ascending": "▲ {{field}}",
@@ -138,7 +139,11 @@
       "fileTooLarge": "File size must be up to 10MB",
       "syncSuccess": "Successfully synced with Shopify",
       "alreadySynced": "Already Synced with Shopify",
-      "alreadySyncedDetail": "This shipment is already synced with Shopify."
+      "alreadySyncedDetail": "This shipment is already synced with Shopify.",
+      "syncFailed": "Failed to sync with Shopify",
+      "statusUpdateFailed": "Failed to update status",
+      "syncGeneralFailed": "Sync failed",
+      "deleteGeneralFailed": "Delete failed"
     }
   },
   "ocrUploader": {
