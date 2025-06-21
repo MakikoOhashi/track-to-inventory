@@ -14,15 +14,14 @@ export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
 
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  // クライアントサイドに露出させない
+  return {};
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData();
-
   return (
     <I18nextProvider i18n={i18n}>
-    <AppProvider isEmbeddedApp apiKey={apiKey}>
+    <AppProvider isEmbeddedApp>
       <NavMenu>
         <Link to="/app" rel="home">
           Home
