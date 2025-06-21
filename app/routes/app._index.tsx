@@ -113,6 +113,7 @@ export default function Index() {
   
   const { t, i18n } = translationHook;
   const [lang, setLang] = useState(locale || 'ja');
+  const [isI18nReady, setIsI18nReady] = useState(false);
 
   // --- ③ shopId関連のstateを初期化・同期 ---
   const [shopIdInput, setShopIdInput] = useState<string>(shop || ''); // ←初期値にshopを使う
@@ -122,11 +123,26 @@ export default function Index() {
     try {
       console.log("Changing language to:", lang);
       i18n.changeLanguage(lang);
+      setIsI18nReady(true);
     } catch (error) {
       console.error('Language change error:', error);
+      setIsI18nReady(true); // エラーでもレンダリングを続行
     }
   }, [lang, i18n]);
 
+  // i18nが準備できていない場合はローディング表示
+  if (!isI18nReady) {
+    return (
+      <Page>
+        <Card>
+          <BlockStack gap="400">
+            <Text variant="headingLg" as="h2">読み込み中...</Text>
+            <Text as="p">翻訳データを読み込んでいます。</Text>
+          </BlockStack>
+        </Card>
+      </Page>
+    );
+  }
 
   //const [shopIdInput, setShopIdInput] = useState<string>("test-owner");
   //const [shopId, setShopId] = useState<string>("test-owner");

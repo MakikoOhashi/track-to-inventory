@@ -114,19 +114,34 @@ const loadTranslations = () => {
 
 const resources = loadTranslations();
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources,
-    lng: 'ja', // デフォルト言語
-    fallbackLng: 'en', // フォールバック言語
-    interpolation: {
-      escapeValue: false, // Reactは既にXSSを防いでいる
-    },
-    debug: process.env.NODE_ENV === 'development',
-    react: {
-      useSuspense: false, // SSR対応
-    },
-  });
+// i18nの初期化を確実に行う
+const initI18n = async () => {
+  try {
+    await i18n
+      .use(initReactI18next)
+      .init({
+        resources,
+        lng: 'ja', // デフォルト言語
+        fallbackLng: 'en', // フォールバック言語
+        interpolation: {
+          escapeValue: false, // Reactは既にXSSを防いでいる
+        },
+        debug: process.env.NODE_ENV === 'development',
+        react: {
+          useSuspense: false, // SSR対応
+        },
+        initImmediate: false, // 初期化を同期的に行う
+      });
+    
+    console.log('i18n initialized successfully');
+    return i18n;
+  } catch (error) {
+    console.error('Failed to initialize i18n:', error);
+    throw error;
+  }
+};
+
+// 初期化を開始
+initI18n();
 
 export default i18n;

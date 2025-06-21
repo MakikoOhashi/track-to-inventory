@@ -255,7 +255,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         }
 
-        // 4. 在庫数量を調整 - ✅ 修正された部分（nameフィールド追加 + フォールバック戦略）
+        // 4. 在庫数量を調整 - 最新API（2025-01）対応
         let adjData: any = null;
         let success = false;
         let adjUserErrors: UserError[] = [];
@@ -274,26 +274,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           continue;
         }
         
-        // 戦略1: inventoryAdjustQuantities (正しいフィールド構造)
-        step = "inventoryAdjustQuantities";
+        // 戦略1: inventoryAdjustQuantityAtLocation (最新の推奨API)
+        step = "inventoryAdjustQuantityAtLocation";
         try {
-          console.log("=== 戦略1: inventoryAdjustQuantities (修正版) ===");
+          console.log("=== 戦略1: inventoryAdjustQuantityAtLocation (最新API) ===");
           
           const adjMutation = `
-            mutation($input: InventoryAdjustQuantitiesInput!) {
-              inventoryAdjustQuantities(input: $input) {
-                inventoryAdjustmentGroup {
-                  reason
-                  referenceDocumentUri
-                  changes {
-                    delta
-                    quantityAfterChange
-                    item {
-                      id
-                    }
-                    location {
-                      id
-                    }
+            mutation($input: InventoryAdjustQuantityAtLocationInput!) {
+              inventoryAdjustQuantityAtLocation(input: $input) {
+                inventoryLevel {
+                  available
+                  item {
+                    id
+                  }
+                  location {
+                    id
                   }
                 }
                 userErrors {
@@ -304,37 +299,31 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
           `;
           
-          // ✅ 正しいフィールド構造とデータ型
           const mutationVariables = {
             input: {
-              reason: "correction",
-              changes: [
-                {
-                  delta: quantityDelta, // ✅ 整数に変換
-                  inventoryItemId: inventoryItemId,
-                  locationId: locationId
-                }
-              ]
+              inventoryItemId: inventoryItemId,
+              locationId: locationId,
+              delta: quantityDelta
             }
           };
           
-          console.log("Variables with correct structure:", JSON.stringify(mutationVariables, null, 2));
+          console.log("Variables:", JSON.stringify(mutationVariables, null, 2));
           
           const adjResult = await admin.graphql(adjMutation, {
             variables: mutationVariables
           });
           
           adjData = await adjResult.json() as { data?: any; errors?: any };
-          console.log("戦略1 成功:", JSON.stringify(adjData, null, 2));
+          console.log("戦略1 結果:", JSON.stringify(adjData, null, 2));
           
           if (adjData.errors) {
             adjGraphqlErrors = adjData.errors;
             console.error("GraphQL Errors in strategy 1:", adjData.errors);
-          } else if (!adjData.data?.inventoryAdjustQuantities?.userErrors?.length) {
+          } else if (!adjData.data?.inventoryAdjustQuantityAtLocation?.userErrors?.length) {
             success = true;
-            usedStrategy = "inventoryAdjustQuantities";
+            usedStrategy = "inventoryAdjustQuantityAtLocation";
           } else {
-            adjUserErrors = adjData.data.inventoryAdjustQuantities.userErrors;
+            adjUserErrors = adjData.data.inventoryAdjustQuantityAtLocation.userErrors;
             console.error("User Errors in strategy 1:", adjUserErrors);
           }
           
@@ -343,11 +332,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           console.log("戦略1 失敗:", strategy1Error);
         }
         
-        // 戦略2: inventorySetQuantities (正しいフィールド構造)
+        // 戦略2: inventorySetQuantities (フォールバック)
         if (!success) {
           step = "inventorySetQuantities";
           try {
-            console.log("=== 戦略2: inventorySetQuantities (修正版) ===");
+            console.log("=== 戦略2: inventorySetQuantities (フォールバック) ===");
             
             // 現在の在庫量を取得
             const currentQuantity = variant.inventoryQuantity || 0;
@@ -377,11 +366,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               }
             `;
             
-            // ✅ 正しいフィールド構造
             const setQuantitiesVariables = {
               input: {
                 reason: "correction",
-                quantities: [ // ✅ setQuantitiesではなくquantities
+                quantities: [
                   {
                     inventoryItemId: inventoryItemId,
                     locationId: locationId,
@@ -398,7 +386,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             });
             
             adjData = await setResult.json() as { data?: any; errors?: any };
-            console.log("戦略2 成功:", JSON.stringify(adjData, null, 2));
+            console.log("戦略2 結果:", JSON.stringify(adjData, null, 2));
             
             if (adjData.errors) {
               adjGraphqlErrors = adjData.errors;
@@ -546,9 +534,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             delta: quantityDelta,
             after_quantity: variant.inventoryQuantity + quantityDelta,
             tracking_enabled: variant.inventoryItem.tracked,
-            response: adjData?.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup || 
+            response: adjData?.data?.inventoryAdjustQuantityAtLocation?.inventoryLevel ||
                      adjData?.data?.inventorySetQuantities?.inventoryAdjustmentGroup ||
-                     adjData?.data?.inventoryAdjustQuantityAtLocation?.inventoryLevel ||
                      adjData?.data?.inventoryAdjustQuantity?.inventoryLevel,
             errors: [],
             strategy_used: usedStrategy,

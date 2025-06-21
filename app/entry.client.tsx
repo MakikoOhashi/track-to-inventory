@@ -1,7 +1,7 @@
 import { RemixBrowser } from "@remix-run/react";
 import { hydrateRoot } from "react-dom/client";
 import { StrictMode, startTransition } from "react";
-import "./i18n";
+import i18n from "./i18n";
 
 // 開発環境でより詳細なエラーを表示
 if (process.env.NODE_ENV === 'development') {
@@ -36,27 +36,56 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled promise rejection:', event.reason);
 });
 
-startTransition(() => {
+// i18nの初期化を確実に完了させてからアプリケーションを開始
+const startApp = async () => {
   try {
-    hydrateRoot(
-      document,
-      <StrictMode>
-        <RemixBrowser />
-      </StrictMode>
-    );
+    // i18nの初期化を待つ
+    await new Promise((resolve) => {
+      if (i18n.isInitialized) {
+        resolve(true);
+      } else {
+        i18n.on('initialized', resolve);
+      }
+    });
+
+    console.log('i18n initialized successfully');
+    
+    startTransition(() => {
+      try {
+        hydrateRoot(
+          document,
+          <StrictMode>
+            <RemixBrowser />
+          </StrictMode>
+        );
+      } catch (error) {
+        console.error('Hydration error:', error);
+        // フォールバック: クライアントサイドレンダリング
+        const root = document.createElement('div');
+        root.innerHTML = `
+          <div style="padding: 20px; text-align: center; font-family: Arial, sans-serif;">
+            <h1>アプリケーションの読み込みに失敗しました</h1>
+            <p>ページを再読み込みしてください。</p>
+            <button onclick="window.location.reload()" style="padding: 10px 20px; background: #008060; color: white; border: none; border-radius: 4px; cursor: pointer;">
+              再読み込み
+            </button>
+          </div>
+        `;
+        document.body.appendChild(root);
+      }
+    });
   } catch (error) {
-    console.error('Hydration error:', error);
-    // フォールバック: クライアントサイドレンダリング
-    const root = document.createElement('div');
-    root.innerHTML = `
-      <div style="padding: 20px; text-align: center; font-family: Arial, sans-serif;">
-        <h1>アプリケーションの読み込みに失敗しました</h1>
-        <p>ページを再読み込みしてください。</p>
-        <button onclick="window.location.reload()" style="padding: 10px 20px; background: #008060; color: white; border: none; border-radius: 4px; cursor: pointer;">
-          再読み込み
-        </button>
-      </div>
-    `;
-    document.body.appendChild(root);
+    console.error('Failed to initialize i18n:', error);
+    // i18n初期化失敗時もアプリケーションを開始
+    startTransition(() => {
+      hydrateRoot(
+        document,
+        <StrictMode>
+          <RemixBrowser />
+        </StrictMode>
+      );
+    });
   }
-});
+};
+
+startApp();
