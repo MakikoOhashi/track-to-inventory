@@ -78,10 +78,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     siFile, 
     plFile, 
     otherFile,
+    // ファイルオブジェクトのみを除外し、URLフィールドは保持
     ...safeData 
   } = shipment;
 
   console.log('Safe data to upsert:', safeData); // Debug log
+  console.log('File URL fields included:', {
+    invoice_url: safeData.invoice_url,
+    si_url: safeData.si_url,
+    pl_url: safeData.pl_url,
+    other_url: safeData.other_url
+  }); // Debug log
 
   try {
     const { data, error } = await supabaseClient
