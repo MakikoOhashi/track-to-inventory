@@ -18,34 +18,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const { session } = await authenticate.admin(request);
     const shopId = session.shop;
 
-    const { filePath } = await request.json();
+    const { filePaths, siNumber } = await request.json();
 
-    console.log('Received file path request:', { filePath, type: typeof filePath, shopId });
+    console.log('Received file URL request:', { filePaths, siNumber, type: typeof filePaths, shopId });
 
-    if (!filePath) {
+    // 単一ファイルパスの場合も配列として処理
+    const paths = Array.isArray(filePaths) ? filePaths : [filePaths];
+    
+    if (!paths.length || paths.every(path => !path)) {
       return json({ error: "ファイルパスが指定されていません" }, { status: 400 });
     }
 
-    // パスのバリデーション（セキュリティ）- ディレクトリトラバーサル攻撃を防止
-    // 許可: 英数字、ハイフン、アンダースコア、ドット、スラッシュ
-    // 禁止: バックスラッシュ、特殊文字、パストラバーサル文字
-    if (/[\\:*?"<>|]/.test(filePath) || filePath.includes('..') || filePath.startsWith('/')) {
-      console.error('Invalid file path detected:', filePath);
-      return json({ error: "不正なファイルパスです" }, { status: 400 });
-    }
-
-    // ファイルパスからshop_idを抽出して認証チェック
-    const pathParts = filePath.split('/');
-    console.log('File path parts:', pathParts);
-    
-    if (pathParts.length >= 1) {
-      const siNumber = pathParts[0]; // 最初の部分がsi_number
-      console.log('Extracted SI number:', siNumber);
-      
-      // データベースからshipment情報を取得してshop_idを確認
+    // SI番号による認証チェック
+    if (siNumber) {
       try {
         const dbUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/shipments?si_number=eq.${encodeURIComponent(siNumber)}&select=shop_id`;
-        console.log('Querying database:', dbUrl);
+        console.log('Querying database for authorization:', dbUrl);
         
         const response = await fetch(dbUrl, {
           headers: {
@@ -85,37 +73,72 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
     }
 
-    console.log('Generating signed URL for file path:', filePath);
-
     // Supabaseクライアントの初期化を確認
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error('Missing Supabase environment variables');
       return json({ error: "Supabase設定エラー" }, { status: 500 });
     }
 
-    // Private bucket用: signed URLを生成（15分有効）
-    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-      .from("shipment-files")
-      .createSignedUrl(filePath, 15 * 60); // 15分
+    // 複数ファイルの署名付きURLを一括生成
+    const signedUrls: Record<string, string> = {};
+    const errors: string[] = [];
 
-    if (signedUrlError) {
-      console.error('Signed URL generation error:', signedUrlError);
-      return json({ 
-        error: `署名付きURL生成エラー: ${signedUrlError.message}`,
-        details: signedUrlError
-      }, { status: 500 });
+    for (const filePath of paths) {
+      if (!filePath) continue;
+
+      // パスのバリデーション（セキュリティ）
+      if (/[\\:*?"<>|]/.test(filePath) || filePath.includes('..') || filePath.startsWith('/')) {
+        console.error('Invalid file path detected:', filePath);
+        errors.push(`不正なファイルパス: ${filePath}`);
+        continue;
+      }
+
+      try {
+        console.log('Generating signed URL for file path:', filePath);
+
+        // Private bucket用: signed URLを生成（15分有効）
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from("shipment-files")
+          .createSignedUrl(filePath, 15 * 60); // 15分
+
+        if (signedUrlError) {
+          console.error('Signed URL generation error for', filePath, ':', signedUrlError);
+          errors.push(`${filePath}: ${signedUrlError.message}`);
+          continue;
+        }
+
+        if (!signedUrlData?.signedUrl) {
+          console.error('No signed URL returned for:', filePath);
+          errors.push(`${filePath}: 署名付きURLが生成されませんでした`);
+          continue;
+        }
+
+        signedUrls[filePath] = signedUrlData.signedUrl;
+        console.log('Successfully generated signed URL for:', filePath);
+
+      } catch (error) {
+        console.error('Error generating signed URL for', filePath, ':', error);
+        errors.push(`${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
 
-    if (!signedUrlData?.signedUrl) {
-      console.error('No signed URL returned from Supabase');
-      return json({ error: "署名付きURLが生成されませんでした" }, { status: 500 });
+    // 結果を返す
+    const result: any = { signedUrls };
+    
+    if (errors.length > 0) {
+      result.errors = errors;
     }
 
-    console.log('Successfully generated signed URL');
-    return json({ signedUrl: signedUrlData.signedUrl });
+    // 単一ファイルの場合は従来の形式もサポート
+    if (paths.length === 1 && paths[0]) {
+      result.signedUrl = signedUrls[paths[0]];
+    }
+
+    console.log('Returning signed URLs result:', Object.keys(signedUrls));
+    return json(result);
 
   } catch (error) {
-    console.error('Error generating signed URL:', error);
+    console.error('Error generating signed URLs:', error);
     return json({ 
       error: "ファイルURL生成中にエラーが発生しました",
       details: error instanceof Error ? error.message : String(error)

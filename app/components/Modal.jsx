@@ -39,6 +39,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   const [formData, setFormData] = useState(shipment);
   const [syncing, setSyncing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [signedUrlCache, setSignedUrlCache] = useState({});
 
   // ステータスオプションを英語キーで統一
   const STATUS_OPTIONS = [
@@ -53,6 +54,54 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   useEffect(() => {
     if (shipment) setFormData(shipment);
   }, [shipment]);
+
+  // ファイルの署名付きURLを一括取得
+  const loadSignedUrls = useCallback(async () => {
+    if (!formData?.si_number) return;
+
+    const fileFields = ['invoice_url', 'pl_url', 'si_url', 'other_url'];
+    const filePaths = fileFields
+      .map(field => formData[field])
+      .filter(path => path && !path.includes('token=')); // 既に署名付きURLの場合は除外
+
+    if (filePaths.length === 0) return;
+
+    try {
+      console.log('Loading signed URLs for files:', filePaths);
+      
+      const res = await fetch('/api/get-file-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          filePaths,
+          siNumber: formData.si_number 
+        })
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('Failed to get signed URLs:', res.status, errorData);
+        return;
+      }
+      
+      const json = await res.json();
+      if (json.signedUrls) {
+        setSignedUrlCache(prev => ({ ...prev, ...json.signedUrls }));
+        console.log('Cached signed URLs:', Object.keys(json.signedUrls));
+      }
+      
+      if (json.errors) {
+        console.warn('Some signed URLs failed to generate:', json.errors);
+      }
+    } catch (error) {
+      console.error('Error loading signed URLs:', error);
+    }
+  }, [formData?.si_number, formData?.invoice_url, formData?.pl_url, formData?.si_url, formData?.other_url]);
+
+  // フォームデータが変更された時に署名付きURLを再取得
+  useEffect(() => {
+    loadSignedUrls();
+  }, [loadSignedUrls]);
 
   if (!shipment || !formData) return null;  // 安全確認
 
@@ -381,48 +430,35 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     }
   };
 
-  // ファイル表示用のsigned URL取得関数
-  const getSignedUrl = async (filePath) => {
-    try {
-      console.log('getSignedUrl called with:', filePath);
-      
-      // ファイルパスが空の場合はエラー
-      if (!filePath) {
-        console.error('Empty file path provided');
-        return null;
-      }
-      
-      // 署名付きURLの場合（token=で始まる場合）、パスを抽出
-      let actualFilePath = filePath;
-      
-      if (filePath && filePath.includes('token=')) {
-        try {
-          const url = new URL(filePath);
-          const pathMatch = url.pathname.match(/\/storage\/v1\/object\/sign\/shipment-files\/(.+)/);
-          if (pathMatch) {
-            actualFilePath = pathMatch[1];
-            console.log('Extracted file path from signed URL:', actualFilePath);
-          }
-        } catch (urlError) {
-          console.error('URL parsing error:', urlError);
-          // URL解析に失敗した場合は、元のパスを使用
-        }
-      } else {
-        console.log('Using original file path (not a signed URL):', actualFilePath);
-      }
-      
-      // ファイルパスが空の場合はエラー
-      if (!actualFilePath) {
-        console.error('Invalid file path after processing');
-        return null;
-      }
+  // ファイル表示用のsigned URL取得関数（キャッシュ優先）
+  const getSignedUrl = useCallback(async (filePath) => {
+    if (!filePath) {
+      console.error('Empty file path provided');
+      return null;
+    }
 
-      console.log('Requesting signed URL for file path:', actualFilePath);
+    // 既に署名付きURLの場合はそのまま返す
+    if (filePath.includes('token=')) {
+      return filePath;
+    }
+
+    // キャッシュから取得を試行
+    if (signedUrlCache[filePath]) {
+      console.log('Using cached signed URL for:', filePath);
+      return signedUrlCache[filePath];
+    }
+
+    // キャッシュにない場合は個別取得
+    try {
+      console.log('Requesting signed URL for file path:', filePath);
 
       const res = await fetch('/api/get-file-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filePath: actualFilePath })
+        body: JSON.stringify({ 
+          filePaths: [filePath],
+          siNumber: formData.si_number 
+        })
       });
       
       if (!res.ok) {
@@ -432,16 +468,23 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       }
       
       const json = await res.json();
-      console.log('Successfully received signed URL');
-      return json.signedUrl;
+      if (json.signedUrl) {
+        // キャッシュに保存
+        setSignedUrlCache(prev => ({ ...prev, [filePath]: json.signedUrl }));
+        console.log('Successfully received and cached signed URL');
+        return json.signedUrl;
+      } else {
+        console.error('No signed URL in response');
+        return null;
+      }
     } catch (error) {
       console.error('Error getting signed URL:', error);
       return null;
     }
-  };
+  }, [signedUrlCache, formData?.si_number]);
 
   // ファイル表示ボタンのクリックハンドラー
-  const handleFileView = async (filePath, fileType) => {
+  const handleFileView = useCallback(async (filePath, fileType) => {
     if (!filePath) {
       alert(`${fileType}ファイルのパスが無効です`);
       return;
@@ -453,7 +496,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     } else {
       alert(`${fileType}ファイルの表示に失敗しました`);
     }
-  };
+  }, [getSignedUrl]);
 
   return (
     <Modal
@@ -607,15 +650,22 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
                 <Text>{label}:</Text>
                 <input type="file" onChange={e => handleFileUpload(e, key)} />
                 {formData[`${key}_url`] && (
-                  <InlineStack gap="100">
+                  <InlineStack gap="100" align="center">
                     <Button 
                       onClick={() => handleFileView(formData[`${key}_url`], label)}
+                      disabled={!signedUrlCache[formData[`${key}_url`]] && !formData[`${key}_url`].includes('token=')}
                     >
-                      📄 {t('modal.buttons.viewFile', { fileType: label })}
+                      📄 {t('modal.buttons.viewFileType', { fileType: label })}
+                      {(signedUrlCache[formData[`${key}_url`]] || formData[`${key}_url`].includes('token=')) ? ' 🔓' : ' 🔒'}
                     </Button>
                     <Button size="slim" destructive onClick={() => handleFileDelete(key)}>
                       {t('modal.buttons.delete')}
                     </Button>
+                    {!signedUrlCache[formData[`${key}_url`]] && !formData[`${key}_url`].includes('token=') && (
+                      <Text variant="bodySm" tone="subdued">
+                        {t('modal.labels.loadingFile')}
+                      </Text>
+                    )}
                   </InlineStack>
                 )}
               </BlockStack>

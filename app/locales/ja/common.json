@@ -113,7 +113,8 @@
     "labels": {
       "tbd": "未定",
       "none": "なし",
-      "pieces": "個"
+      "pieces": "個",
+      "loadingFile": "ファイル読み込み中..."
     },
     "buttons": {
       "edit": "編集",

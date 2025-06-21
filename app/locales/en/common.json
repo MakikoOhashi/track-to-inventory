@@ -113,7 +113,8 @@
     "labels": {
       "tbd": "TBD",
       "none": "None",
-      "pieces": "pcs"
+      "pieces": "pcs",
+      "loadingFile": "Loading file..."
     },
     "buttons": {
       "edit": "Edit",
