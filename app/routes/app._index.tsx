@@ -27,19 +27,31 @@ import OCRUploader from "../components/OCRUploader";
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 import StartGuide from '../components/StartGuide';
 
-import type { Shipment,ShipmentItem } from '../../types/Shipment';
-
+import type { Shipment, ShipmentItem } from '../../types/Shipment';
 
 import { json } from "@remix-run/node";
-import { useLoaderData, useFetcher, useNavigate } from "@remix-run/react";
-import type { LoaderFunctionArgs } from "@remix-run/node";
+import { useLoaderData, useFetcher, useRevalidator } from "@remix-run/react";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { useTranslation } from "react-i18next";
 import { i18n } from "~/utils/i18n.server";
+import { authenticate } from "~/shopify.server";
 
-// --- ① LoaderでShopifyセッションからshop（Shop ID）を取得 ---
-import { authenticate } from "~/shopify.server"; // ←例: Shopify Remix SDK
+// 型定義
+type StatusStats = Record<string, Shipment[]>;
+type PopupPos = { x: number; y: number };
+type ViewMode = 'card' | 'table';
+type DetailViewMode = 'product' | 'status' | 'search';
+type ProductStatsSort = 'name-asc' | 'name-desc';
 
-// Error Fallback Component for the main app
+// Loader型定義
+type LoaderData = {
+  shop: string;
+  locale: string;
+  shipments: Shipment[];
+  hasSeenGuide: boolean;
+};
+
+// Error Fallback Component
 function AppErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
   return (
     <Page>
@@ -70,30 +82,32 @@ function AppErrorFallback({ error, resetErrorBoundary }: { error: Error; resetEr
   );
 }
 
-type StatusTableProps = {
-  shipments: Shipment[];
-  onSelectShipment: (shipment: Shipment) => void;
-};
-
-type StatusStats = Record<string, Shipment[]>;
-
-type PopupPos = { x: number; y: number };
-
+// サーバーサイドからの初期設定取得のためのヘルパー
+async function getInitialSettings(request: Request) {
+  // Cookieから設定を取得（実装例）
+  const cookie = request.headers.get('Cookie');
+  const hasSeenGuide = cookie?.includes('hasSeenGuide=true') || false;
+  
+  return { hasSeenGuide };
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  // Shopifyセッションからshopドメインを取得
-  const { session } = await authenticate.admin(request);
-  const shop = session.shop;
-  const locale = await i18n.getLocale(request);
-  
-  // Remix流: loaderでshipmentsデータを取得
-  let shipments: Shipment[] = [];
-  if (shop) {
-    try {
+  try {
+    // Shopifyセッションからshopドメインを取得
+    const { session } = await authenticate.admin(request);
+    const shop = session.shop;
+    const locale = await i18n.getLocale(request);
+    
+    // 初期設定取得
+    const { hasSeenGuide } = await getInitialSettings(request);
+    
+    // shipmentsデータを取得
+    let shipments: Shipment[] = [];
+    if (shop) {
       const url = new URL(request.url);
       const shopId = url.searchParams.get('shop_id') || shop;
       
-      // APIエンドポイントを直接呼び出し
+      // 内部API呼び出しまたは直接DB呼び出し
       const shipmentsUrl = `${url.origin}/api/shipments?shop_id=${encodeURIComponent(shopId)}`;
       const response = await fetch(shipmentsUrl);
       
@@ -101,37 +115,66 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const data = await response.json();
         shipments = Array.isArray(data.data) ? data.data : [];
       }
-    } catch (error) {
-      console.error('Loader: Failed to fetch shipments:', error);
     }
+    
+    return json<LoaderData>({ 
+      shop, 
+      locale, 
+      shipments,
+      hasSeenGuide 
+    });
+  } catch (error) {
+    console.error('Loader error:', error);
+    throw new Response('Failed to load data', { status: 500 });
   }
-  
-  return json({ shop, locale, shipments });
 };
 
+// Action for server-side mutations
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const formData = await request.formData();
+  const actionType = formData.get('actionType');
+  
+  switch (actionType) {
+    case 'dismissGuide':
+      // Set cookie for hasSeenGuide
+      return json(
+        { success: true },
+        {
+          headers: {
+            'Set-Cookie': 'hasSeenGuide=true; Path=/; Max-Age=31536000', // 1 year
+          },
+        }
+      );
+    
+    case 'refreshShipments':
+      // リダイレクトしてloaderを再実行
+      return json({ success: true });
+    
+    default:
+      return json({ error: 'Invalid action' }, { status: 400 });
+  }
+};
 
 export default function Index() {
-  const { shop, locale, shipments: initialShipments } = useLoaderData<typeof loader>();
+  const { shop, locale, shipments, hasSeenGuide } = useLoaderData<LoaderData>();
   const fetcher = useFetcher();
+  const revalidator = useRevalidator();
   
   // 翻訳
   const { t, i18n } = useTranslation();
   
-  // 状態管理
+  // 状態管理（サーバーから初期化）
   const [lang, setLang] = useState(locale || 'ja');
   const [isI18nReady, setIsI18nReady] = useState(false);
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [viewMode, setViewMode] = useState<ViewMode>('card');
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
   const [popupPos, setPopupPos] = useState<PopupPos>({ x: 0, y: 0 });
-  const [productStatsSort, setProductStatsSort] = useState<'name-asc' | 'name-desc'>('name-asc');
-  const [detailViewMode, setDetailViewMode] = useState<'product' | 'status' | 'search'>('product');
+  const [productStatsSort, setProductStatsSort] = useState<ProductStatsSort>('name-asc');
+  const [detailViewMode, setDetailViewMode] = useState<DetailViewMode>('product');
   const [siQuery, setSiQuery] = useState<string>('');
-  const [showStartGuide, setShowStartGuide] = useState(false);
+  const [showStartGuide, setShowStartGuide] = useState(!hasSeenGuide);
 
-  // データ管理 - Remix流
-  const shipments = (fetcher.data as any)?.data || initialShipments;
-  
   // 安全な翻訳関数
   const safeTranslate = (key: string, fallback: string) => {
     try {
@@ -143,84 +186,63 @@ export default function Index() {
     }
   };
 
-  // 初期化
+  // i18n初期化
   useEffect(() => {
-    try {
-      i18n.changeLanguage(lang);
-      setIsI18nReady(true);
-    } catch (error) {
-      console.error('Language change error:', error);
-      setIsI18nReady(true);
-    }
+    const initI18n = async () => {
+      try {
+        await i18n.changeLanguage(lang);
+        setIsI18nReady(true);
+      } catch (error) {
+        console.error('Language change error:', error);
+        setIsI18nReady(true);
+      }
+    };
+    
+    initI18n();
   }, [lang, i18n]);
-
-  useEffect(() => {
-    const hasSeenGuide = localStorage.getItem('hasSeenStartGuide');
-    if (hasSeenGuide !== 'true') {
-      setShowStartGuide(true);
-    }
-  }, []);
-
-  // データ更新
-  const refreshShipments = () => {
-    if (shop) {
-      fetcher.load(`/api/shipments?shop_id=${encodeURIComponent(shop)}`);
-    }
-  };
-
-  // 初期データ読み込み
-  useEffect(() => {
-    if (shop && !fetcher.data) {
-      refreshShipments();
-    }
-  }, [shop]);
-
-  // ローディング表示
-  if (!isI18nReady) {
-    return (
-      <Page>
-        <Card>
-          <BlockStack gap="400">
-            <Text variant="headingLg" as="h2">読み込み中...</Text>
-            <Text as="p">翻訳データを読み込んでいます。</Text>
-          </BlockStack>
-        </Card>
-      </Page>
-    );
-  }
 
   // イベントハンドラー
   const handleDismissGuide = () => {
     setShowStartGuide(false);
-    localStorage.setItem('hasSeenStartGuide', 'true');
+    // サーバーサイドでCookie設定
+    fetcher.submit(
+      { actionType: 'dismissGuide' },
+      { method: 'POST' }
+    );
   };
 
   const handleShowGuide = () => setShowStartGuide(true);
 
   const handleModalClose = () => {
     setSelectedShipment(null);
-    refreshShipments();
+    // データを再取得
+    revalidator.revalidate();
   };
 
   const handleOcrSaveSuccess = () => {
-    refreshShipments();
+    // データを再取得
+    revalidator.revalidate();
   };
 
-  // データ処理
-  const filteredShipments = shipments.filter(
-    (s: Shipment) =>
-      !siQuery ||
-      (s.si_number && s.si_number.toLowerCase().startsWith(siQuery.toLowerCase()))
-  ).slice(0, 10);
+  // データ処理関数
+  const getUpcomingShipments = (shipments: Shipment[], limit: number = 2) => {
+    return shipments
+      .slice()
+      .sort((a, b) => {
+        const aEta = a.eta ? new Date(a.eta).getTime() : Infinity;
+        const bEta = b.eta ? new Date(b.eta).getTime() : Infinity;
+        return aEta - bEta;
+      })
+      .slice(0, limit);
+  };
 
-  const upcomingShipments = shipments
-    .slice()
-    .sort((a: Shipment, b: Shipment) => {
-      const aEta = a.eta ? new Date(a.eta).getTime() : Infinity;
-      const bEta = b.eta ? new Date(b.eta).getTime() : Infinity;
-      return aEta - bEta;
-    })
-    .slice(0, 2);
+  const getFilteredShipments = (shipments: Shipment[], query: string, limit: number = 10) => {
+    return shipments.filter(
+      (s) =>
+        !query ||
+        (s.si_number && s.si_number.toLowerCase().startsWith(query.toLowerCase()))
+    ).slice(0, limit);
+  };
 
   const getStatusStats = (shipments: Shipment[]): StatusStats => {
     const stats: StatusStats = {};
@@ -234,7 +256,7 @@ export default function Index() {
 
   const getProductStats = (
     shipments: Shipment[],
-    sort: 'name-asc' | 'name-desc' = 'name-asc'
+    sort: ProductStatsSort = 'name-asc'
   ): [string, number][] => {
     const stats: Record<string, number> = {};
     shipments.forEach((s) => {
@@ -294,6 +316,12 @@ export default function Index() {
     }, 200);
   };
 
+  // 計算されたデータ
+  const upcomingShipments = getUpcomingShipments(shipments);
+  const filteredShipments = getFilteredShipments(shipments, siQuery);
+  const statusStats = getStatusStats(shipments);
+  const productStats = getProductStats(shipments, productStatsSort);
+
   // 翻訳データ
   const statusOrder = [
     safeTranslate('modal.status.siIssued', 'SI Issued'),
@@ -315,8 +343,8 @@ export default function Index() {
 
   // ポップアップ用データ
   const filteredAndSortedShipments = shipments
-    .filter((s: Shipment) => (s.items || []).some(item => item.name === hoveredProduct))
-    .sort((a: Shipment, b: Shipment) => {
+    .filter((s) => (s.items || []).some(item => item.name === hoveredProduct))
+    .sort((a, b) => {
       const aStatus = a.status ?? safeTranslate('status.notSet', 'Not Set');
       const bStatus = b.status ?? safeTranslate('status.notSet', 'Not Set');
       const statusDiff = statusOrder.indexOf(aStatus) - statusOrder.indexOf(bStatus);
@@ -326,7 +354,7 @@ export default function Index() {
       return aEta - bEta;
     });
 
-  const popupRows = filteredAndSortedShipments.map((s: Shipment) => {
+  const popupRows = filteredAndSortedShipments.map((s) => {
     const item = (s.items || []).find(item => item.name === hoveredProduct);
     return [
       <span
@@ -345,6 +373,20 @@ export default function Index() {
       s.status || 'Not Set'
     ];
   });
+
+  // ローディング表示
+  if (!isI18nReady) {
+    return (
+      <Page>
+        <Card>
+          <BlockStack gap="400">
+            <Text variant="headingLg" as="h2">読み込み中...</Text>
+            <Text as="p">翻訳データを読み込んでいます。</Text>
+          </BlockStack>
+        </Card>
+      </Page>
+    );
+  }
 
   // レンダリング
   return (
@@ -390,7 +432,7 @@ export default function Index() {
                     </Banner>
                   ) : (
                     <ul style={{ listStyle: 'none', padding: 0 }}>
-                      {upcomingShipments.map((s: Shipment) => (
+                      {upcomingShipments.map((s) => (
                         <li key={s.si_number} style={{ cursor: 'pointer', marginBottom: '0.5rem' }}>
                           <span onClick={() => setSelectedShipment(s)}>
                             {s.si_number} - <strong>ETA:</strong> {s.eta || 'Not set'}
@@ -424,7 +466,7 @@ export default function Index() {
 
                   {viewMode === 'card' ? (
                     <InlineStack gap="400" wrap>
-                      {shipments.map((s: Shipment) => (
+                      {shipments.map((s) => (
                         <StatusCard
                           key={s.si_number}
                           {...s}
@@ -452,7 +494,7 @@ export default function Index() {
                     tabs={tabs}
                     selected={selectedTab}
                     onSelect={(selectedIndex) => {
-                      const selectedId = tabs[selectedIndex].id as 'product' | 'status' | 'search';
+                      const selectedId = tabs[selectedIndex].id as DetailViewMode;
                       setDetailViewMode(selectedId);
                     }}
                   />
@@ -488,7 +530,7 @@ export default function Index() {
                               safeTranslate('label.productName', 'Product Name'), 
                               safeTranslate('label.totalQuantity', 'Total Quantity')
                             ]}
-                            rows={getProductStats(shipments, productStatsSort).map(([name, qty]) => [
+                            rows={productStats.map(([name, qty]) => [
                               <span
                                 key={name}
                                 onMouseEnter={(e) => handleProductMouseEnter(e, name)}
@@ -510,8 +552,8 @@ export default function Index() {
                             {safeTranslate('title.statusChart', 'Status Chart')}
                           </Text>
                           {statusOrder.map(status => {
-                            const shipmentsForStatus = getStatusStats(shipments)[status] || [];
-                            const rows = shipmentsForStatus.flatMap((s: Shipment) =>
+                            const shipmentsForStatus = statusStats[status] || [];
+                            const rows = shipmentsForStatus.flatMap((s) =>
                               (s.items || []).map(item => [
                                 <span
                                   style={{ color: "#2a5bd7", cursor: "pointer", textDecoration: "underline" }}
@@ -574,7 +616,7 @@ export default function Index() {
                                   safeTranslate('label.eta', 'ETA'), 
                                   safeTranslate('label.supplier', 'Supplier')
                                 ]}
-                                rows={filteredShipments.map((s: Shipment) => [
+                                rows={filteredShipments.map((s) => [
                                   <span
                                     style={{ color: "#2a5bd7", cursor: "pointer", textDecoration: "underline" }}
                                     onClick={() => setSelectedShipment(s)}
@@ -663,4 +705,3 @@ export default function Index() {
     </ErrorBoundary>
   );
 }
-
