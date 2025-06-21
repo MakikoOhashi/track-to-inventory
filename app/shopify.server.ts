@@ -7,6 +7,14 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 
+// 環境変数のデバッグログ
+console.log('Shopify App Configuration:');
+console.log('- SHOPIFY_API_KEY exists:', !!process.env.SHOPIFY_API_KEY);
+console.log('- SHOPIFY_API_SECRET exists:', !!process.env.SHOPIFY_API_SECRET);
+console.log('- SCOPES:', process.env.SCOPES);
+console.log('- SHOPIFY_APP_URL:', process.env.SHOPIFY_APP_URL);
+console.log('- SHOP_CUSTOM_DOMAIN:', process.env.SHOP_CUSTOM_DOMAIN);
+
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",

@@ -144,6 +144,16 @@
       "statusUpdateFailed": "Failed to update status",
       "syncGeneralFailed": "Sync failed",
       "deleteGeneralFailed": "Delete failed"
+    },
+    "syncNotice": {
+      "title": "Inventory Sync Requirements",
+      "description": "Before running inventory sync, please verify the following settings in Shopify:",
+      "checklist": {
+        "trackQuantity": "Check \"Track quantity\" for the target product",
+        "requiresShipping": "Check \"This product requires shipping\" for the target product",
+        "variantId": "Ensure Shopify variant ID is correctly set for the product"
+      },
+      "warning": "If these settings are not correct, inventory sync may fail."
     }
   },
   "ocrUploader": {

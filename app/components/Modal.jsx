@@ -541,6 +541,16 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
           <Text><b>{t('modal.fields.status')}:</b> {t('modal.status.' + statusKey)}</Text>
           {/* --- Shopify同期ボタン表示ロジック --- */}
           {shipment.status === "warehouseArrival" && (
+            <BlockStack gap="200">
+              <Banner status="info" title={t('modal.syncNotice.title')}>
+                <p>{t('modal.syncNotice.description')}</p>
+                <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                  <li>{t('modal.syncNotice.checklist.trackQuantity')}</li>
+                  <li>{t('modal.syncNotice.checklist.requiresShipping')}</li>
+                  <li>{t('modal.syncNotice.checklist.variantId')}</li>
+                </ul>
+                <p>{t('modal.syncNotice.warning')}</p>
+              </Banner>
               <Button
                 primary
                 loading={syncing}
@@ -550,7 +560,8 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
               >
                 {t('modal.buttons.syncShopify')}
               </Button>
-            )}
+            </BlockStack>
+          )}
             {/* --- 同期済みバナー --- */}
             {shipment.status === "synced" && (
               <Banner status="success" title={t('modal.messages.alreadySynced')}>

@@ -144,6 +144,16 @@
       "statusUpdateFailed": "ステータス更新に失敗しました",
       "syncGeneralFailed": "同期に失敗しました",
       "deleteGeneralFailed": "削除に失敗しました"
+    },
+    "syncNotice": {
+      "title": "在庫同期の注意事項",
+      "description": "在庫同期を実行する前に、Shopify側で以下の設定を確認してください：",
+      "checklist": {
+        "trackQuantity": "該当商品の「数量を追跡する」にチェックが入っていること",
+        "requiresShipping": "該当商品の「配送が必要な商品です」にチェックが入っていること",
+        "variantId": "商品にShopify variant IDが正しく設定されていること"
+      },
+      "warning": "これらの設定が正しくない場合、在庫同期が失敗する可能性があります。"
     }
   },
   "ocrUploader": {
