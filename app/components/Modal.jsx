@@ -93,7 +93,18 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
 
   const handleSave = async () => {
     try {
-      console.log('Saving formData:', formData); // Debug log
+      console.log('=== SAVE OPERATION START ===');
+      console.log('Current formData:', JSON.stringify(formData, null, 2));
+      
+      // ファイルURLフィールドの確認
+      const fileFields = ['invoice_url', 'pl_url', 'si_url', 'other_url'];
+      const fileUrls = {};
+      fileFields.forEach(field => {
+        if (formData[field]) {
+          fileUrls[field] = formData[field];
+        }
+      });
+      console.log('File URLs in formData:', fileUrls);
       
       // 必須フィールドのチェック
       if (!formData.si_number) {
@@ -101,11 +112,15 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
         return;
       }
       
+      console.log('Sending data to updateShipment API...');
       const res = await fetch('/api/updateShipment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shipment: formData }),
       });
+      
+      console.log('Response status:', res.status);
+      console.log('Response headers:', Object.fromEntries(res.headers.entries()));
       
       if (!res.ok) {
         const errorText = await res.text();
@@ -115,16 +130,19 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       }
       
       const json = await res.json();
+      console.log('Response JSON:', json);
+      
       if (json.error) {
         console.error('Save failed with error:', json.error);
         alert(`保存に失敗しました: ${json.error}`);
         return;
       }
       
-      console.log('Save successful:', json); // Debug log
+      console.log('Save successful:', json);
       alert(t('modal.messages.saveSuccess'));
       setEditMode(false);
       if (onUpdated) onUpdated();
+      console.log('=== SAVE OPERATION END ===');
     } catch (error) {
       console.error('Save error:', error);
       alert(`保存に失敗しました: ${error.message}`);
@@ -138,8 +156,8 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
 
     console.log('Uploading file:', { type, fileName: file.name, fileSize: file.size }); // Debug log
 
-    // ここから10MB制限追加 -----
-    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    // ここから50MB制限追加 -----
+    const MAX_SIZE = 50 * 1024 * 1024; // 50MB（Supabaseの設定に合わせる）
     if (file.size > MAX_SIZE) {
       const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
       alert(`${t('modal.messages.fileTooLarge')}（現在のサイズ: ${fileSizeMB}MB）`);
@@ -172,10 +190,15 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       }
       
       console.log('Upload successful:', json); // Debug log
-      setFormData((prev) => ({
-        ...prev,
-        [`${type}_url`]: json.publicUrl,
-      }));
+      console.log('Setting formData with new URL:', { field: `${type}_url`, url: json.publicUrl });
+      setFormData((prev) => {
+        const newData = {
+          ...prev,
+          [`${type}_url`]: json.publicUrl,
+        };
+        console.log('Updated formData:', newData);
+        return newData;
+      });
       alert(`${type.toUpperCase()}${t('modal.messages.uploadSuccess')}`);
     } catch (error) {
       console.error('Upload error:', error);

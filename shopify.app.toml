@@ -3,7 +3,7 @@
 client_id = "54d683ca896f499d837fee84e21f76a3"
 name = "TrackToInventory"
 handle = "tracktoinventory"
-application_url = "https://transform-inventory-fake-courier.trycloudflare.com"
+application_url = "https://nj-complicated-involve-nicole.trycloudflare.com"
 embedded = true
 
 [build]
@@ -28,9 +28,9 @@ scopes = "read_products,write_products,write_inventory,read_locations"
 
 [auth]
 redirect_urls = [
-  "https://transform-inventory-fake-courier.trycloudflare.com/auth/callback",
-  "https://transform-inventory-fake-courier.trycloudflare.com/auth/shopify/callback",
-  "https://transform-inventory-fake-courier.trycloudflare.com/api/auth/callback"
+  "https://nj-complicated-involve-nicole.trycloudflare.com/auth/callback",
+  "https://nj-complicated-involve-nicole.trycloudflare.com/auth/shopify/callback",
+  "https://nj-complicated-involve-nicole.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

@@ -24,7 +24,7 @@ export function verifyShopifyHmac(query: URLSearchParams, secret: string): boole
   return generated === hmac;
 }
 
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET!;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
