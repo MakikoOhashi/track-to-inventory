@@ -1,11 +1,11 @@
 import { json } from "@remix-run/node";
 import type { ActionFunctionArgs } from "@remix-run/node";
-import formidable from "formidable";
+import { formidable } from "formidable";
 import { fromBuffer } from "pdf2pic";
 import fs from "fs";
 
 // formidableのparseをPromise化
-function parseForm(request: Request): Promise<{ fields: formidable.Fields; files: formidable.Files }> {
+function parseForm(request: Request): Promise<{ fields: any; files: any }> {
   return new Promise((resolve, reject) => {
     const form = formidable({ keepExtensions: true });
     form.parse(request as any, (err, fields, files) => {
@@ -20,7 +20,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  let fields: formidable.Fields, files: formidable.Files;
+  let fields: any, files: any;
   try {
     ({ fields, files } = await parseForm(request));
   } catch (err) {
@@ -28,7 +28,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ error: "ファイルアップロード失敗" }, { status: 500 });
   }
 
-  const uploaded = files.file as formidable.File | formidable.File[] | undefined;
+  const uploaded = files.file;
   const pdfFile = Array.isArray(uploaded) ? uploaded[0] : uploaded;
 
   if (!pdfFile || !pdfFile.filepath) {

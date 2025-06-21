@@ -39,6 +39,7 @@
     "@shopify/shopify-app-session-storage-prisma": "^6.0.0",
     "@supabase/supabase-js": "^2.49.8",
     "@upstash/redis": "^1.35.0",
+    "formidable": "^3.5.4",
     "i18next": "^23.16.8",
     "i18next-fs-backend": "^2.6.0",
     "i18next-http-backend": "^3.0.2",
