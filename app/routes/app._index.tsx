@@ -95,31 +95,11 @@ export default function Index() {
   
   console.log("Index component - shop:", shop, "locale:", locale);
   
-  // 安全な初期化
-  let translationHook;
-  try {
-    translationHook = useTranslation();
-  } catch (error) {
-    console.error('Translation hook error:', error);
-    // フォールバック
-    translationHook = {
-      t: (key: string) => {
-        console.warn(`Translation key not found: ${key}`);
-        return key;
-      },
-      i18n: { changeLanguage: () => {} }
-    };
-  }
-  
-  const { t, i18n } = translationHook;
+  // すべてのstateを最初に宣言
   const [lang, setLang] = useState(locale || 'ja');
   const [isI18nReady, setIsI18nReady] = useState(false);
-
-  // --- ③ shopId関連のstateを初期化・同期 ---
-  const [shopIdInput, setShopIdInput] = useState<string>(shop || ''); // ←初期値にshopを使う
+  const [shopIdInput, setShopIdInput] = useState<string>(shop || '');
   const [shopId, setShopId] = useState<string>(shop || '');
-
-  // すべてのstateを条件分岐の前に移動
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [shipments, setShipments] = useState<Shipment[]>([]);
@@ -129,6 +109,10 @@ export default function Index() {
   const [detailViewMode, setDetailViewMode] = useState<'product' | 'status' | 'search'>('product');
   const [siQuery, setSiQuery] = useState<string>('');
   const [showStartGuide, setShowStartGuide] = useState(false);
+
+  // 安全な初期化
+  const translationHook = useTranslation();
+  const { t, i18n } = translationHook;
 
   useEffect(() => {
     try {
