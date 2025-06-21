@@ -36,11 +36,52 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // ファイルパスからshop_idを抽出して認証チェック
     const pathParts = filePath.split('/');
+    console.log('File path parts:', pathParts);
+    
     if (pathParts.length >= 1) {
-      const fileShopId = pathParts[0]; // 最初の部分がshop_id
-      if (fileShopId !== shopId) {
-        console.error('Shop ID mismatch:', { requestShopId: shopId, fileShopId });
-        return json({ error: "アクセス権限がありません" }, { status: 403 });
+      const siNumber = pathParts[0]; // 最初の部分がsi_number
+      console.log('Extracted SI number:', siNumber);
+      
+      // データベースからshipment情報を取得してshop_idを確認
+      try {
+        const dbUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/shipments?si_number=eq.${encodeURIComponent(siNumber)}&select=shop_id`;
+        console.log('Querying database:', dbUrl);
+        
+        const response = await fetch(dbUrl, {
+          headers: {
+            'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Database response:', data);
+          
+          if (Array.isArray(data) && data.length > 0) {
+            const fileShopId = data[0].shop_id;
+            console.log('Shop ID comparison:', { requestShopId: shopId, fileShopId });
+            
+            if (fileShopId !== shopId) {
+              console.error('Shop ID mismatch:', { 
+                requestShopId: shopId, 
+                fileShopId, 
+                siNumber 
+              });
+              return json({ error: "アクセス権限がありません" }, { status: 403 });
+            }
+          } else {
+            console.error('Shipment not found:', siNumber);
+            return json({ error: "ファイルが見つかりません" }, { status: 404 });
+          }
+        } else {
+          console.error('Database query failed:', response.status);
+          return json({ error: "データベースエラー" }, { status: 500 });
+        }
+      } catch (dbError) {
+        console.error('Database error:', dbError);
+        return json({ error: "データベースエラー" }, { status: 500 });
       }
     }
 
