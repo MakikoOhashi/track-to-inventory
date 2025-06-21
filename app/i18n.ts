@@ -1,22 +1,30 @@
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
+import { RemixI18Next } from "remix-i18next/server";
+import { createCookie } from "@remix-run/node";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-import ja from './locales/ja/common.json';
-import en from './locales/en/common.json';
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources: {
-      ja: { common: ja },
-      en: { common: en },
-    },
-    lng: 'ja', // デフォルト言語
-    fallbackLng: 'ja',
-    interpolation: { escapeValue: false },
-    ns: ['common'],          // namespaceとして"common"を明示
-    defaultNS: 'common',     // デフォルトnamespace
-    react: { useSuspense: false }, // 必要であれば
-  });
+export const i18nCookie = createCookie("i18n", {
+  path: "/",
+  sameSite: "lax",
+  httpOnly: true,
+  maxAge: 60 * 60 * 24 * 365,
+});
+
+export const i18n = new RemixI18Next({
+  detection: {
+    cookie: i18nCookie,
+    supportedLanguages: ["ja", "en"],
+    fallbackLanguage: "ja",
+  },
+  i18next: {
+    fallbackLng: "ja",
+    supportedLngs: ["ja", "en"],
+  },
+  backend: {
+    loadPath: resolve(__dirname, "./locales/{{lng}}/{{ns}}.json"),
+  },
+});
 
 export default i18n;

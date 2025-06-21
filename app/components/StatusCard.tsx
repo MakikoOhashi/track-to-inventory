@@ -6,13 +6,28 @@ import { Card, Text,BlockStack } from '@shopify/polaris';
 import type { Shipment } from "../../types/Shipment";
 
 // ステータス日本語→英語キー変換マップ
-const statusJaToKey = {
+const statusToKey: Record<string, string> = {
   "SI発行済": "siIssued",
+  "SI Issued": "siIssued",
+  "siIssued": "siIssued",
   "船積スケジュール確定": "scheduleConfirmed",
+  "Shipping Schedule Confirmed": "scheduleConfirmed",
+  "scheduleConfirmed": "scheduleConfirmed",
   "船積中": "shipping",
+  "Shipping": "shipping",
+  "shipping": "shipping",
   "輸入通関中": "customsClearance",
+  "Import Customs Clearance": "customsClearance",
+  "customsClearance": "customsClearance",
   "倉庫着": "warehouseArrival",
-  "同期済み": "synced"
+  "Warehouse Arrival": "warehouseArrival",
+  "warehouseArrival": "warehouseArrival",
+  "同期済み": "synced",
+  "Synced": "synced",
+  "synced": "synced",
+  "未設定": "notSet",
+  "Not Set": "notSet",
+  "notSet": "notSet"
 };
 
 const StatusCard: React.FC<Shipment & { onSelectShipment: () => void }> = ({
@@ -37,7 +52,7 @@ const StatusCard: React.FC<Shipment & { onSelectShipment: () => void }> = ({
 }) => {
 
   const { t } = useTranslation('common');
-  const statusKey = statusJaToKey[status] || status;
+  const statusKey = statusToKey[status ?? ""] || "notSet";
   
   return (
     <Card>
