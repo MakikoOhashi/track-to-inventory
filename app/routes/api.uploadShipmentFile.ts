@@ -112,20 +112,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ error: uploadError.message }, { status: 500 });
     }
 
-    console.log('File uploaded successfully, generating signed URL...'); // Debug log
+    console.log('File uploaded successfully, returning file path...'); // Debug log
     
-    // Private bucket用: signed URLを生成（24時間有効）
-    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-      .from("shipment-files")
-      .createSignedUrl(filePath, 24 * 60 * 60); // 24時間
-
-    if (signedUrlError) {
-      console.error('Signed URL generation error:', signedUrlError);
-      return json({ error: signedUrlError.message }, { status: 500 });
-    }
-
-    console.log('Signed URL generated:', signedUrlData.signedUrl); // Debug log
-    return json({ publicUrl: signedUrlData.signedUrl });
+    // Private bucket用: ファイルパスのみを返す（署名付きURLは表示時に生成）
+    console.log('File path for database:', filePath); // Debug log
+    return json({ filePath: filePath });
 
   } catch (error) {
     console.error('Unexpected error in uploadShipmentFile:', error);

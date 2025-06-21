@@ -213,11 +213,11 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       }
       
       console.log('Upload successful:', json); // Debug log
-      console.log('Setting formData with new URL:', { field: `${type}_url`, url: json.publicUrl });
+      console.log('Setting formData with new file path:', { field: `${type}_url`, filePath: json.filePath });
       setFormData((prev) => {
         const newData = {
           ...prev,
-          [`${type}_url`]: json.publicUrl,
+          [`${type}_url`]: json.filePath, // ファイルパスを保存
         };
         console.log('Updated formData:', newData);
         return newData;
@@ -228,7 +228,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
         console.log('Auto-saving after file upload...');
         const updatedFormData = {
           ...formData,
-          [`${type}_url`]: json.publicUrl,
+          [`${type}_url`]: json.filePath, // ファイルパスを保存
         };
         
         const saveRes = await fetch('/api/updateShipment', {
@@ -365,17 +365,43 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   // ファイル表示用のsigned URL取得関数
   const getSignedUrl = async (filePath) => {
     try {
+      // 署名付きURLの場合は、ファイルパスを抽出
+      let actualFilePath = filePath;
+      
+      // 署名付きURLの場合（token=で始まる場合）、パスを抽出
+      if (filePath && filePath.includes('token=')) {
+        try {
+          const url = new URL(filePath);
+          const pathMatch = url.pathname.match(/\/storage\/v1\/object\/sign\/shipment-files\/(.+)/);
+          if (pathMatch) {
+            actualFilePath = pathMatch[1];
+          }
+        } catch (urlError) {
+          console.error('URL parsing error:', urlError);
+          // URL解析に失敗した場合は、元のパスを使用
+        }
+      }
+      
+      // ファイルパスが空の場合はエラー
+      if (!actualFilePath) {
+        throw new Error('Invalid file path');
+      }
+
+      console.log('Requesting signed URL for file path:', actualFilePath);
+
       const res = await fetch('/api/get-file-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filePath })
+        body: JSON.stringify({ filePath: actualFilePath })
       });
       
       if (!res.ok) {
-        throw new Error('Failed to get signed URL');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(`Failed to get signed URL: ${errorData.error || res.statusText}`);
       }
       
       const json = await res.json();
+      console.log('Successfully received signed URL');
       return json.signedUrl;
     } catch (error) {
       console.error('Error getting signed URL:', error);
