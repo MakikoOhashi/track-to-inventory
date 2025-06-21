@@ -27,12 +27,17 @@ const statusJaToKey = {
 const statusKeyToJa = Object.fromEntries(Object.entries(statusJaToKey).map(([ja, key]) => [key, ja]));
 
 const CustomModal = ({ shipment, onClose, onUpdated }) => {
-  const { t, i18n } = useTranslation();
+  const { t, i18n } = useTranslation() || { t: null, i18n: null };
   
   // 安全な翻訳関数
   const safeTranslate = (key, fallback) => {
+    if (!t || typeof t !== 'function') {
+      console.warn(`Translation function not available for key: ${key}`);
+      return fallback;
+    }
     try {
-      return t(key) || fallback;
+      const translated = t(key);
+      return translated !== key ? translated : fallback;
     } catch (error) {
       console.warn(`Translation error for key: ${key}`, error);
       return fallback;
