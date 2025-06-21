@@ -17,20 +17,21 @@ type SyncResult = {
   errors?: UserError[];
   strategy_used?: string;
   error?: string;
-  errorType?: string;    // 追加: エラータイプ（userError, graphql, logic, exception など）
-  failedStep?: string;   // 追加: どの処理で失敗したか
-  graphqlErrors?: unknown; // GraphQLトップレベルのerrors
+  errorType?: string;
+  failedStep?: string;
+  graphqlErrors?: unknown;
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     const { admin } = await authenticate.admin(request);
     const { items } = await request.json();
+    
     if (!items || items.length === 0) {
       return json({ error: "同期する商品がありません" }, { status: 400 });
     }
 
-    // まず、ストアのLocation IDを動的に取得
+    // ストアのLocation IDを動的に取得
     const locationsQuery = `
       query {
         locations(first: 1) {
@@ -49,7 +50,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.log("Location取得開始");
     const locationResult = await admin.graphql(locationsQuery);
     
-    // ✅ 修正：GraphQLレスポンスを正しく処理
     const locationData = await locationResult.json();
     console.log("Location取得結果:", locationData);
     
@@ -73,6 +73,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.log("使用するLocation ID:", locationId);
 
     const results: SyncResult[] = [];
+    
     for (const item of items) {
       let step = "variantQuery";
       try {
@@ -237,7 +238,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         }
 
-        // 4. 在庫数量を調整 - ✅ 修正された部分（nameフィールド追加 + フォールバック戦略）
+        // 4. 在庫数量を調整 - 3段階のフォールバック戦略
         let adjData: any = null;
         let success = false;
         let adjUserErrors: UserError[] = [];
@@ -274,11 +275,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
           `;
           
-          // ✅ nameフィールドを追加
           const mutationVariables = {
             input: {
               reason: "correction",
-              name: "available", // ✅ 新たに必須となったフィールド
+              name: "available",
               changes: [
                 {
                   delta: item.quantity,
@@ -439,6 +439,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             console.log("戦略3 失敗:", strategy3Error);
           }
         }
+        
         // 成功時
         if (success) {
           results.push({
@@ -475,6 +476,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         });
       }
     }
+    
     return json({ results });
   } catch (error) {
     return json({ 
@@ -482,73 +484,4 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       debug: error instanceof Error ? error.stack : undefined
     }, { status: 500 });
   }
-};
-
-//         // エラーハンドリング
-//         if (!success || !adjData) {
-//           console.error("全ての戦略が失敗しました または adjData が null です");
-//           results.push({
-//             variant_id: item.variant_id,
-//             error: "在庫調整に失敗しました - 全ての戦略が失敗"
-//           });
-//           continue;
-//         }
-
-//         // GraphQLのトップレベルエラーチェック
-//         if (adjData && adjData.errors) {
-//           console.error("GraphQL errors:", JSON.stringify(adjData.errors, null, 2));
-//         }
-
-//         // userErrorsチェック（各戦略に応じて）
-//         let userErrors: UserError[] = [];
-//         if (adjData?.data?.inventoryAdjustQuantities?.userErrors) {
-//           userErrors = adjData.data.inventoryAdjustQuantities.userErrors;
-//         } else if (adjData?.data?.inventorySetQuantities?.userErrors) {
-//           userErrors = adjData.data.inventorySetQuantities.userErrors;
-//         } else if (adjData?.data?.inventoryBulkAdjustQuantityAtLocation?.userErrors) {
-//           userErrors = adjData.data.inventoryBulkAdjustQuantityAtLocation.userErrors;
-//         }
-        
-//         if (userErrors.length > 0) {
-//           console.error("User errors:", JSON.stringify(userErrors, null, 2));
-//         }
-        
-//         results.push({
-//           variant_id: item.variant_id,
-//           product_title: variant.product.title,
-//           before_quantity: variant.inventoryQuantity,
-//           delta: item.quantity,
-//           after_quantity: variant.inventoryQuantity + item.quantity,
-//           tracking_enabled: variant.inventoryItem.tracked,
-//           response: adjData?.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup || 
-//                    adjData?.data?.inventorySetQuantities?.inventoryAdjustmentGroup ||
-//                    adjData?.data?.inventoryBulkAdjustQuantityAtLocation?.inventoryLevels,
-//           errors: userErrors,
-//           strategy_used: success ? "success" : "failed"
-//         });
-
-//         console.log(`在庫調整完了 - ${item.variant_id}:`, adjData ? JSON.stringify(adjData, null, 2) : "adjData is null");
-
-//       } catch (itemError) {
-//         console.error(`アイテム処理エラー (${item.variant_id}):`, itemError);
-//         results.push({
-//           variant_id: item.variant_id,
-//           error: itemError instanceof Error ? itemError.message : String(itemError)
-//         });
-//       }
-//     }
-    
-//     return json({ results });
-    
-//   } catch (error) {
-//     console.error("sync-stock エラー詳細:", {
-//       message: error instanceof Error ? error.message : String(error),
-//       stack: error instanceof Error ? error.stack : undefined,
-//       name: error instanceof Error ? error.name : undefined
-//     });
-//     return json({ 
-//       error: error instanceof Error ? error.message : String(error),
-//       debug: error instanceof Error ? error.stack : undefined
-//     }, { status: 500 });
-//   }
-// };
+}; 
