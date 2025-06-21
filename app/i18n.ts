@@ -14,14 +14,14 @@ const loadTranslations = () => {
   try {
     return {
       en: {
-        common: enCommon,
-        forms: enForms,
-        navigation: enNavigation,
+        common: enCommon || {},
+        forms: enForms || {},
+        navigation: enNavigation || {},
       },
       ja: {
-        common: jaCommon,
-        forms: jaForms,
-        navigation: jaNavigation,
+        common: jaCommon || {},
+        forms: jaForms || {},
+        navigation: jaNavigation || {},
       },
     };
   } catch (error) {
