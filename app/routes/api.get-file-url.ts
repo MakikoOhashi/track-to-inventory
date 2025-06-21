@@ -87,6 +87,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     console.log('Generating signed URL for file path:', filePath);
 
+    // Supabaseクライアントの初期化を確認
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('Missing Supabase environment variables');
+      return json({ error: "Supabase設定エラー" }, { status: 500 });
+    }
+
     // Private bucket用: signed URLを生成（15分有効）
     const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from("shipment-files")

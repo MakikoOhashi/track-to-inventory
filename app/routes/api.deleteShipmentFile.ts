@@ -24,22 +24,59 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ error: "missing fields" }, { status: 400 });
   }
 
-  // パスは `${si_number}/${type}.拡張子` 形式前提
-  const matches = url.match(/\/([^/]+)\.([a-zA-Z0-9]+)$/);
-  let filePath = "";
-  if (matches) {
-    filePath = `${si_number}/${type}.${matches[2]}`;
-  } else {
-    return json({ error: "ファイルパス特定失敗" }, { status: 400 });
-  }
+  try {
+    // ファイルパス抽出ロジックを改善
+    let filePath = "";
+    
+    // URLが署名付きURLの場合（token=を含む場合）
+    if (url.includes('token=')) {
+      try {
+        const urlObj = new URL(url);
+        const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/sign\/shipment-files\/(.+)/);
+        if (pathMatch) {
+          filePath = pathMatch[1];
+        }
+      } catch (urlError) {
+        console.error('URL parsing error:', urlError);
+      }
+    }
+    
+    // ファイルパスが抽出できなかった場合、従来の方法を試す
+    if (!filePath) {
+      const matches = url.match(/\/([^/]+)\.([a-zA-Z0-9]+)$/);
+      if (matches) {
+        filePath = `${si_number}/${type}.${matches[2]}`;
+      }
+    }
+    
+    // ファイルパスが特定できない場合
+    if (!filePath) {
+      console.error('Could not determine file path from URL:', url);
+      return json({ error: "ファイルパス特定失敗" }, { status: 400 });
+    }
 
-  const { error } = await supabase
-    .storage
-    .from("shipment-files")
-    .remove([filePath]);
+    console.log('Deleting file path:', filePath);
 
-  if (error) {
-    return json({ error: error.message }, { status: 500 });
+    const { error } = await supabase
+      .storage
+      .from("shipment-files")
+      .remove([filePath]);
+
+    if (error) {
+      console.error('Supabase delete error:', error);
+      return json({ 
+        error: `ファイル削除エラー: ${error.message}`,
+        details: error
+      }, { status: 500 });
+    }
+    
+    console.log('File deleted successfully');
+    return json({ ok: true });
+  } catch (error) {
+    console.error('Unexpected error in deleteShipmentFile:', error);
+    return json({ 
+      error: "ファイル削除中にエラーが発生しました",
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
-  return json({ ok: true });
 };

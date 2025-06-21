@@ -100,6 +100,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.log('File converted to Uint8Array, size:', uint8Array.length); // Debug log
 
     console.log('Uploading to Supabase storage...'); // Debug log
+    
+    // Supabaseクライアントの初期化を確認
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('Missing Supabase environment variables');
+      return json({ error: "Supabase設定エラー" }, { status: 500 });
+    }
+
     const { error: uploadError } = await supabase.storage
       .from("shipment-files")
       .upload(filePath, uint8Array, { 
@@ -109,7 +116,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     if (uploadError) {
       console.error('Supabase upload error:', uploadError);
-      return json({ error: uploadError.message }, { status: 500 });
+      return json({ 
+        error: `アップロードエラー: ${uploadError.message}`,
+        details: uploadError
+      }, { status: 500 });
     }
 
     console.log('File uploaded successfully, returning file path...'); // Debug log
@@ -120,6 +130,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   } catch (error) {
     console.error('Unexpected error in uploadShipmentFile:', error);
-    return json({ error: "ファイルアップロード中にエラーが発生しました" }, { status: 500 });
+    return json({ 
+      error: "ファイルアップロード中にエラーが発生しました",
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 };

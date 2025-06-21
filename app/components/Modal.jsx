@@ -179,14 +179,13 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
 
     console.log('Uploading file:', { type, fileName: file.name, fileSize: file.size }); // Debug log
 
-    // ここから50MB制限追加 -----
-    const MAX_SIZE = 50 * 1024 * 1024; // 50MB（Supabaseの設定に合わせる）
+    // ファイルサイズ制限を10MBに統一
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
     if (file.size > MAX_SIZE) {
       const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
       alert(`${t('modal.messages.fileTooLarge')}（現在のサイズ: ${fileSizeMB}MB）`);
       return;
     }
-    // ここまで追加 -----
     
     const form = new FormData();
     form.append('file', file);
@@ -214,6 +213,8 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       
       console.log('Upload successful:', json); // Debug log
       console.log('Setting formData with new file path:', { field: `${type}_url`, filePath: json.filePath });
+      
+      // 状態更新を安全に行う
       setFormData((prev) => {
         const newData = {
           ...prev,
@@ -367,10 +368,15 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     try {
       console.log('getSignedUrl called with:', filePath);
       
-      // 署名付きURLの場合は、ファイルパスを抽出
-      let actualFilePath = filePath;
+      // ファイルパスが空の場合はエラー
+      if (!filePath) {
+        console.error('Empty file path provided');
+        return null;
+      }
       
       // 署名付きURLの場合（token=で始まる場合）、パスを抽出
+      let actualFilePath = filePath;
+      
       if (filePath && filePath.includes('token=')) {
         try {
           const url = new URL(filePath);
@@ -389,7 +395,8 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       
       // ファイルパスが空の場合はエラー
       if (!actualFilePath) {
-        throw new Error('Invalid file path');
+        console.error('Invalid file path after processing');
+        return null;
       }
 
       console.log('Requesting signed URL for file path:', actualFilePath);
@@ -402,6 +409,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
+        console.error('Failed to get signed URL:', res.status, errorData);
         throw new Error(`Failed to get signed URL: ${errorData.error || res.statusText}`);
       }
       
@@ -416,6 +424,11 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
 
   // ファイル表示ボタンのクリックハンドラー
   const handleFileView = async (filePath, fileType) => {
+    if (!filePath) {
+      alert(`${fileType}ファイルのパスが無効です`);
+      return;
+    }
+    
     const signedUrl = await getSignedUrl(filePath);
     if (signedUrl) {
       window.open(signedUrl, '_blank');
