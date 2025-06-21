@@ -93,6 +93,8 @@ export default function Index() {
   // --- ② useLoaderDataでshopを受け取る ---
   const { shop, locale } = useLoaderData<typeof loader>();
   
+  console.log("Index component - shop:", shop, "locale:", locale);
+  
   // 安全な初期化
   let translationHook;
   try {
@@ -115,6 +117,7 @@ export default function Index() {
 
   useEffect(() => {
     try {
+      console.log("Changing language to:", lang);
       i18n.changeLanguage(lang);
     } catch (error) {
       console.error('Language change error:', error);
@@ -171,51 +174,63 @@ export default function Index() {
 
   // statusTranslationMapの定義も関数内で
   const statusTranslationMap: Record<string, string> = {
-    "SI発行済": t('modal.status.siIssued'),
-    "船積スケジュール確定": t('modal.status.scheduleConfirmed'),
-    "船積中": t('modal.status.shipping'),
-    "輸入通関中": t('modal.status.customsClearance'),
-    "倉庫着": t('modal.status.warehouseArrival'),
-    "同期済み": t('modal.status.synced'),
-    "siIssued": t('modal.status.siIssued'),
-    "scheduleConfirmed": t('modal.status.scheduleConfirmed'),
-    "shipping": t('modal.status.shipping'),
-    "customsClearance": t('modal.status.customsClearance'),
-    "warehouseArrival": t('modal.status.warehouseArrival'),
-    "synced": t('modal.status.synced'),
-    "未設定": t('status.notSet'),
+    "SI発行済": t('modal.status.siIssued') || 'SI Issued',
+    "船積スケジュール確定": t('modal.status.scheduleConfirmed') || 'Schedule Confirmed',
+    "船積中": t('modal.status.shipping') || 'Shipping',
+    "輸入通関中": t('modal.status.customsClearance') || 'Customs Clearance',
+    "倉庫着": t('modal.status.warehouseArrival') || 'Warehouse Arrival',
+    "同期済み": t('modal.status.synced') || 'Synced',
+    "siIssued": t('modal.status.siIssued') || 'SI Issued',
+    "scheduleConfirmed": t('modal.status.scheduleConfirmed') || 'Schedule Confirmed',
+    "shipping": t('modal.status.shipping') || 'Shipping',
+    "customsClearance": t('modal.status.customsClearance') || 'Customs Clearance',
+    "warehouseArrival": t('modal.status.warehouseArrival') || 'Warehouse Arrival',
+    "synced": t('modal.status.synced') || 'Synced',
+    "未設定": t('status.notSet') || 'Not Set',
   };
 
   const statusOrder = [
-    t('modal.status.siIssued'),
-    t('modal.status.scheduleConfirmed'),
-    t('modal.status.shipping'),
-    t('modal.status.customsClearance'),
-    t('modal.status.warehouseArrival'),
-    t('status.productSync'),
-    t('modal.status.synced')
+    t('modal.status.siIssued') || 'SI Issued',
+    t('modal.status.scheduleConfirmed') || 'Schedule Confirmed',
+    t('modal.status.shipping') || 'Shipping',
+    t('modal.status.customsClearance') || 'Customs Clearance',
+    t('modal.status.warehouseArrival') || 'Warehouse Arrival',
+    t('status.productSync') || 'Product Sync',
+    t('modal.status.synced') || 'Synced'
   ];
 
   // 修正1: supabaseで直接取得→API経由に変更
   const fetchShipments = async (shopIdValue: string) => {
-    const res = await fetch(`/api/shipments?shop_id=${encodeURIComponent(shopIdValue)}`);
-    if (!res.ok) {
+    try {
+      console.log("Fetching shipments for shopId:", shopIdValue);
+      const res = await fetch(`/api/shipments?shop_id=${encodeURIComponent(shopIdValue)}`);
+      if (!res.ok) {
+        console.error("Shipments API error:", res.status, res.statusText);
+        setShipments([]);
+        return;
+      }
+      const json = await res.json();
+      console.log("Shipments API response:", json);
+      setShipments(Array.isArray(json.data) ? json.data : []);
+    } catch (error) {
+      console.error("Fetch shipments error:", error);
       setShipments([]);
-      return;
     }
-    const json = await res.json();
-    setShipments(Array.isArray(json.data) ? json.data : []);
   };
 
   // --- 修正2: useEffectでshopIdが変わった時だけfetchShipments実行 ---
   useEffect(() => {
-    fetchShipments(shopId);
+    if (shopId) {
+      fetchShipments(shopId);
+    }
   }, [shopId]);
 
   // --- 修正3: fetchData（全件取得関数）を削除し、handleModalCloseでshopIdで再取得 ---
   const handleModalClose = () => {
     setSelectedShipment(null);
-    fetchShipments(shopId); // ← 閉じたあともshopIdで絞り込んだデータを取得
+    if (shopId) {
+      fetchShipments(shopId); // ← 閉じたあともshopIdで絞り込んだデータを取得
+    }
   };
 
   const handleInputChange = (value: string) => setShopIdInput(value);
@@ -233,7 +248,7 @@ export default function Index() {
   const getStatusStats = (shipments: Shipment[]): StatusStats => {
     const stats: StatusStats = {};
     shipments.forEach((s) => {
-      const status = s.status || t('status.notSet');
+      const status = s.status || t('status.notSet') || 'Not Set';
       if (!stats[status]) stats[status] = [];
       stats[status].push(s);
     });
@@ -343,7 +358,9 @@ export default function Index() {
   .filter(s => (s.items || []).some(item => item.name === hoveredProduct))
   .sort((a, b) => {
     // まずstatus順
-    const statusDiff = statusOrder.indexOf(a.status ?? t('status.notSet')) - statusOrder.indexOf(b.status ?? t('status.notSet'));
+    const aStatus = a.status ?? (t('status.notSet') || 'Not Set');
+    const bStatus = b.status ?? (t('status.notSet') || 'Not Set');
+    const statusDiff = statusOrder.indexOf(aStatus) - statusOrder.indexOf(bStatus);
     if (statusDiff !== 0) return statusDiff;
     // 同じstatusならETA順（undefinedならInfinityで一番後ろへ）
     const aEta = a.eta ? new Date(a.eta).getTime() : Infinity;
@@ -359,7 +376,7 @@ export default function Index() {
           onClick={() => setSelectedShipment(s)}
           tabIndex={0}
           onKeyDown={e => { if (e.key === 'Enter') setSelectedShipment(s); }}
-          title={t('message.clickForDetails')}
+          title={t('message.clickForDetails') || 'Click for details'}
           key={s.si_number}
           role="button"
         >
@@ -367,7 +384,7 @@ export default function Index() {
         </span>,
         item?.name ?? '',
         item?.quantity ?? '',
-        s.status
+        s.status || 'Not Set'
       ];
     });
 
@@ -380,7 +397,7 @@ export default function Index() {
   return (
     <ErrorBoundary FallbackComponent={AppErrorFallback}>
       <Page
-        title={t('title.shipmentsByOwner')}
+        title={t('title.shipmentsByOwner') || 'Shipments by Owner'}
        
         primaryAction={<LanguageSwitcher value={lang} onChange={setLang} />}
       >
@@ -422,9 +439,9 @@ export default function Index() {
                   onClick={handleShowGuide}
                   variant="plain"
                   size="large"
-                  accessibilityLabel={t('button.showGuide')}
+                  accessibilityLabel={t('button.showGuide') || 'Show Guide'}
                 >
-                  {t('button.showGuide')}
+                  {t('button.showGuide') || 'Show Guide'}
                 </Button>
               </InlineStack>
             </Box>
@@ -433,17 +450,17 @@ export default function Index() {
         <Card>
         
           <BlockStack gap="400"> 
-          <Text as="h2" variant="headingLg" id="card-edit">{t('title.upcomingArrivals')}</Text>
+          <Text as="h2" variant="headingLg" id="card-edit">{t('title.upcomingArrivals') || 'Upcoming Arrivals'}</Text>
           {/* <Text as="p" variant="bodyMd" tone="subdued">{t('message.upcomingArrivals')}</Text>
          */}
         {safeShipments.length === 0 ? (
-            <Banner tone="info">{t('message.noData')}</Banner>
+            <Banner tone="info">{t('message.noData') || 'No data available'}</Banner>
           ) : (
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {safeUpcomingShipments.map((s) => (
             <li key={s.si_number} style={{ cursor: 'pointer', marginBottom: '0.5rem' }}>
             <span onClick={() => setSelectedShipment(s)}>
-              {s.si_number} - <strong>ETA:</strong> {s.eta}
+              {s.si_number} - <strong>ETA:</strong> {s.eta || 'Not set'}
             </span>
             </li>
           ))}
@@ -455,12 +472,12 @@ export default function Index() {
       
        <BlockStack gap="500">
         
-        <Text as="h2" variant="headingLg">{t('title.arrivalStatus')}</Text>
+        <Text as="h2" variant="headingLg">{t('title.arrivalStatus') || 'Arrival Status'}</Text>
         {/* ▼▼▼ ここが変更点 ▼▼▼ */}
         <Tabs
           tabs={[
-            { id: 'card', content: t('button.cardView') },
-            { id: 'table', content: t('button.tableView') }
+            { id: 'card', content: t('button.cardView') || 'Card View' },
+            { id: 'table', content: t('button.tableView') || 'Table View' }
           ]}
           selected={viewMode === 'card' ? 0 : 1}
           onSelect={selectedIndex => {

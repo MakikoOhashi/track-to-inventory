@@ -24,9 +24,14 @@ type SyncResult = {
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
+    console.log("=== SYNC-STOCK API START ===");
     const { admin } = await authenticate.admin(request);
     const { items } = await request.json();
+    
+    console.log("Request items:", JSON.stringify(items, null, 2));
+    
     if (!items || items.length === 0) {
+      console.log("No items to sync");
       return json({ error: "同期する商品がありません" }, { status: 400 });
     }
 
@@ -66,6 +71,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
     
     if (!locationData || !locationData.data || !locationData.data.locations) {
+      console.error("Location data is invalid:", locationData);
       return json({ 
         error: "ロケーション情報を取得できませんでした",
         debug: locationData 

@@ -508,20 +508,30 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
 
   // ステータスは英語キーで管理
   const STATUS_OPTIONS = [
-    { label: t('modal.status.siIssued'), value: "siIssued" },
-    { label: t('modal.status.scheduleConfirmed'), value: "scheduleConfirmed" },
-    { label: t('modal.status.shipping'), value: "shipping" },
-    { label: t('modal.status.customsClearance'), value: "customsClearance" },
-    { label: t('modal.status.warehouseArrival'), value: "warehouseArrival" },
-    { label: t('modal.status.synced'), value: "synced" },
+    { label: t('modal.status.siIssued') || 'SI Issued', value: "siIssued" },
+    { label: t('modal.status.scheduleConfirmed') || 'Schedule Confirmed', value: "scheduleConfirmed" },
+    { label: t('modal.status.shipping') || 'Shipping', value: "shipping" },
+    { label: t('modal.status.customsClearance') || 'Customs Clearance', value: "customsClearance" },
+    { label: t('modal.status.warehouseArrival') || 'Warehouse Arrival', value: "warehouseArrival" },
+    { label: t('modal.status.synced') || 'Synced', value: "synced" },
   ];
+
+  // 安全な翻訳関数
+  const safeTranslate = (key, fallback) => {
+    try {
+      return t(key) || fallback;
+    } catch (error) {
+      console.warn(`Translation error for key: ${key}`, error);
+      return fallback;
+    }
+  };
 
   return (
     <Card sectioned>
       
         {/* タイトルを明示的に表示 */}
         <div style={{ marginBottom: '24px' }}>
-          <Text as="h2" variant="headingLg">{t("ocrUploader.title")}</Text>
+          <Text as="h2" variant="headingLg">{safeTranslate("ocrUploader.title", "Image Upload & OCR")}</Text>
         </div>
 
        {/* ファイルアップロードセクション */}
@@ -532,9 +542,9 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         onDrop={handleDrop}
         >
         {!file ? (
-          <div style={{ textAlign: "center", paddingInlineStartadding: 20, width: "100%" }}>
+          <div style={{ textAlign: "center", padding: 20, width: "100%" }}>
           <Text variant="bodyMd" as="span">
-          {t("ocrUploader.dropzoneText")}
+          {safeTranslate("ocrUploader.dropzoneText", "Drop an image here or click to select")}
           </Text>
         </div>
         ) : (
@@ -544,12 +554,12 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       {file && (
         <div style={{ marginTop: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button onClick={handleOcr} 
+          <Button onClick={handleOcr} 
           disabled={
             loading || 
             (usageInfo?.ocr && usageInfo.ocr.remaining <= 0 && usageInfo.ocr.limit !== Infinity)}>
-          {t("ocrUploader.ocrButton")}
-          </button>
+          {safeTranslate("ocrUploader.ocrButton", "Run OCR")}
+          </Button>
           {loading && <Spinner size="small" />}
           </div>
           
@@ -573,10 +583,10 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       {!showManualForm && (
         <div style={{ marginBottom: '24px' }}>
           <Button onClick={handleOpenManualForm}>
-            {t("ocrUploader.manualInputButton")}
+            {safeTranslate("ocrUploader.manualInputButton", "Enter SI information manually")}
           </Button>
           <Text variant="bodySm" color="subdued" style={{ marginTop: 8 }}>
-            {t("ocrUploader.manualInputDescription")}
+            {safeTranslate("ocrUploader.manualInputDescription", "Use this to enter information directly without OCR")}
           </Text>
         </div>
       )}

@@ -28,12 +28,23 @@ const statusKeyToJa = Object.fromEntries(Object.entries(statusJaToKey).map(([ja,
 
 const CustomModal = ({ shipment, onClose, onUpdated }) => {
   const { t, i18n } = useTranslation();
+  
+  // 安全な翻訳関数
+  const safeTranslate = (key, fallback) => {
+    try {
+      return t(key) || fallback;
+    } catch (error) {
+      console.warn(`Translation error for key: ${key}`, error);
+      return fallback;
+    }
+  };
+  
   // FILE_TYPESの定義を関数内に移動
   const FILE_TYPES = [
-    { label: t('modal.fileTypes.invoice'), key: 'invoice' },
-    { label: t('modal.fileTypes.pl'), key: 'pl' },
-    { label: t('modal.fileTypes.si'), key: 'si' },
-    { label: t('modal.fileTypes.other'), key: 'other' },
+    { label: safeTranslate('modal.fileTypes.invoice', 'Invoice'), key: 'invoice' },
+    { label: safeTranslate('modal.fileTypes.pl', 'Packing List'), key: 'pl' },
+    { label: safeTranslate('modal.fileTypes.si', 'Shipping Instruction'), key: 'si' },
+    { label: safeTranslate('modal.fileTypes.other', 'Other'), key: 'other' },
   ];
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState(shipment);
@@ -42,12 +53,12 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
 
   // ステータスオプションを英語キーで統一
   const STATUS_OPTIONS = [
-    { label: t('modal.status.siIssued'), value: "siIssued" },
-    { label: t('modal.status.scheduleConfirmed'), value: "scheduleConfirmed" },
-    { label: t('modal.status.shipping'), value: "shipping" },
-    { label: t('modal.status.customsClearance'), value: "customsClearance" },
-    { label: t('modal.status.warehouseArrival'), value: "warehouseArrival" },
-    { label: t('modal.status.synced'), value: "synced" },
+    { label: safeTranslate('modal.status.siIssued', 'SI Issued'), value: "siIssued" },
+    { label: safeTranslate('modal.status.scheduleConfirmed', 'Schedule Confirmed'), value: "scheduleConfirmed" },
+    { label: safeTranslate('modal.status.shipping', 'Shipping'), value: "shipping" },
+    { label: safeTranslate('modal.status.customsClearance', 'Customs Clearance'), value: "customsClearance" },
+    { label: safeTranslate('modal.status.warehouseArrival', 'Warehouse Arrival'), value: "warehouseArrival" },
+    { label: safeTranslate('modal.status.synced', 'Synced'), value: "synced" },
   ];
 
   useEffect(() => {

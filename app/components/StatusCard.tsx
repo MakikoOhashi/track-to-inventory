@@ -54,6 +54,16 @@ const StatusCard: React.FC<Shipment & { onSelectShipment: () => void }> = ({
   const { t } = useTranslation('common');
   const statusKey = statusToKey[status ?? ""] || "notSet";
   
+  // 安全な翻訳関数
+  const safeTranslate = (key: string, fallback: string) => {
+    try {
+      return t(key) || fallback;
+    } catch (error) {
+      console.warn(`Translation error for key: ${key}`, error);
+      return fallback;
+    }
+  };
+  
   return (
     <Card>
       <BlockStack>
@@ -69,30 +79,30 @@ const StatusCard: React.FC<Shipment & { onSelectShipment: () => void }> = ({
           onKeyDown={e => { if (e.key === 'Enter') onSelectShipment(); }}
           role="button"
           >
-          {t('statusCard.siLabel')} {si_number}
+          {safeTranslate('statusCard.siLabel', 'SI')} {si_number}
           </span>
         </Text>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <Text as="p">
             <Text variant="bodyMd" fontWeight="semibold" as="span">
-              {t('statusCard.siNumber')}
+              {safeTranslate('statusCard.siNumber', 'SI Number')}
             </Text>
             #{si_number}
           </Text>
           
           <Text as="p">
             <Text variant="bodyMd" fontWeight="semibold" as="span">
-              {t('statusCard.status')}
+              {safeTranslate('statusCard.status', 'Status')}
             </Text>
-            {t('modal.status.' + statusKey)}
+            {safeTranslate('modal.status.' + statusKey, status || 'Not Set')}
           </Text>
           
           <Text as="p">
             <Text variant="bodyMd" fontWeight="semibold" as="span">
-              {t('statusCard.eta')}
+              {safeTranslate('statusCard.eta', 'ETA')}
             </Text>
-            {eta}
+            {eta || 'Not set'}
           </Text>
         </div>
       </div>

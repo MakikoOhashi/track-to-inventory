@@ -34,6 +34,16 @@ const StatusTable: React.FC<{ shipments: Shipment[]; onSelectShipment: (shipment
   const { t } = useTranslation('common');
   const [showArchived, setShowArchived] = useState(false);
 
+  // 安全な翻訳関数
+  const safeTranslate = (key: string, fallback: string) => {
+    try {
+      return t(key) || fallback;
+    } catch (error) {
+      console.warn(`Translation error for key: ${key}`, error);
+      return fallback;
+    }
+  };
+
   const filteredShipments = showArchived
     ? shipments
     : shipments.filter((s) => !s.is_archived);
@@ -47,29 +57,29 @@ const StatusTable: React.FC<{ shipments: Shipment[]; onSelectShipment: (shipment
         style={{ cursor: 'pointer', textDecoration: 'underline' }}
         tabIndex={0}
         onKeyDown={e => { if (e.key === 'Enter') onSelectShipment(s); }}
-        title={t('message.clickForDetails')}
+        title={safeTranslate('message.clickForDetails', 'Click for details')}
         role="button"
       >
         {s.si_number}
       </span>,
-      t('modal.status.' + statusKey),
-      s.eta,
+      safeTranslate('modal.status.' + statusKey, s.status || 'Not Set'),
+      s.eta || 'Not set',
     ];
   });
 
   const columnContentTypes: ("text" | "numeric")[] = ['text', 'text', 'text'];
 
   const headings = [
-    t('statusTable.siNumber'),
-    t('statusTable.status'),
-    t('statusTable.eta'),
+    safeTranslate('statusTable.siNumber', 'SI Number'),
+    safeTranslate('statusTable.status', 'Status'),
+    safeTranslate('statusTable.eta', 'ETA'),
   ];
 
   return (
     <div>
       <div style={{ marginBottom: '16px' }}>
         <Checkbox
-          label={t('statusTable.showArchived')}
+          label={safeTranslate('statusTable.showArchived', 'Show archived')}
           checked={showArchived}
           onChange={setShowArchived}
         />
