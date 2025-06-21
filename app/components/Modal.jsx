@@ -362,6 +362,37 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     }
   };
 
+  // ファイル表示用のsigned URL取得関数
+  const getSignedUrl = async (filePath) => {
+    try {
+      const res = await fetch('/api/get-file-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath })
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to get signed URL');
+      }
+      
+      const json = await res.json();
+      return json.signedUrl;
+    } catch (error) {
+      console.error('Error getting signed URL:', error);
+      return null;
+    }
+  };
+
+  // ファイル表示ボタンのクリックハンドラー
+  const handleFileView = async (filePath, fileType) => {
+    const signedUrl = await getSignedUrl(filePath);
+    if (signedUrl) {
+      window.open(signedUrl, '_blank');
+    } else {
+      alert(`${fileType}ファイルの表示に失敗しました`);
+    }
+  };
+
   return (
     <Modal
       open={!!shipment}
@@ -515,7 +546,9 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
                 <input type="file" onChange={e => handleFileUpload(e, key)} />
                 {formData[`${key}_url`] && (
                   <InlineStack gap="100">
-                    <Button url={formData[`${key}_url`]} target="_blank" external>
+                    <Button 
+                      onClick={() => handleFileView(formData[`${key}_url`], label)}
+                    >
                       📄 {t('modal.buttons.viewFile', { fileType: label })}
                     </Button>
                     <Button size="slim" destructive onClick={() => handleFileDelete(key)}>
@@ -586,22 +619,30 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
           <Text as="h4" variant="headingSm">{t('modal.sections.relatedFiles')}</Text>
           <BlockStack gap="100">
           {shipment.invoice_url && (
-                <Button url={shipment.invoice_url} target="_blank" external>
+                <Button 
+                  onClick={() => handleFileView(shipment.invoice_url, t('modal.fileTypes.invoice'))}
+                >
                   {t('modal.buttons.viewFileType', { fileType: t('modal.fileTypes.invoice') })}
                 </Button>
               )}
               {shipment.pl_url && (
-                <Button url={shipment.pl_url} target="_blank" external>
+                <Button 
+                  onClick={() => handleFileView(shipment.pl_url, t('modal.fileTypes.pl'))}
+                >
                   {t('modal.buttons.viewFileType', { fileType: t('modal.fileTypes.pl') })}
                 </Button>
               )}
               {shipment.si_url && (
-                <Button url={shipment.si_url} target="_blank" external>
+                <Button 
+                  onClick={() => handleFileView(shipment.si_url, t('modal.fileTypes.si'))}
+                >
                   {t('modal.buttons.viewFileType', { fileType: t('modal.fileTypes.si') })}
                 </Button>
               )}
               {shipment.other_url && (
-                <Button url={shipment.other_url} target="_blank" external>
+                <Button 
+                  onClick={() => handleFileView(shipment.other_url, t('modal.fileTypes.other'))}
+                >
                   {t('modal.buttons.viewFileType', { fileType: t('modal.fileTypes.other') })}
                 </Button>
               )}
