@@ -235,7 +235,7 @@
   "plan": {
     "free": {
       "name": "無料プラン",
-      "price": "¥0",
+      "price": "$0",
       "description": "基本機能が無料！",
       "feature1": "最大2件のSI登録（同時保有）",
       "feature2": "月2回までのSI削除",
@@ -248,7 +248,7 @@
     },
     "basic": {
       "name": "ベーシックプラン",
-      "price": "¥980",
+      "price": "$6.99",
       "description": "追加機能とサポートがご利用いただけます。",
       "feature1": "最大20件のSI登録（同時保有）",
       "feature2": "SI削除：無制限",
@@ -262,7 +262,7 @@
     },
     "pro": {
       "name": "プロプラン",
-      "price": "¥2,980",
+      "price": "$19.99",
       "description": "すべての機能と優先サポートがご利用いただけます。",
       "feature1": "SI登録：無制限",
       "feature2": "SI削除：無制限",
