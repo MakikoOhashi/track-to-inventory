@@ -1,6 +1,7 @@
 import { json } from "@remix-run/node";
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { createClient } from "@supabase/supabase-js";
+import { authenticate } from "~/shopify.server";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -13,9 +14,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   try {
+    // Shopifyセッション認証
+    const { session } = await authenticate.admin(request);
+    const shopId = session.shop;
+
     const { filePath } = await request.json();
 
-    console.log('Received file path request:', { filePath, type: typeof filePath });
+    console.log('Received file path request:', { filePath, type: typeof filePath, shopId });
 
     if (!filePath) {
       return json({ error: "ファイルパスが指定されていません" }, { status: 400 });
@@ -29,12 +34,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ error: "不正なファイルパスです" }, { status: 400 });
     }
 
+    // ファイルパスからshop_idを抽出して認証チェック
+    const pathParts = filePath.split('/');
+    if (pathParts.length >= 1) {
+      const fileShopId = pathParts[0]; // 最初の部分がshop_id
+      if (fileShopId !== shopId) {
+        console.error('Shop ID mismatch:', { requestShopId: shopId, fileShopId });
+        return json({ error: "アクセス権限がありません" }, { status: 403 });
+      }
+    }
+
     console.log('Generating signed URL for file path:', filePath);
 
-    // Private bucket用: signed URLを生成（1時間有効）
+    // Private bucket用: signed URLを生成（15分有効）
     const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from("shipment-files")
-      .createSignedUrl(filePath, 60 * 60); // 1時間
+      .createSignedUrl(filePath, 15 * 60); // 15分
 
     if (signedUrlError) {
       console.error('Signed URL generation error:', signedUrlError);
