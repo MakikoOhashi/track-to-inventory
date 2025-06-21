@@ -92,19 +92,42 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   };
 
   const handleSave = async () => {
-    const res = await fetch('/api/updateShipment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ shipment: formData }),
-    });
-    const json = await res.json();
-    if (json.error) {
-      alert(t('modal.messages.saveFailed'));
-      console.error(json.error);
-    } else {
+    try {
+      console.log('Saving formData:', formData); // Debug log
+      
+      // 必須フィールドのチェック
+      if (!formData.si_number) {
+        alert('SI番号は必須です');
+        return;
+      }
+      
+      const res = await fetch('/api/updateShipment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shipment: formData }),
+      });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Save failed with status:', res.status, 'Response:', errorText);
+        alert(`保存に失敗しました: HTTP ${res.status} - ${errorText}`);
+        return;
+      }
+      
+      const json = await res.json();
+      if (json.error) {
+        console.error('Save failed with error:', json.error);
+        alert(`保存に失敗しました: ${json.error}`);
+        return;
+      }
+      
+      console.log('Save successful:', json); // Debug log
       alert(t('modal.messages.saveSuccess'));
       setEditMode(false);
       if (onUpdated) onUpdated();
+    } catch (error) {
+      console.error('Save error:', error);
+      alert(`保存に失敗しました: ${error.message}`);
     }
   };
 
@@ -113,32 +136,51 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     const file = e.target.files[0];
     if (!file) return;
 
-      // ここから10MB制限追加 -----
-      const MAX_SIZE = 10 * 1024 * 1024; // 10MB
-      if (file.size > MAX_SIZE) {
-        alert(t('modal.messages.fileTooLarge') || 'ファイルサイズは10MBまでです');
-        return;
-      }
-      // ここまで追加 -----
+    console.log('Uploading file:', { type, fileName: file.name, fileSize: file.size }); // Debug log
+
+    // ここから10MB制限追加 -----
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_SIZE) {
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      alert(`${t('modal.messages.fileTooLarge')}（現在のサイズ: ${fileSizeMB}MB）`);
+      return;
+    }
+    // ここまで追加 -----
+    
     const form = new FormData();
     form.append('file', file);
     form.append('si_number', formData.si_number);
     form.append('type', type);
 
-    const res = await fetch('/api/uploadShipmentFile', {
-      method: 'POST',
-      body: form,
-    });
-    const json = await res.json();
-    if (json.error) {
-      alert(`${type.toUpperCase()}  ${t('modal.messages.uploadFailed')}: ${json.error}`);
-      return;
+    try {
+      const res = await fetch('/api/uploadShipmentFile', {
+        method: 'POST',
+        body: form,
+      });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Upload failed with status:', res.status, 'Response:', errorText);
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
+      
+      const json = await res.json();
+      if (json.error) {
+        console.error('Upload failed with error:', json.error);
+        alert(`${type.toUpperCase()}  ${t('modal.messages.uploadFailed')}: ${json.error}`);
+        return;
+      }
+      
+      console.log('Upload successful:', json); // Debug log
+      setFormData((prev) => ({
+        ...prev,
+        [`${type}_url`]: json.publicUrl,
+      }));
+      alert(`${type.toUpperCase()}${t('modal.messages.uploadSuccess')}`);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert(`${type.toUpperCase()}  ${t('modal.messages.uploadFailed')}: ${error.message}`);
     }
-    setFormData((prev) => ({
-      ...prev,
-      [`${type}_url`]: json.publicUrl,
-    }));
-    alert(`${type.toUpperCase()}${t('modal.messages.uploadSuccess')}`);
   };
 
   // ファイル削除API呼び出し
@@ -176,7 +218,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
 
   // handleDeleteを復元
   const handleDelete = async () => {
-    if (!window.confirm(t('modal.messages.deleteShipmentConfirm') || "本当に削除してよいですか？（削除後は戻せません）")) return;
+    if (!window.confirm(t('modal.messages.deleteShipmentConfirm'))) return;
     setDeleting(true);
     try {
       const res = await fetch('/api/delete-shipment', {
@@ -190,7 +232,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       });
       const json = await res.json();
       if (json.error) throw new Error(t('modal.messages.deleteGeneralFailed'));
-      alert(t('modal.messages.deleteSuccess') || '削除しました');
+      alert(t('modal.messages.deleteSuccess'));
       if (onUpdated) onUpdated();
       onClose();
     } catch (e) {
@@ -370,7 +412,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
               onClick={handleDelete}
               style={{ marginTop: 24 }}
             >
-              {t('modal.buttons.deleteShipment') || "削除する"}
+              {t('modal.buttons.deleteShipment')}
             </Button>
             {/* ========================== */}
           </BlockStack>

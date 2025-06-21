@@ -14,7 +14,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MBまで
 // };
 
 const supabase = createClient(
-  process.env.SUPABASE_URL as string,
+  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
   process.env.SUPABASE_SERVICE_ROLE_KEY as string
 );
 
@@ -65,7 +65,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ error: "空のファイルはアップロードできません" }, { status: 400 });
   }
   if (fileSize > MAX_FILE_SIZE) {
-    return json({ error: `ファイルサイズは最大${MAX_FILE_SIZE / (1024 * 1024)}MBまでです` }, { status: 400 });
+    return json({ error: `ファイルサイズは最大10MBまでです（現在のサイズ: ${(fileSize / (1024 * 1024)).toFixed(1)}MB）` }, { status: 400 });
   }
 
   // パスのバリデーション（ディレクトリトラバーサル防止）

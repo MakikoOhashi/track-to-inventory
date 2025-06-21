@@ -22,8 +22,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { shipment } = body;
   if (!shipment) return json({ error: 'missing shipment' }, { status: 400 });
 
-  // ファイルフィールドは除外（Supabaseのupsertに直接渡さない）
-  const { invoiceFile, siFile, ...safeData } = shipment;
+  // ファイルURLフィールドは含める（Supabaseのupsertに渡す）
+  // 実際のファイルオブジェクトがあれば除外するが、URL文字列は保存対象
+  const { 
+    invoiceFile, 
+    siFile, 
+    plFile, 
+    otherFile,
+    ...safeData 
+  } = shipment;
 
   const { data, error } = await supabase
     .from('shipments')
