@@ -119,6 +119,17 @@ export default function Index() {
   const [shopIdInput, setShopIdInput] = useState<string>(shop || ''); // ←初期値にshopを使う
   const [shopId, setShopId] = useState<string>(shop || '');
 
+  // すべてのstateを条件分岐の前に移動
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
+  const [popupPos, setPopupPos] = useState<PopupPos>({ x: 0, y: 0 });
+  const [productStatsSort, setProductStatsSort] = useState<'name-asc' | 'name-desc'>('name-asc');
+  const [detailViewMode, setDetailViewMode] = useState<'product' | 'status' | 'search'>('product');
+  const [siQuery, setSiQuery] = useState<string>('');
+  const [showStartGuide, setShowStartGuide] = useState(false);
+
   useEffect(() => {
     try {
       console.log("Changing language to:", lang);
@@ -146,36 +157,25 @@ export default function Index() {
 
   //const [shopIdInput, setShopIdInput] = useState<string>("test-owner");
   //const [shopId, setShopId] = useState<string>("test-owner");
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
-  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
-  const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
-  const [popupPos, setPopupPos] = useState<PopupPos>({ x: 0, y: 0 });
-  const [productStatsSort, setProductStatsSort] = useState<'name-asc' | 'name-desc'>('name-asc');
-  const [detailViewMode, setDetailViewMode] = useState<'product' | 'status' | 'search'>('product');
-  const [siQuery, setSiQuery] = useState<string>('');
 
-    // StartGuideの表示状態を親で管理
-    const [showStartGuide, setShowStartGuide] = useState(false);
+  useEffect(() => {
+    // 初回表示ロジック
+    const hasSeenGuide = localStorage.getItem('hasSeenStartGuide') ;
+   
+    if (hasSeenGuide  !== 'true') {
+      setShowStartGuide(true);
+    }
+  }, []);
 
-    useEffect(() => {
-      // 初回表示ロジック
-      const hasSeenGuide = localStorage.getItem('hasSeenStartGuide') ;
-     
-      if (hasSeenGuide  !== 'true') {
-        setShowStartGuide(true);
-      }
-    }, []);
-  
-    // StartGuideを閉じた時のコールバック
-    const handleDismissGuide = () => {
-      setShowStartGuide(false);
-      localStorage.setItem('hasSeenStartGuide', 'true');
-      // Supabaseの更新もここで
-    };
-  
-    // 「？」ボタン押下でStartGuide再表示
-    const handleShowGuide = () => setShowStartGuide(true);
+  // StartGuideを閉じた時のコールバック
+  const handleDismissGuide = () => {
+    setShowStartGuide(false);
+    localStorage.setItem('hasSeenStartGuide', 'true');
+    // Supabaseの更新もここで
+  };
+
+  // 「？」ボタン押下でStartGuide再表示
+  const handleShowGuide = () => setShowStartGuide(true);
 
   const popupTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const POPUP_WIDTH = 320;
