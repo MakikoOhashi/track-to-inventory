@@ -138,13 +138,15 @@
       "uploadSuccess": " uploaded successfully",
       "uploadFailed": "Upload failed",
       "fileTooLarge": "File size must be up to 10MB",
-      "syncSuccess": "Successfully synced with Shopify",
-      "alreadySynced": "Already Synced with Shopify",
-      "alreadySyncedDetail": "This shipment is already synced with Shopify.",
-      "syncFailed": "Failed to sync with Shopify",
-      "statusUpdateFailed": "Failed to update status",
-      "syncGeneralFailed": "Sync failed",
-      "deleteGeneralFailed": "Delete failed"
+      "syncSuccess": "Synced with Shopify",
+      "syncFailed": "Sync failed",
+      "statusUpdateFailed": "Status update failed",
+      "syncGeneralFailed": "Sync operation failed",
+      "deleteGeneralFailed": "Delete failed",
+      "fileUploadSuccess": "File uploaded successfully",
+      "fileUploadFailed": "File upload failed",
+      "alreadySynced": "Already synced",
+      "alreadySyncedDetail": "This shipment is already synced with Shopify. No need to sync again"
     },
     "syncNotice": {
       "title": "Inventory Sync Requirements",

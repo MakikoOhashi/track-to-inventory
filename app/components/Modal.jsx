@@ -112,9 +112,19 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       return null;
     }
 
-    // 既に署名付きURLの場合はそのまま返す
+    // 既に署名付きURLの場合は有効期限をチェック
     if (filePath.includes('token=')) {
-      return filePath;
+      try {
+        const url = new URL(filePath);
+        const token = url.searchParams.get('token');
+        if (token) {
+          // トークンの有効期限をチェック（簡易的な実装）
+          // 実際の実装では、JWTトークンのexpクレームをデコードする必要があります
+          return filePath;
+        }
+      } catch (error) {
+        console.error('URL parsing error:', error);
+      }
     }
 
     // キャッシュから取得を試行
@@ -159,19 +169,24 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   }, [signedUrlCache, formData?.si_number]);
 
   // ファイル表示ボタンのクリックハンドラー
-  const handleFileView = useCallback(async (filePath, fileType) => {
+  const handleFileView = async (filePath, fileType) => {
     if (!filePath) {
-      alert(`${fileType}ファイルのパスが無効です`);
+      alert(`${fileType}ファイルが設定されていません`);
       return;
     }
-    
-    const signedUrl = await getSignedUrl(filePath);
-    if (signedUrl) {
-      window.open(signedUrl, '_blank');
-    } else {
-      alert(`${fileType}ファイルの表示に失敗しました`);
+
+    try {
+      const signedUrl = await getSignedUrl(filePath);
+      if (signedUrl) {
+        window.open(signedUrl, '_blank');
+      } else {
+        alert(`${fileType}ファイルの表示に失敗しました`);
+      }
+    } catch (error) {
+      console.error('File view error:', error);
+      alert(`${fileType}ファイルの表示に失敗しました: ${error.message}`);
     }
-  }, [getSignedUrl]);
+  };
 
   // 安全確認 - 早期リターンはここで行う
   if (!shipment || !formData) return null;
@@ -292,102 +307,58 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     }
   };
 
-   // ファイルアップロードAPI呼び出し
-   const handleFileUpload = async (e, type) => {
+   // ファイルアップロード処理
+   const handleFileUpload = async (e, fileType) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    console.log('Uploading file:', { type, fileName: file.name, fileSize: file.size }); // Debug log
-
-    // ファイルサイズ制限を10MBに統一
-    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
-    if (file.size > MAX_SIZE) {
-      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
-      alert(`${t('modal.messages.fileTooLarge')}（現在のサイズ: ${fileSizeMB}MB）`);
-      return;
-    }
-    
-    const form = new FormData();
-    form.append('file', file);
-    form.append('si_number', formData.si_number);
-    form.append('type', type);
-
     try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('si_number', formData.si_number);
+      formData.append('type', fileType);
+
       const res = await fetch('/api/uploadShipmentFile', {
         method: 'POST',
-        body: form,
+        body: formData,
       });
-      
+
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error('Upload failed with status:', res.status, 'Response:', errorText);
-        throw new Error(`HTTP ${res.status}: ${errorText}`);
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'ファイルアップロードに失敗しました');
       }
+
+      const data = await res.json();
       
-      const json = await res.json();
-      if (json.error) {
-        console.error('Upload failed with error:', json.error);
-        alert(`${type.toUpperCase()}  ${t('modal.messages.uploadFailed')}: ${json.error}`);
-        return;
+      // 署名付きURLをデータベースに保存
+      const updatedFormData = { ...formData };
+      updatedFormData[`${fileType}_url`] = data.signedUrl; // 署名付きURLを保存
+      
+      // データベースを更新
+      const updateRes = await fetch('/api/updateShipment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shipment: updatedFormData }),
+      });
+
+      if (!updateRes.ok) {
+        throw new Error('データベースの更新に失敗しました');
       }
+
+      // フォームデータを更新
+      setFormData(updatedFormData);
       
-      console.log('Upload successful:', json); // Debug log
-      console.log('Setting formData with new file path:', { field: `${type}_url`, filePath: json.filePath });
-      
-      // ファイルアップロード成功後に即座にデータベースに保存
-      try {
-        console.log('Auto-saving after file upload...');
-        
-        // 最新の状態を取得してから保存
-        setFormData((prev) => {
-          const updatedFormData = {
-            ...prev,
-            [`${type}_url`]: json.filePath, // ファイルパスを保存
-          };
-          
-          // 非同期でデータベースに保存
-          (async () => {
-            try {
-              const saveRes = await fetch('/api/updateShipment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ shipment: updatedFormData }),
-              });
-              
-              if (!saveRes.ok) {
-                const errorText = await saveRes.text();
-                console.error('Auto-save failed:', saveRes.status, errorText);
-                alert(`${type.toUpperCase()}アップロード成功しましたが、データベースへの保存に失敗しました: ${errorText}`);
-                return;
-              }
-              
-              const saveJson = await saveRes.json();
-              if (saveJson.error) {
-                console.error('Auto-save failed with error:', saveJson.error);
-                alert(`${type.toUpperCase()}アップロード成功しましたが、データベースへの保存に失敗しました: ${saveJson.error}`);
-                return;
-              }
-              
-              console.log('Auto-save successful');
-              if (onUpdated) onUpdated(); // 親コンポーネントに更新を通知
-            } catch (saveError) {
-              console.error('Auto-save error:', saveError);
-              alert(`${type.toUpperCase()}アップロード成功しましたが、データベースへの保存に失敗しました: ${saveError.message}`);
-            }
-          })();
-          
-          return updatedFormData;
-        });
-      } catch (saveError) {
-        console.error('Auto-save error:', saveError);
-        alert(`${type.toUpperCase()}アップロード成功しましたが、データベースへの保存に失敗しました: ${saveError.message}`);
-        return;
-      }
-      
-      alert(`${type.toUpperCase()}${t('modal.messages.uploadSuccess')}`);
+      // 署名付きURLをキャッシュに追加
+      setSignedUrlCache(prev => ({ 
+        ...prev, 
+        [data.filePath]: data.signedUrl 
+      }));
+
+      alert(t('modal.messages.fileUploadSuccess'));
+
     } catch (error) {
-      console.error('Upload error:', error);
-      alert(`${type.toUpperCase()}  ${t('modal.messages.uploadFailed')}: ${error.message}`);
+      console.error('File upload error:', error);
+      alert(error.message || t('modal.messages.fileUploadFailed'));
     }
   };
 

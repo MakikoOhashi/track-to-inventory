@@ -138,13 +138,14 @@
       "uploadSuccess": "のアップロード成功",
       "uploadFailed": "アップロード失敗",
       "fileTooLarge": "ファイルサイズは10MBまでです",
-      "syncSuccess": "Shopify同期に成功しました",
-      "alreadySynced": "Shopify同期済み",
-      "alreadySyncedDetail": "この入荷情報はすでにShopifyと同期されています。",
-      "syncFailed": "Shopify同期に失敗しました",
+      "syncSuccess": "Shopifyと同期しました",
+      "syncFailed": "同期に失敗しました",
       "statusUpdateFailed": "ステータス更新に失敗しました",
-      "syncGeneralFailed": "同期に失敗しました",
-      "deleteGeneralFailed": "削除に失敗しました"
+      "syncGeneralFailed": "同期処理でエラーが発生しました",
+      "fileUploadSuccess": "ファイルが正常にアップロードされました",
+      "fileUploadFailed": "ファイルアップロードに失敗しました",
+      "alreadySynced": "既に同期済みです",
+      "alreadySyncedDetail": "この入荷情報は既にShopifyと同期されています。再度同期する必要はありません。"
     },
     "syncNotice": {
       "title": "在庫同期の注意事項",

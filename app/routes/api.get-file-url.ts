@@ -100,10 +100,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       try {
         console.log('Generating signed URL for file path:', filePath);
 
-        // Private bucket用: signed URLを生成（15分有効）
+        // Private bucket用: signed URLを生成（24時間有効に延長）
         const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from("shipment-files")
-          .createSignedUrl(filePath, 15 * 60); // 15分
+          .createSignedUrl(filePath, 24 * 60 * 60); // 24時間
 
         if (signedUrlError) {
           console.error('Signed URL generation error for', filePath, ':', signedUrlError);

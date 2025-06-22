@@ -120,6 +120,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       key: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'Missing'
     });
 
+    // ファイルをSupabase Storageにアップロード
     const { error: uploadError } = await supabase.storage
       .from("shipment-files")
       .upload(filePath, uint8Array, { 
@@ -143,12 +144,35 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }, { status: 500 });
     }
 
-    console.log('File uploaded successfully, returning file path...'); // Debug log
+    console.log('File uploaded successfully, generating signed URL...'); // Debug log
     
-    // Private bucket用: ファイルパスのみを返す（署名付きURLは表示時に生成）
-    console.log('File path for database:', filePath); // Debug log
+    // 署名付きURLを生成（7日間有効）
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+      .from("shipment-files")
+      .createSignedUrl(filePath, 7 * 24 * 60 * 60); // 7日間
+
+    if (signedUrlError) {
+      console.error('Signed URL generation error:', signedUrlError);
+      return json({ 
+        error: `署名付きURL生成エラー: ${signedUrlError.message}`,
+        filePath: filePath
+      }, { status: 500 });
+    }
+
+    if (!signedUrlData?.signedUrl) {
+      console.error('No signed URL returned');
+      return json({ 
+        error: "署名付きURLが生成されませんでした",
+        filePath: filePath
+      }, { status: 500 });
+    }
+
+    console.log('Signed URL generated successfully'); // Debug log
+    
+    // ファイルパスと署名付きURLの両方を返す
     return json({ 
       filePath: filePath,
+      signedUrl: signedUrlData.signedUrl,
       message: 'ファイルが正常にアップロードされました'
     });
 
