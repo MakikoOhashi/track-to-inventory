@@ -75,7 +75,6 @@ export default defineConfig({
     include: [
       "react",
     "react-dom",
-    "@shopify/app-bridge-react",
     "@shopify/polaris"
   ],
   },

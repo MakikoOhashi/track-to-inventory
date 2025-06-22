@@ -1,8 +1,6 @@
 import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
-// @ts-ignore - App Bridge React types may not be available but component works
-import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { authenticate } from "../shopify.server";
 
@@ -23,14 +21,6 @@ export default function App() {
   return (
     <I18nextProvider i18n={i18n}>
     <AppProvider isEmbeddedApp>
-      <NavMenu>
-        <Link to="/app" rel="home">
-          Home
-        </Link>
-        <Link to="/app/contact">Contact</Link>
-        <Link to="/app/pricing">Pricing</Link>
-      
-      </NavMenu>
       <Outlet />
     </AppProvider>
     </I18nextProvider>
