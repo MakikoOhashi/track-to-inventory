@@ -53,6 +53,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // SI登録件数制限チェック
+    try {
+      await checkSILimit(shopId);
+    } catch (error) {
+      return json({ 
+        error: error instanceof Error ? error.message : "SI登録件数の上限に達しました" 
+      }, { status: 403 });
+    }
+
     const shipmentData = {
       si_number: siNumber,
       shop_id: shopId,

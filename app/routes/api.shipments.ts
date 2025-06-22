@@ -2,7 +2,7 @@
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import { createClient } from '@supabase/supabase-js';
 import type { ActionFunctionArgs } from "@remix-run/node"
-import { checkSILimitFromRequest } from "~/lib/redis.server"
+import { checkSILimit } from "~/lib/redis.server"
 import crypto from "crypto";
 
 // HMAC検証関数
@@ -65,7 +65,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (request.method === "POST") {
     try {
-      await checkSILimitFromRequest(request)
+      const shop_id = url.searchParams.get("shop_id");
+      if (!shop_id) {
+        return json({ error: "shop_id is required" }, { status: 400 });
+      }
+      await checkSILimit(shop_id);
     } catch (error) {
       return json(
         {

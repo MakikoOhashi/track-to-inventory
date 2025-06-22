@@ -32,40 +32,33 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // SI番号による認証チェック
     if (siNumber) {
       try {
-        const dbUrl = `${process.env.SUPABASE_URL}/rest/v1/shipments?si_number=eq.${encodeURIComponent(siNumber)}&select=shop_id`;
-        console.log('Querying database for authorization:', dbUrl);
+        // Supabaseクライアントを使用してshop_idを取得
+        const { data, error } = await supabase
+          .from('shipments')
+          .select('shop_id')
+          .eq('si_number', siNumber)
+          .single();
         
-        const response = await fetch(dbUrl, {
-          headers: {
-            'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
-            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Database response:', data);
-          
-          if (Array.isArray(data) && data.length > 0) {
-            const fileShopId = data[0].shop_id;
-            console.log('Shop ID comparison:', { requestShopId: shopId, fileShopId });
-            
-            if (fileShopId !== shopId) {
-              console.error('Shop ID mismatch:', { 
-                requestShopId: shopId, 
-                fileShopId, 
-                siNumber 
-              });
-              return json({ error: "アクセス権限がありません" }, { status: 403 });
-            }
-          } else {
-            console.error('Shipment not found:', siNumber);
-            return json({ error: "ファイルが見つかりません" }, { status: 404 });
-          }
-        } else {
-          console.error('Database query failed:', response.status);
+        if (error) {
+          console.error('Database query error:', error);
           return json({ error: "データベースエラー" }, { status: 500 });
+        }
+        
+        if (!data) {
+          console.error('Shipment not found:', siNumber);
+          return json({ error: "ファイルが見つかりません" }, { status: 404 });
+        }
+        
+        const fileShopId = data.shop_id;
+        console.log('Shop ID comparison:', { requestShopId: shopId, fileShopId });
+        
+        if (fileShopId !== shopId) {
+          console.error('Shop ID mismatch:', { 
+            requestShopId: shopId, 
+            fileShopId, 
+            siNumber 
+          });
+          return json({ error: "アクセス権限がありません" }, { status: 403 });
         }
       } catch (dbError) {
         console.error('Database error:', dbError);

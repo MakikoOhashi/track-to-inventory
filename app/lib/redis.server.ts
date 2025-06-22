@@ -1,46 +1,50 @@
 // app/lib/redis.server.ts
 import { Redis } from '@upstash/redis'
+import { createClient } from '@supabase/supabase-js'
 import { authenticate } from "~/shopify.server"
 
-// Redis接続設定
-export const redis = new Redis({
+// Redisクライアント初期化
+const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 })
 
-// プラン型定義
+// Supabaseクライアント初期化
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+// ===== プラン設定 =====
+
 export type UserPlan = 'free' | 'basic' | 'pro'
 
-// プラン制限設定
-export const PLAN_LIMITS = {
-  free: {
-    ai: 5,      // AI使用回数/月
-    ocr: 5,     // OCR使用回数/月
-    si: 2,      // SI登録件数
-  },
-  basic: {
-    ai: 50,
-    ocr: 50,
-    si: 20,
-  },
-  pro: {
-    ai: Infinity,
-    ocr: Infinity,
-    si: Infinity,
-  },
+const PLAN_LIMITS = {
+  free: { ai: 5, ocr: 3, si: 10 },
+  basic: { ai: 50, ocr: 20, si: 100 },
+  pro: { ai: Infinity, ocr: Infinity, si: Infinity },
 } as const
 
-// ===== ストア管理 =====
+// ===== ストアID取得 =====
 
 /**
- * リクエストからストアIDを取得
+ * リクエストからストアIDを取得（Shopify認証を使用）
  */
 export async function getStoreId(request: Request): Promise<string> {
   try {
+    // Shopify認証を使用してshopドメインを取得
     const { session } = await authenticate.admin(request)
-    return session.shop // "example.myshopify.com"
+    return session.shop
   } catch (error) {
-    throw new Error('Store authentication failed')
+    // 認証に失敗した場合はURLパラメータから取得（フォールバック）
+    const url = new URL(request.url)
+    const shopId = url.searchParams.get('shop_id') || url.searchParams.get('shopId')
+    
+    if (!shopId) {
+      throw new Error('shop_id parameter is required')
+    }
+    
+    return shopId
   }
 }
 
@@ -49,13 +53,12 @@ export async function getStoreId(request: Request): Promise<string> {
  */
 export async function getStoreInfo(storeId: string) {
   const plan = await getUserPlan(storeId)
-  const usage = await getUserUsage(storeId)
+  const limits = PLAN_LIMITS[plan]
   
   return {
-    id: storeId,
-    domain: storeId,
+    storeId,
     plan,
-    usage,
+    limits,
   }
 }
 
@@ -73,65 +76,37 @@ export async function setUserPlan(userId: string, plan: UserPlan): Promise<void>
  */
 export async function getUserPlan(userId: string): Promise<UserPlan> {
   const plan = await redis.get<UserPlan>(`plan:${userId}`)
-  return plan ?? 'free' // デフォルトはfree
+  return plan || 'free'
 }
 
-// ===== 使用回数管理 =====
+// ===== 月次管理 =====
 
-/**
- * 現在の年月を取得 (YYYYMM形式)
- */
 function getCurrentMonth(): string {
   const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  return `${year}${month}`
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
 
+// ===== AI使用回数制限 =====
+
 /**
- * AI使用回数をチェック＆インクリメント
+ * AI使用回数をチェックしてインクリメント
  */
 export async function checkAndIncrementAI(userId: string): Promise<void> {
   const month = getCurrentMonth()
-  const aiKey = `ai:${userId}:${month}`
-  
-  // 現在の使用回数を取得
-  const currentCount = (await redis.get<number>(aiKey)) ?? 0
-  
-  // ユーザーのプランを取得
   const plan = await getUserPlan(userId)
   const limit = PLAN_LIMITS[plan].ai
   
-  // 制限チェック
-  if (currentCount >= limit) {
-    throw new Error(`AI使用回数の月間上限（${limit}回）に達しました。プランをアップグレードしてください。`)
+  if (limit === Infinity) {
+    return
   }
   
-  // インクリメント
-  await redis.incr(aiKey)
-}
-
-/**
- * OCR使用回数をチェック＆インクリメント
- */
-export async function checkAndIncrementOCR(userId: string): Promise<void> {
-  const month = getCurrentMonth()
-  const ocrKey = `ocr:${userId}:${month}`
+  const currentCount = await redis.get<number>(`ai:${userId}:${month}`) ?? 0
   
-  // 現在の使用回数を取得
-  const currentCount = (await redis.get<number>(ocrKey)) ?? 0
-  
-  // ユーザーのプランを取得
-  const plan = await getUserPlan(userId)
-  const limit = PLAN_LIMITS[plan].ocr
-  
-  // 制限チェック
   if (currentCount >= limit) {
-    throw new Error(`OCR使用回数の月間上限（${limit}回）に達しました。プランをアップグレードしてください。`)
+    throw new Error(`AI使用回数の上限（${limit}回）に達しました。プランをアップグレードしてください。`)
   }
   
-  // インクリメント
-  await redis.incr(ocrKey)
+  await redis.incr(`ai:${userId}:${month}`)
 }
 
 /**
@@ -140,6 +115,29 @@ export async function checkAndIncrementOCR(userId: string): Promise<void> {
 export async function checkAndIncrementAIFromRequest(request: Request): Promise<void> {
   const storeId = await getStoreId(request)
   await checkAndIncrementAI(storeId)
+}
+
+// ===== OCR使用回数制限 =====
+
+/**
+ * OCR使用回数をチェックしてインクリメント
+ */
+export async function checkAndIncrementOCR(userId: string): Promise<void> {
+  const month = getCurrentMonth()
+  const plan = await getUserPlan(userId)
+  const limit = PLAN_LIMITS[plan].ocr
+  
+  if (limit === Infinity) {
+    return
+  }
+  
+  const currentCount = await redis.get<number>(`ocr:${userId}:${month}`) ?? 0
+  
+  if (currentCount >= limit) {
+    throw new Error(`OCR使用回数の上限（${limit}回）に達しました。プランをアップグレードしてください。`)
+  }
+  
+  await redis.incr(`ocr:${userId}:${month}`)
 }
 
 /**
@@ -169,23 +167,20 @@ export async function getUserUsage(userId: string) {
   // SupabaseでSI登録件数取得
   let siCount = 0
   try {
-    const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/shipments?shop_id=eq.${encodeURIComponent(userId)}&select=count`, {
-      headers: {
-        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'count=exact'
-      }
-    })
-    
-    if (response.ok) {
-      const contentRange = response.headers.get('content-range')
-      if (contentRange) {
-        const match = contentRange.match(/\/(\d+)$/)
-        siCount = match ? parseInt(match[1], 10) : 0
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.warn('Supabase環境変数が設定されていません')
+      siCount = 0
+    } else {
+      const { count, error } = await supabase
+        .from('shipments')
+        .select('*', { count: 'exact', head: true })
+        .eq('shop_id', userId)
+      
+      if (error) {
+        console.error('Supabase SI件数取得エラー:', error)
+        siCount = 0
       } else {
-        const data = await response.json()
-        siCount = Array.isArray(data) ? data.length : 0
+        siCount = count || 0
       }
     }
   } catch (error) {
@@ -223,14 +218,6 @@ export async function getUserUsage(userId: string) {
   }
 }
 
-/**
- * リクエストからストアIDを取得して使用状況を取得
- */
-export async function getUserUsageFromRequest(request: Request) {
-  const storeId = await getStoreId(request)
-  return await getUserUsage(storeId)
-}
-
 // === SI登録件数制限チェック ===
 
 /**
@@ -247,26 +234,21 @@ export async function checkSILimit(userId: string): Promise<void> {
   // Supabaseから現在のSI登録件数を取得
   let currentCount = 0
   try {
-    const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/shipments?shop_id=eq.${encodeURIComponent(userId)}&select=count`, {
-      headers: {
-        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'count=exact'
-      }
-    })
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`Supabase query failed: ${response.status} ${errorText}`)
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error('Supabase環境変数が設定されていません')
     }
-    const contentRange = response.headers.get('content-range')
-    if (contentRange) {
-      const match = contentRange.match(/\/(\d+)$/)
-      currentCount = match ? parseInt(match[1], 10) : 0
-    } else {
-      const data = await response.json()
-      currentCount = Array.isArray(data) ? data.length : 0
+    
+    const { count, error } = await supabase
+      .from('shipments')
+      .select('*', { count: 'exact', head: true })
+      .eq('shop_id', userId)
+    
+    if (error) {
+      throw new Error(`Supabase query failed: ${error.message}`)
     }
+    
+    currentCount = count || 0
+    
     if (currentCount >= limit) {
       throw new Error(`SI登録件数の上限（${limit}件）に達しました。プランをアップグレードしてください。`)
     }
@@ -276,14 +258,6 @@ export async function checkSILimit(userId: string): Promise<void> {
     }
     throw new Error(`SI登録件数の確認中にエラーが発生しました。詳細: ${getErrorMessage(error)}`)
   }
-}
-
-/**
- * リクエストからストアIDを取得してSI制限チェック
- */
-export async function checkSILimitFromRequest(request: Request): Promise<void> {
-  const storeId = await getStoreId(request)
-  await checkSILimit(storeId)
 }
 
 // ===== ユーティリティ =====
@@ -297,75 +271,25 @@ function getErrorMessage(error: unknown): string {
   }
   return String(error)
 }
-// ===== テスト用関数 =====
+
+// ===== 削除回数制限 =====
 
 /**
- * Redis接続テスト
- */
-export async function testRedis(): Promise<void> {
-  await redis.set('test', 'Hello Upstash!')
-  const result = await redis.get('test')
-  console.log('Redis test result:', result)
-}
-
-/**
- * プラン設定テスト
- */
-export async function testPlanSetup(): Promise<void> {
-  const testUserId = 'test-shop.myshopify.com'
-  
-  // プラン設定
-  await setUserPlan(testUserId, 'basic')
-  console.log('Plan set to basic')
-  
-  // プラン確認
-  const plan = await getUserPlan(testUserId)
-  console.log('Current plan:', plan)
-  
-  // 使用状況確認
-  const usage = await getUserUsage(testUserId)
-  console.log('Usage:', usage)
-}
-
-
-/**
- * 制限テスト（AI）
- */
-export async function testAILimit(): Promise<void> {
-  const testUserId = 'test-shop.myshopify.com'
-  
-  try {
-    // freeプランに設定（5回制限）
-    await setUserPlan(testUserId, 'free')
-    
-    // 6回実行して制限に引っかかることを確認
-    for (let i = 1; i <= 6; i++) {
-      console.log(`AI使用 ${i}回目...`)
-      await checkAndIncrementAI(testUserId)
-      console.log(`✅ AI使用 ${i}回目 成功`)
-    }
-  } catch (error) {
-    console.log('❌ 制限に達しました:', getErrorMessage(error))
-  }
-}
-/**
- * 削除回数制限をチェック
- * @param shopId ショップID
- * @param limit 削除上限回数
+ * 削除回数をチェック
  */
 export async function checkDeleteLimit(shopId: string, limit: number) {
-  const month = getCurrentMonth();
-  const key = `delete_count:${shopId}:${month}`;
-  const count = await redis.get<number>(key);
-  if (Number(count ?? 0) >= limit) throw new Error("削除上限到達");
+  const month = getCurrentMonth()
+  const currentCount = await redis.get<number>(`delete:${shopId}:${month}`) ?? 0
+  
+  if (currentCount >= limit) {
+    throw new Error(`削除回数の上限（${limit}回）に達しました。`)
+  }
 }
 
 /**
  * 削除回数をインクリメント
- * @param shopId ショップID
  */
 export async function incrementDeleteCount(shopId: string) {
-  const month = getCurrentMonth();
-  const key = `delete_count:${shopId}:${month}`;
-  await redis.incr(key);
+  const month = getCurrentMonth()
+  await redis.incr(`delete:${shopId}:${month}`)
 }

@@ -1,11 +1,21 @@
 // app/routes/api.usage.js
 import { json } from "@remix-run/node";
-import { getUserUsageFromRequest } from "~/lib/redis.server";
+import { getUserUsage } from "~/lib/redis.server";
 
 export async function loader({ request }) {
   try {
-    // リクエストからストアIDを取得して使用状況を取得
-    const usage = await getUserUsageFromRequest(request);
+    const url = new URL(request.url);
+    const shopId = url.searchParams.get('shop_id') || url.searchParams.get('shopId');
+    
+    if (!shopId) {
+      return json({ 
+        error: "shop_id parameter is required",
+        usage: null 
+      }, { status: 400 });
+    }
+    
+    // ストアIDを直接渡して使用状況を取得
+    const usage = await getUserUsage(shopId);
     
     return json({ 
       success: true, 
