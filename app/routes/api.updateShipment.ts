@@ -1,6 +1,7 @@
 import { json } from "@remix-run/node";
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { createClient } from '@supabase/supabase-js';
+import { authenticate } from "~/shopify.server";
 
 // Supabaseクライアントの初期化を改善
 let supabase: any = null;
@@ -27,6 +28,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
+  // Shopify認証
+  let shopId: string;
+  try {
+    const { session } = await authenticate.admin(request);
+    shopId = session.shop;
+    console.log('Shopify session shop:', shopId);
+  } catch (authError) {
+    console.error('Shopify authentication failed:', authError);
+    return json({ error: 'Authentication failed' }, { status: 401 });
+  }
+
   let body: any;
   try {
     body = await request.json();
@@ -40,6 +52,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (!shipment) {
     console.error('Missing shipment data');
     return json({ error: 'missing shipment' }, { status: 400 });
+  }
+
+  // shop_idの検証と設定
+  if (shipment.shop_id && shipment.shop_id !== shopId) {
+    console.error('Shop ID mismatch:', { requestShopId: shopId, shipmentShopId: shipment.shop_id });
+    return json({ error: 'Shop ID mismatch' }, { status: 403 });
+  }
+
+  // shop_idを確実に設定
+  shipment.shop_id = shopId;
+
+  // 必須フィールドの検証
+  if (!shipment.si_number) {
+    console.error('Missing si_number in shipment data');
+    return json({ error: 'si_number is required' }, { status: 400 });
   }
 
   console.log('Shipment data to save:', shipment); // Debug log

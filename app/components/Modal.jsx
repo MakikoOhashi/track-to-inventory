@@ -54,7 +54,10 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   ];
 
   useEffect(() => {
-    if (shipment) setFormData(shipment);
+    if (shipment) {
+      console.log('Modal: shipment data received:', shipment);
+      setFormData(shipment);
+    }
   }, [shipment]);
 
   // ファイルの署名付きURLを一括取得
@@ -189,7 +192,20 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   };
 
   // 安全確認 - 早期リターンはここで行う
-  if (!shipment || !formData) return null;
+  if (!shipment) {
+    console.error('Modal: No shipment data provided');
+    return null;
+  }
+  
+  if (!formData) {
+    console.error('Modal: No formData available');
+    return null;
+  }
+  
+  if (!formData.si_number) {
+    console.error('Modal: No si_number in formData:', formData);
+    return null;
+  }
 
   // --- Shopify同期アクション ---
   const handleSyncShopify = async () => {
@@ -312,15 +328,28 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // SI番号の確認
+    if (!formData?.si_number) {
+      alert('SI番号が設定されていません。先にSI番号を入力してください。');
+      return;
+    }
+
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('si_number', formData.si_number);
-      formData.append('type', fileType);
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      uploadFormData.append('si_number', formData.si_number);
+      uploadFormData.append('type', fileType);
+
+      console.log('Uploading file:', {
+        fileName: file.name,
+        fileSize: file.size,
+        siNumber: formData.si_number,
+        fileType: fileType
+      });
 
       const res = await fetch('/api/uploadShipmentFile', {
         method: 'POST',
-        body: formData,
+        body: uploadFormData,
       });
 
       if (!res.ok) {
@@ -329,10 +358,13 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       }
 
       const data = await res.json();
+      console.log('Upload response:', data);
       
       // 署名付きURLをデータベースに保存
       const updatedFormData = { ...formData };
       updatedFormData[`${fileType}_url`] = data.signedUrl; // 署名付きURLを保存
+      
+      console.log('Updating database with:', updatedFormData);
       
       // データベースを更新
       const updateRes = await fetch('/api/updateShipment', {
@@ -342,7 +374,8 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       });
 
       if (!updateRes.ok) {
-        throw new Error('データベースの更新に失敗しました');
+        const updateErrorData = await updateRes.json().catch(() => ({}));
+        throw new Error(updateErrorData.error || 'データベースの更新に失敗しました');
       }
 
       // フォームデータを更新
