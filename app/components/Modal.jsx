@@ -28,6 +28,7 @@ const statusKeyToJa = Object.fromEntries(Object.entries(statusJaToKey).map(([ja,
 
 const CustomModal = ({ shipment, onClose, onUpdated }) => {
   const { t, i18n } = useTranslation();
+  
   // FILE_TYPESの定義を関数内に移動
   const FILE_TYPES = [
     { label: t('modal.fileTypes.invoice'), key: 'invoice' },
@@ -35,6 +36,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     { label: t('modal.fileTypes.si'), key: 'si' },
     { label: t('modal.fileTypes.other'), key: 'other' },
   ];
+  
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState(shipment);
   const [syncing, setSyncing] = useState(false);
@@ -103,7 +105,76 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     loadSignedUrls();
   }, [loadSignedUrls]);
 
-  if (!shipment || !formData) return null;  // 安全確認
+  // ファイル表示用のsigned URL取得関数（キャッシュ優先）
+  const getSignedUrl = useCallback(async (filePath) => {
+    if (!filePath) {
+      console.error('Empty file path provided');
+      return null;
+    }
+
+    // 既に署名付きURLの場合はそのまま返す
+    if (filePath.includes('token=')) {
+      return filePath;
+    }
+
+    // キャッシュから取得を試行
+    if (signedUrlCache[filePath]) {
+      console.log('Using cached signed URL for:', filePath);
+      return signedUrlCache[filePath];
+    }
+
+    // キャッシュにない場合は個別取得
+    try {
+      console.log('Requesting signed URL for file path:', filePath);
+
+      const res = await fetch('/api/get-file-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          filePaths: [filePath],
+          siNumber: formData?.si_number 
+        })
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('Failed to get signed URL:', res.status, errorData);
+        throw new Error(`Failed to get signed URL: ${errorData.error || res.statusText}`);
+      }
+      
+      const json = await res.json();
+      if (json.signedUrl) {
+        // キャッシュに保存
+        setSignedUrlCache(prev => ({ ...prev, [filePath]: json.signedUrl }));
+        console.log('Successfully received and cached signed URL');
+        return json.signedUrl;
+      } else {
+        console.error('No signed URL in response');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error getting signed URL:', error);
+      return null;
+    }
+  }, [signedUrlCache, formData?.si_number]);
+
+  // ファイル表示ボタンのクリックハンドラー
+  const handleFileView = useCallback(async (filePath, fileType) => {
+    if (!filePath) {
+      alert(`${fileType}ファイルのパスが無効です`);
+      return;
+    }
+    
+    const signedUrl = await getSignedUrl(filePath);
+    if (signedUrl) {
+      window.open(signedUrl, '_blank');
+    } else {
+      alert(`${fileType}ファイルの表示に失敗しました`);
+    }
+  }, [getSignedUrl]);
+
+  // 安全確認 - 早期リターンはここで行う
+  if (!shipment || !formData) return null;
 
   // --- Shopify同期アクション ---
   const handleSyncShopify = async () => {
@@ -384,74 +455,6 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       setDeleting(false);
     }
   };
-
-  // ファイル表示用のsigned URL取得関数（キャッシュ優先）
-  const getSignedUrl = useCallback(async (filePath) => {
-    if (!filePath) {
-      console.error('Empty file path provided');
-      return null;
-    }
-
-    // 既に署名付きURLの場合はそのまま返す
-    if (filePath.includes('token=')) {
-      return filePath;
-    }
-
-    // キャッシュから取得を試行
-    if (signedUrlCache[filePath]) {
-      console.log('Using cached signed URL for:', filePath);
-      return signedUrlCache[filePath];
-    }
-
-    // キャッシュにない場合は個別取得
-    try {
-      console.log('Requesting signed URL for file path:', filePath);
-
-      const res = await fetch('/api/get-file-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          filePaths: [filePath],
-          siNumber: formData.si_number 
-        })
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        console.error('Failed to get signed URL:', res.status, errorData);
-        throw new Error(`Failed to get signed URL: ${errorData.error || res.statusText}`);
-      }
-      
-      const json = await res.json();
-      if (json.signedUrl) {
-        // キャッシュに保存
-        setSignedUrlCache(prev => ({ ...prev, [filePath]: json.signedUrl }));
-        console.log('Successfully received and cached signed URL');
-        return json.signedUrl;
-      } else {
-        console.error('No signed URL in response');
-        return null;
-      }
-    } catch (error) {
-      console.error('Error getting signed URL:', error);
-      return null;
-    }
-  }, [signedUrlCache, formData?.si_number]);
-
-  // ファイル表示ボタンのクリックハンドラー
-  const handleFileView = useCallback(async (filePath, fileType) => {
-    if (!filePath) {
-      alert(`${fileType}ファイルのパスが無効です`);
-      return;
-    }
-    
-    const signedUrl = await getSignedUrl(filePath);
-    if (signedUrl) {
-      window.open(signedUrl, '_blank');
-    } else {
-      alert(`${fileType}ファイルの表示に失敗しました`);
-    }
-  }, [getSignedUrl]);
 
   return (
     <Modal
