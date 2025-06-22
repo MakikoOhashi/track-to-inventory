@@ -8,7 +8,7 @@ let supabase: any = null;
 function initializeSupabase() {
   if (supabase) return supabase;
   
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!supabaseUrl || !supabaseKey) {
@@ -44,15 +44,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   console.log('Shipment data to save:', shipment); // Debug log
 
-  // 環境変数の確認
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  // Supabaseクライアントの初期化を確認
+  const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  console.log('Environment check:');
-  console.log('- NEXT_PUBLIC_SUPABASE_URL exists:', !!supabaseUrl);
+
+  console.log('Supabase configuration:');
+  console.log('- SUPABASE_URL exists:', !!supabaseUrl);
   console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!supabaseKey);
   console.log('- SUPABASE_SERVICE_ROLE_KEY length:', supabaseKey?.length);
-  
+
   if (!supabaseUrl || !supabaseKey) {
     console.error('Missing Supabase environment variables');
     return json({ error: 'Server configuration error' }, { status: 500 });
@@ -94,12 +94,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const { data, error } = await supabaseClient
       .from('shipments')
       .upsert([safeData]);
-      
+
     if (error) {
       console.error('Supabase upsert error:', error);
       return json({ error: error.message }, { status: 500 });
     }
-    
+
     console.log('Upsert successful:', data);
     return json({ data });
   } catch (error) {

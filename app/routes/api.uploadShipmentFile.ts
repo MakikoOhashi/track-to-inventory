@@ -3,8 +3,16 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 import { createClient } from "@supabase/supabase-js";
 
 // セキュリティ: 許可するMIMEタイプと拡張子を定義
-const ALLOWED_MIME_TYPES = ["application/pdf", "image/png", "image/jpeg"];
-const ALLOWED_EXTENSIONS = ["pdf", "png", "jpg", "jpeg"];
+const ALLOWED_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'application/pdf',
+  'text/plain'
+];
+
+const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'txt'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 // export const config = {
@@ -12,7 +20,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 // };
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+  process.env.SUPABASE_URL as string,
   process.env.SUPABASE_SERVICE_ROLE_KEY as string
 );
 
@@ -63,7 +71,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         error: `ファイルサイズは最大10MBまでです（現在のサイズ: ${(file.size / (1024 * 1024)).toFixed(1)}MB）` 
       }, { status: 400 });
     }
-
+    
     // ファイル形式チェック
     const fileExt = file.name.split(".").pop()?.toLowerCase() ?? "";
     const mimeType = file.type;
@@ -102,13 +110,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.log('Uploading to Supabase storage...'); // Debug log
     
     // Supabaseクライアントの初期化を確認
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error('Missing Supabase environment variables');
       return json({ error: "Supabase設定エラー" }, { status: 500 });
     }
 
     console.log('Supabase configuration:', {
-      url: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Missing',
+      url: process.env.SUPABASE_URL ? 'Set' : 'Missing',
       key: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'Missing'
     });
 

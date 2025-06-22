@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { authenticate } from "~/shopify.server";
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+  process.env.SUPABASE_URL as string,
   process.env.SUPABASE_SERVICE_ROLE_KEY as string
 );
 
@@ -32,13 +32,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // SI番号による認証チェック
     if (siNumber) {
       try {
-        const dbUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/shipments?si_number=eq.${encodeURIComponent(siNumber)}&select=shop_id`;
+        const dbUrl = `${process.env.SUPABASE_URL}/rest/v1/shipments?si_number=eq.${encodeURIComponent(siNumber)}&select=shop_id`;
         console.log('Querying database for authorization:', dbUrl);
         
         const response = await fetch(dbUrl, {
           headers: {
             'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
-            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
+            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
             'Content-Type': 'application/json'
           }
         });
@@ -74,7 +74,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     // Supabaseクライアントの初期化を確認
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error('Missing Supabase environment variables');
       return json({ error: "Supabase設定エラー" }, { status: 500 });
     }

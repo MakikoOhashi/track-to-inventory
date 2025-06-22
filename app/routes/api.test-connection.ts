@@ -7,7 +7,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   
   try {
     // 環境変数の確認
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
     console.log('Environment variables:');
@@ -17,9 +17,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     
     if (!supabaseUrl || !supabaseKey) {
       return json({ 
-        error: 'Missing environment variables',
-        urlExists: !!supabaseUrl,
-        keyExists: !!supabaseKey
+        error: 'Supabase環境変数が設定されていません',
+        url: !!supabaseUrl,
+        key: !!supabaseKey
       }, { status: 500 });
     }
     
@@ -35,7 +35,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (error) {
       console.error('Supabase query error:', error);
       return json({ 
-        error: 'Database query failed',
+        error: 'データベース接続エラー',
         details: error.message
       }, { status: 500 });
     }
@@ -43,15 +43,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.log('Connection test successful');
     return json({ 
       success: true, 
-      message: 'Database connection successful',
+      message: 'Supabase接続成功',
       data: data
     });
     
   } catch (error) {
     console.error('Test connection error:', error);
     return json({ 
-      error: 'Connection test failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: '予期しないエラー',
+      details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
 }; 
