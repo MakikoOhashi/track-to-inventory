@@ -322,83 +322,33 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
 
   // ファイル削除API呼び出し
   const handleFileDelete = async (type) => {
-    const url = formData[`${type}_url`];
-    if (!url) return;
-    // クライアントのみでconfirmを使う
-    if (typeof window !== "undefined" && !window.confirm(t('modal.messages.deleteConfirm'))) {
-      return;
-    }
-    
-    const res = await fetch('/api/deleteShipmentFile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        si_number: formData.si_number,
-        type,
-        url,
-      }),
-    });
-    const json = await res.json();
-    if (json.error) {
-      alert(`${t('modal.messages.deleteFailed')}: ${json.error}`);
-      return;
-    }
-    setFormData((prev) => ({
-      ...prev,
-      [`${type}_url`]: undefined,
-    }));
-    
-    // ファイル削除成功後に即座にデータベースに保存
+    if (!window.confirm(t('modal.messages.deleteFileConfirm'))) return;
+    setDeleting(true);
     try {
-      console.log('Auto-saving after file deletion...');
+      const formData = new FormData();
+      formData.append('siNumber', shipment.si_number);
+      formData.append('fileType', type);
       
-      // 最新の状態を取得してから保存
-      setFormData((prev) => {
-        const updatedFormData = {
-          ...prev,
-          [`${type}_url`]: undefined,
-        };
-        
-        // 非同期でデータベースに保存
-        (async () => {
-          try {
-            const saveRes = await fetch('/api/updateShipment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ shipment: updatedFormData }),
-            });
-            
-            if (!saveRes.ok) {
-              const errorText = await saveRes.text();
-              console.error('Auto-save after deletion failed:', saveRes.status, errorText);
-              alert(`ファイル削除成功しましたが、データベースへの保存に失敗しました: ${errorText}`);
-              return;
-            }
-            
-            const saveJson = await saveRes.json();
-            if (saveJson.error) {
-              console.error('Auto-save after deletion failed with error:', saveJson.error);
-              alert(`ファイル削除成功しましたが、データベースへの保存に失敗しました: ${saveJson.error}`);
-              return;
-            }
-            
-            console.log('Auto-save after deletion successful');
-            if (onUpdated) onUpdated(); // 親コンポーネントに更新を通知
-          } catch (saveError) {
-            console.error('Auto-save after deletion error:', saveError);
-            alert(`ファイル削除成功しましたが、データベースへの保存に失敗しました: ${saveError.message}`);
-          }
-        })();
-        
-        return updatedFormData;
+      // shopパラメータをURLに追加（認証fallback用）
+      const url = new URL('/api/deleteShipmentFile', window.location.origin);
+      url.searchParams.append('shop', shipment.shop_id);
+      
+      const res = await fetch(url.toString(), {
+        method: 'DELETE',
+        body: formData,
       });
-    } catch (saveError) {
-      console.error('Auto-save after deletion error:', saveError);
-      alert(`ファイル削除成功しましたが、データベースへの保存に失敗しました: ${saveError.message}`);
-      return;
+      
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      
+      alert(t('modal.messages.deleteFileSuccess'));
+      if (onUpdated) onUpdated();
+    } catch (e) {
+      console.error('File delete error:', e);
+      alert(e.message || t('modal.messages.deleteFileFailed'));
+    } finally {
+      setDeleting(false);
     }
-    
-    alert(t('modal.messages.deleteSuccess'));
   };
 
   // 既存データが日本語の場合は変換
@@ -412,7 +362,11 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       const formData = new FormData();
       formData.append('siNumber', shipment.si_number);
       
-      const res = await fetch('/api/delete-shipment', {
+      // shopパラメータをURLに追加（認証fallback用）
+      const url = new URL('/api/delete-shipment', window.location.origin);
+      url.searchParams.append('shop', shipment.shop_id);
+      
+      const res = await fetch(url.toString(), {
         method: 'DELETE',
         body: formData,
       });
@@ -424,6 +378,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       if (onUpdated) onUpdated();
       onClose();
     } catch (e) {
+      console.error('Delete error:', e);
       alert(e.message || t('modal.messages.deleteGeneralFailed'));
     } finally {
       setDeleting(false);

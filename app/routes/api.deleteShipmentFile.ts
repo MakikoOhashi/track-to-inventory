@@ -1,5 +1,6 @@
 import { json } from "@remix-run/node";
 import { createClient } from "@supabase/supabase-js";
+import { authenticate } from "~/shopify.server";
 
 const supabase = createClient(
   process.env.SUPABASE_URL as string,
@@ -12,13 +13,31 @@ export const action = async ({ request }: any) => {
   }
 
   try {
+    // Shopify認証を実行（fallback処理付き）
+    let shopId: string;
+    try {
+      const { session } = await authenticate.admin(request);
+      shopId = session.shop;
+    } catch (authError) {
+      // Fallback: URLパラメータからshop情報を取得
+      const url = new URL(request.url);
+      const shopParam = url.searchParams.get('shop');
+      
+      if (shopParam) {
+        shopId = shopParam;
+      } else {
+        return json({ 
+          error: "認証に失敗しました。アプリを再インストールしてください。" 
+        }, { status: 401 });
+      }
+    }
+
     const formData = await request.formData();
     const siNumber = formData.get("siNumber") as string;
-    const shopId = formData.get("shopId") as string;
     const fileType = formData.get("fileType") as string;
 
-    if (!siNumber || !shopId || !fileType) {
-      return json({ error: "Missing required fields" }, { status: 400 });
+    if (!siNumber || !fileType) {
+      return json({ error: "SI番号とファイルタイプが必須です" }, { status: 400 });
     }
 
     // ファイルパスを構築
@@ -31,7 +50,7 @@ export const action = async ({ request }: any) => {
 
     if (storageError) {
       console.error("Storage delete error:", storageError);
-      return json({ error: "Failed to delete file from storage" }, { status: 500 });
+      return json({ error: "ファイルの削除に失敗しました" }, { status: 500 });
     }
 
     // データベースからファイルURLを削除
@@ -55,7 +74,7 @@ export const action = async ({ request }: any) => {
         updateData.other_url = null;
         break;
       default:
-        return json({ error: "Invalid file type" }, { status: 400 });
+        return json({ error: "無効なファイルタイプです" }, { status: 400 });
     }
 
     const { error: dbError } = await supabase
@@ -66,12 +85,14 @@ export const action = async ({ request }: any) => {
 
     if (dbError) {
       console.error("Database update error:", dbError);
-      return json({ error: "Failed to update database" }, { status: 500 });
+      return json({ error: "データベースの更新に失敗しました" }, { status: 500 });
     }
 
-    return json({ success: true });
+    return json({ success: true, message: "ファイルを正常に削除しました" });
   } catch (error) {
     console.error("Delete file error:", error);
-    return json({ error: "Internal server error" }, { status: 500 });
+    return json({ 
+      error: "サーバーエラーが発生しました。しばらく時間をおいて再度お試しください。" 
+    }, { status: 500 });
   }
 };
