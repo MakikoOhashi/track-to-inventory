@@ -14,9 +14,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   try {
-    // Shopifyセッション認証
-    const { session } = await authenticate.admin(request);
-    const shopId = session.shop;
+    // Shopifyセッション認証（ページルートからの呼び出しの場合）
+    let shopId: string;
+    try {
+      const { session } = await authenticate.admin(request);
+      shopId = session.shop;
+    } catch (authError) {
+      // 認証に失敗した場合は、リクエストボディからshop_idを取得
+      const body = await request.json();
+      shopId = body.shopId;
+      
+      if (!shopId) {
+        return json({ error: "shop_idが必要です" }, { status: 401 });
+      }
+    }
 
     const { filePaths, siNumber } = await request.json();
 

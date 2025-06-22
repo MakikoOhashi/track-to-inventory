@@ -50,7 +50,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const otherUrl = formData.get("otherUrl") as string;
 
     if (!siNumber || !shopId) {
-      return json({ error: "Missing required fields" }, { status: 400 });
+      return json({ error: "必須フィールドが不足しています" }, { status: 400 });
+    }
+
+    // SI番号の重複チェック
+    const { data: existingShipment, error: checkError } = await supabase
+      .from("shipments")
+      .select("si_number")
+      .eq("si_number", siNumber)
+      .eq("shop_id", shopId)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116は「見つからない」エラー
+      console.error("重複チェックエラー:", checkError);
+      return json({ error: "データベースエラーが発生しました" }, { status: 500 });
+    }
+
+    if (existingShipment) {
+      return json({ error: "このSI番号は既に登録されています" }, { status: 409 });
     }
 
     // SI登録件数制限チェック
@@ -62,13 +79,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }, { status: 403 });
     }
 
+    // 現在の日時を取得
+    const now = new Date().toISOString();
+
     const shipmentData = {
       si_number: siNumber,
       shop_id: shopId,
+      status: "SI発行済", // デフォルトステータス
       invoice_url: invoiceUrl || null,
       pl_url: plUrl || null,
       si_url: siUrl || null,
       other_url: otherUrl || null,
+      delayed: false, // デフォルト値
+      is_archived: false, // デフォルト値
+      created_at: now,
+      updated_at: now,
     };
 
     const { data: result, error: shipmentError } = await supabase
@@ -79,12 +104,28 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     if (shipmentError) {
       console.error("Shipment creation error:", shipmentError);
-      return json({ error: "Failed to create shipment" }, { status: 500 });
+      
+      // 一意制約違反の詳細なエラーハンドリング
+      if (shipmentError.code === '23505') {
+        return json({ error: "このSI番号は既に登録されています" }, { status: 409 });
+      }
+      
+      return json({ 
+        error: "データの保存に失敗しました",
+        details: shipmentError.message 
+      }, { status: 500 });
     }
 
-    return json({ success: true, data: result });
+    return json({ 
+      success: true, 
+      data: result,
+      message: "SIが正常に登録されました"
+    });
   } catch (error) {
     console.error("Create shipment error:", error);
-    return json({ error: "Internal server error" }, { status: 500 });
+    return json({ 
+      error: "内部サーバーエラーが発生しました",
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 };

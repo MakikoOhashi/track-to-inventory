@@ -28,23 +28,29 @@ const PLAN_LIMITS = {
 // ===== ストアID取得 =====
 
 /**
- * リクエストからストアIDを取得（Shopify認証を使用）
+ * リクエストからストアIDを取得（APIルート用）
  */
 export async function getStoreId(request: Request): Promise<string> {
+  const url = new URL(request.url)
+  const shopId = url.searchParams.get('shop_id') || url.searchParams.get('shopId')
+  
+  if (!shopId) {
+    throw new Error('shop_id parameter is required')
+  }
+  
+  return shopId
+}
+
+/**
+ * Shopify認証を使用してストアIDを取得（ページルート用）
+ */
+export async function getStoreIdFromAuth(request: Request): Promise<string> {
   try {
-    // Shopify認証を使用してshopドメインを取得
     const { session } = await authenticate.admin(request)
     return session.shop
   } catch (error) {
-    // 認証に失敗した場合はURLパラメータから取得（フォールバック）
-    const url = new URL(request.url)
-    const shopId = url.searchParams.get('shop_id') || url.searchParams.get('shopId')
-    
-    if (!shopId) {
-      throw new Error('shop_id parameter is required')
-    }
-    
-    return shopId
+    console.error('Shopify認証エラー:', error)
+    throw new Error('認証に失敗しました')
   }
 }
 
