@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Select, Spinner, Button, Text } from '@shopify/polaris';
 import { useTranslation } from 'react-i18next';
 
@@ -100,7 +100,6 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
   const [loadingProducts, setLoadingProducts] = useState(false);
 
   const [selectedProductId, setSelectedProductId] = useState(initialProductId);
-  const [variantOptions, setVariantOptions] = useState([]);
   const [selectedVariantId, setSelectedVariantId] = useState(value || "");
   const [apiError, setApiError] = useState("");
 
@@ -134,32 +133,33 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
     }
   }, [loadProducts, isClient]);
 
-  // 選択された商品が変更された時の処理
-  useEffect(() => {
-    if (!isClient) return;
-    
-    if (!selectedProductId) {
-      setVariantOptions([]);
-      setSelectedVariantId("");
-      return;
+  // 選択された商品のバリアントオプションをメモ化
+  const variantOptions = useMemo(() => {
+    if (!selectedProductId || !allProducts.length) {
+      return [];
     }
     
     const product = allProducts.find((p) => p.id === selectedProductId);
-    if (product && product.variants) {
-      const newVariantOptions = product.variants.map((v) => ({
-        label: `${v.title}（SKU: ${v.sku || '-' }）` + 
-          (v.selectedOptions && v.selectedOptions.length
-            ? ` / ${v.selectedOptions.map(opt => `${opt.name}:${opt.value}`).join(', ')}`
-            : ''),
-        value: v.id,
-        variant: v,
-      }));
-      setVariantOptions(newVariantOptions);
-    } else {
-      setVariantOptions([]);
+    if (!product || !product.variants) {
+      return [];
     }
-    setSelectedVariantId("");
-  }, [selectedProductId, allProducts, isClient]);
+    
+    return product.variants.map((v) => ({
+      label: `${v.title}（SKU: ${v.sku || '-' }）` + 
+        (v.selectedOptions && v.selectedOptions.length
+          ? ` / ${v.selectedOptions.map(opt => `${opt.name}:${opt.value}`).join(', ')}`
+          : ''),
+      value: v.id,
+      variant: v,
+    }));
+  }, [selectedProductId, allProducts]);
+
+  // value propの変更を監視して内部状態を同期
+  useEffect(() => {
+    if (value !== selectedVariantId) {
+      setSelectedVariantId(value || "");
+    }
+  }, [value, selectedVariantId]);
 
   // 選択されたバリアントが変更された時の処理
   useEffect(() => {
@@ -171,14 +171,13 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
     if (product && variant) {
       onChange(selectedVariantId, { product, variant });
     }
-  }, [selectedVariantId, selectedProductId, allProducts, variantOptions, onChange, isClient]);
+  }, [selectedVariantId, selectedProductId, allProducts, onChange, isClient]);
 
   // 選択クリア処理
   const handleClearSelection = useCallback(() => {
     if (!isClient) return;
     
     setSelectedProductId("");
-    setVariantOptions([]);
     setSelectedVariantId("");
     if (onChange) {
       onChange("", {});
@@ -189,7 +188,12 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
   const handleProductChange = useCallback((value) => {
     if (!isClient) return;
     setSelectedProductId(value);
-  }, [isClient]);
+    // 商品が変更されたらバリアント選択をクリア
+    setSelectedVariantId("");
+    if (onChange) {
+      onChange("", {});
+    }
+  }, [isClient, onChange]);
 
   // バリアント選択処理
   const handleVariantChange = useCallback((value) => {
