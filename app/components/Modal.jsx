@@ -29,15 +29,12 @@ const statusKeyToJa = Object.fromEntries(Object.entries(statusJaToKey).map(([ja,
 const CustomModal = ({ shipment, onClose, onUpdated }) => {
   const { t, i18n } = useTranslation();
   
-  // FILE_TYPESの定義を関数内に移動
+  // FILE_TYPESの定義を修正
   const FILE_TYPES = [
-    'image/jpeg',
-    'image/jpg', 
-    'image/png',
-    'image/gif',
-    'image/bmp',
-    'image/webp',
-    'application/pdf'
+    { key: 'invoice', label: t('modal.fileTypes.invoice') },
+    { key: 'pl', label: t('modal.fileTypes.pl') },
+    { key: 'si', label: t('modal.fileTypes.si') },
+    { key: 'other', label: t('modal.fileTypes.other') }
   ];
   
   const [editMode, setEditMode] = useState(false);
@@ -618,7 +615,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
             </Button>
             {/* ファイルアップロード */}
             <Text as="h4" variant="headingSm">{t('modal.sections.relatedFiles')}</Text>
-            {FILE_TYPES.map(({ label, key }) => (
+            {FILE_TYPES.map(({ key, label }) => (
               <BlockStack key={key} gap="100">
                 <Text>{label}:</Text>
                 <input type="file" onChange={e => handleFileUpload(e, key)} />
