@@ -92,16 +92,27 @@ async function fetchProductsWithVariants() {
 
 const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
   const { t } = useTranslation();
+  
+  // SSR対応のためのクライアント判定
+  const [isClient, setIsClient] = useState(false);
+  
   const [allProducts, setAllProducts] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   const [selectedProductId, setSelectedProductId] = useState(initialProductId);
   const [variantOptions, setVariantOptions] = useState([]);
   const [selectedVariantId, setSelectedVariantId] = useState(value || "");
   const [apiError, setApiError] = useState("");
 
+  // クライアントサイド判定
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // 商品データ取得をuseCallbackでメモ化
   const loadProducts = useCallback(async () => {
+    if (!isClient) return;
+    
     try {
       setLoadingProducts(true);
       setApiError("");
@@ -114,15 +125,19 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
     } finally {
       setLoadingProducts(false);
     }
-  }, [t]);
+  }, [t, isClient]);
 
-  // 初期化時に商品データを取得
+  // 初期化時に商品データを取得（クライアントサイドのみ）
   useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
+    if (isClient) {
+      loadProducts();
+    }
+  }, [loadProducts, isClient]);
 
   // 選択された商品が変更された時の処理
   useEffect(() => {
+    if (!isClient) return;
+    
     if (!selectedProductId) {
       setVariantOptions([]);
       setSelectedVariantId("");
@@ -144,11 +159,11 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
       setVariantOptions([]);
     }
     setSelectedVariantId("");
-  }, [selectedProductId, allProducts]);
+  }, [selectedProductId, allProducts, isClient]);
 
   // 選択されたバリアントが変更された時の処理
   useEffect(() => {
-    if (!selectedVariantId || !onChange) return;
+    if (!isClient || !selectedVariantId || !onChange) return;
     
     const product = allProducts.find((p) => p.id === selectedProductId);
     const variant = variantOptions.find((v) => v.value === selectedVariantId)?.variant;
@@ -156,27 +171,41 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
     if (product && variant) {
       onChange(selectedVariantId, { product, variant });
     }
-  }, [selectedVariantId, selectedProductId, allProducts, variantOptions, onChange]);
+  }, [selectedVariantId, selectedProductId, allProducts, variantOptions, onChange, isClient]);
 
   // 選択クリア処理
   const handleClearSelection = useCallback(() => {
+    if (!isClient) return;
+    
     setSelectedProductId("");
     setVariantOptions([]);
     setSelectedVariantId("");
     if (onChange) {
       onChange("", {});
     }
-  }, [onChange]);
+  }, [onChange, isClient]);
 
   // 商品選択処理
   const handleProductChange = useCallback((value) => {
+    if (!isClient) return;
     setSelectedProductId(value);
-  }, []);
+  }, [isClient]);
 
   // バリアント選択処理
   const handleVariantChange = useCallback((value) => {
+    if (!isClient) return;
     setSelectedVariantId(value);
-  }, []);
+  }, [isClient]);
+
+  // SSR中は何も表示しない
+  if (!isClient) {
+    return (
+      <div>
+        <Text variant="headingSm">{t('shopifyVariantSelector.title')}</Text>
+        <Spinner accessibilityLabel={t('shopifyVariantSelector.loadingProducts')} size="small" />
+      </div>
+    );
+  }
 
   return (
     <div>

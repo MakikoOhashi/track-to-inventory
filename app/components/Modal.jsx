@@ -38,7 +38,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   ];
   
   const [editMode, setEditMode] = useState(false);
-  const [formData, setFormData] = useState(shipment);
+  const [formData, setFormData] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [signedUrlCache, setSignedUrlCache] = useState({});
@@ -53,6 +53,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     { label: t('modal.status.synced'), value: "synced" },
   ];
 
+  // shipmentデータの初期化と更新
   useEffect(() => {
     if (shipment) {
       console.log('Modal: shipment data received:', shipment);
@@ -191,19 +192,19 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     }
   };
 
-  // 安全確認 - 早期リターンはここで行う
+  // シンプルなデータ検証
   if (!shipment) {
-    console.error('Modal: No shipment data provided');
+    console.warn('Modal: No shipment data provided');
     return null;
   }
   
   if (!formData) {
-    console.error('Modal: No formData available');
+    console.warn('Modal: No formData available');
     return null;
   }
   
   if (!formData.si_number) {
-    console.error('Modal: No si_number in formData:', formData);
+    console.warn('Modal: No si_number in formData:', formData);
     return null;
   }
 

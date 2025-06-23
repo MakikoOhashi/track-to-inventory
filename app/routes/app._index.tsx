@@ -59,114 +59,73 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 
 export default function Index() {
-  // --- ② useLoaderDataでshopを受け取る ---
-  const { shop, locale } = useLoaderData<typeof loader>();
-  const { t, i18n } = useTranslation();
-  const [lang, setLang] = useState(locale);
-
-  // --- ③ shopId関連のstateを初期化・同期 ---
-  const [shopIdInput, setShopIdInput] = useState<string>(shop); // ←初期値にshopを使う
-  const [shopId, setShopId] = useState<string>(shop);
-
-  useEffect(() => {
-    i18n.changeLanguage(lang);
-  }, [lang, i18n]);
-
-
-  //const [shopIdInput, setShopIdInput] = useState<string>("test-owner");
-  //const [shopId, setShopId] = useState<string>("test-owner");
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
-  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
+  const { shop } = useLoaderData<typeof loader>();
+  const { t } = useTranslation();
+  
+  // 状態管理
   const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
+  const [shopId, setShopId] = useState<string>(shop || "");
+  const [shopIdInput, setShopIdInput] = useState<string>(shop || "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showStartGuide, setShowStartGuide] = useState(false);
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [detailViewMode, setDetailViewMode] = useState<'product' | 'status' | 'search'>('product');
+  const [productStatsSort, setProductStatsSort] = useState<'name-asc' | 'name-desc'>('name-asc');
+  const [siQuery, setSiQuery] = useState("");
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
   const [popupPos, setPopupPos] = useState<PopupPos>({ x: 0, y: 0 });
-  const [productStatsSort, setProductStatsSort] = useState<'name-asc' | 'name-desc'>('name-asc');
-  const [detailViewMode, setDetailViewMode] = useState<'product' | 'status' | 'search'>('product');
-  const [siQuery, setSiQuery] = useState<string>('');
+  const popupTimeout = useRef<NodeJS.Timeout | null>(null);
 
-    // StartGuideの表示状態を親で管理
-    const [showStartGuide, setShowStartGuide] = useState(false);
+  // 定数
+  const POPUP_WIDTH = 400;
+  const POPUP_HEIGHT = 300;
 
-    useEffect(() => {
-      // 初回表示ロジック
-      const hasSeenGuide = localStorage.getItem('hasSeenStartGuide') ;
-     
-      if (hasSeenGuide  !== 'true') {
-        setShowStartGuide(true);
-      }
-    }, []);
-  
-    // StartGuideを閉じた時のコールバック
-    const handleDismissGuide = () => {
-      setShowStartGuide(false);
-      localStorage.setItem('hasSeenStartGuide', 'true');
-      // Supabaseの更新もここで
-    };
-  
-    // 「？」ボタン押下でStartGuide再表示
-    const handleShowGuide = () => setShowStartGuide(true);
-
-  const popupTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const POPUP_WIDTH = 320;
-  const POPUP_HEIGHT = 180;
-
-  // ステータス日本語→英語キー変換マップ
-  const statusJaToKey = {
-    "SI発行済": "siIssued",
-    "船積スケジュール確定": "scheduleConfirmed",
-    "船積中": "shipping",
-    "輸入通関中": "customsClearance",
-    "倉庫着": "warehouseArrival",
-    "同期済み": "synced"
-  };
-
-  // statusTranslationMapの定義も関数内で
-  const statusTranslationMap: Record<string, string> = {
-    "SI発行済": t('modal.status.siIssued'),
-    "船積スケジュール確定": t('modal.status.scheduleConfirmed'),
-    "船積中": t('modal.status.shipping'),
-    "輸入通関中": t('modal.status.customsClearance'),
-    "倉庫着": t('modal.status.warehouseArrival'),
-    "同期済み": t('modal.status.synced'),
-    "siIssued": t('modal.status.siIssued'),
-    "scheduleConfirmed": t('modal.status.scheduleConfirmed'),
-    "shipping": t('modal.status.shipping'),
-    "customsClearance": t('modal.status.customsClearance'),
-    "warehouseArrival": t('modal.status.warehouseArrival'),
-    "synced": t('modal.status.synced'),
-    "未設定": t('status.notSet'),
-  };
-
-  const statusOrder = [
-    t('modal.status.siIssued'),
-    t('modal.status.scheduleConfirmed'),
-    t('modal.status.shipping'),
-    t('modal.status.customsClearance'),
-    t('modal.status.warehouseArrival'),
-    t('status.productSync'),
-    t('modal.status.synced')
-  ];
-
-  // 修正1: supabaseで直接取得→API経由に変更
-  const fetchShipments = async (shopIdValue: string) => {
-    const res = await fetch(`/api/shipments?shop_id=${encodeURIComponent(shopIdValue)}`);
-    if (!res.ok) {
-      setShipments([]);
-      return;
-    }
-    const json = await res.json();
-    setShipments(Array.isArray(json.data) ? json.data : []);
-  };
-
-  // --- 修正2: useEffectでshopIdが変わった時だけfetchShipments実行 ---
+  // 初期化時にデータを取得
   useEffect(() => {
-    fetchShipments(shopId);
+    if (shopId) {
+      fetchShipments(shopId);
+    }
   }, [shopId]);
+
+  // ガイド関連
+  const handleDismissGuide = () => {
+    setShowStartGuide(false);
+    localStorage.setItem('startGuideDismissed', 'true');
+  };
+
+  const handleShowGuide = () => setShowStartGuide(true);
+
+  // データ取得関数
+  const fetchShipments = async (shopIdValue: string) => {
+    if (!shopIdValue) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const res = await fetch(`/api/shipments?shop_id=${encodeURIComponent(shopIdValue)}`);
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      const data = await res.json();
+      setShipments(data.shipments || []);
+    } catch (err) {
+      console.error('Failed to fetch shipments:', err);
+      setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
+      setShipments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // --- 修正3: fetchData（全件取得関数）を削除し、handleModalCloseでshopIdで再取得 ---
   const handleModalClose = () => {
     setSelectedShipment(null);
-    fetchShipments(shopId); // ← 閉じたあともshopIdで絞り込んだデータを取得
+    if (shopId) {
+      fetchShipments(shopId); // ← 閉じたあともshopIdで絞り込んだデータを取得
+    }
   };
 
   const handleInputChange = (value: string) => setShopIdInput(value);
@@ -226,46 +185,97 @@ export default function Index() {
   };
 
   const handlePopupMouseLeave = () => {
-    popupTimeout.current = setTimeout(() => {
-      setHoveredProduct(null);
-    }, 200);
+    setHoveredProduct(null);
   };
 
+  // 商品別統計の取得とソート
   const getProductStats = (
     shipments: Shipment[],
     sort: 'name-asc' | 'name-desc' = 'name-asc'
   ): [string, number][] => {
-    const stats: Record<string, number> = {};
-    shipments.forEach((s) => {
-      (s.items || []).forEach((item) => {
-        if (!item.name) return;
-        stats[item.name] = (stats[item.name] || 0) + Number(item.quantity || 0);
+    const productMap = new Map<string, number>();
+    
+    shipments.forEach(shipment => {
+      (shipment.items || []).forEach(item => {
+        const name = item.name || 'Unknown';
+        productMap.set(name, (productMap.get(name) || 0) + (item.quantity || 0));
       });
     });
+
+    const result = Array.from(productMap.entries());
+    
+    // 自然順序ソート（数字を含む文字列を正しくソート）
     const naturalSort = (a: string, b: string, order: 'asc' | 'desc') => {
-      const aIsNum = /^\d/.test(a);
-      const bIsNum = /^\d/.test(b);
-      if (aIsNum && !bIsNum) return order === 'asc' ? -1 : 1;
-      if (!aIsNum && bIsNum) return order === 'asc' ? 1 : -1;
-      if (aIsNum && bIsNum) {
-        const aNum = parseInt(a.match(/^\d+/)?.[0] ?? '0', 10);
-        const bNum = parseInt(b.match(/^\d+/)?.[0] ?? '0', 10);
-        if (aNum !== bNum) return order === 'asc' ? aNum - bNum : bNum - aNum;
-        return order === 'asc' ? a.localeCompare(b, "ja") : b.localeCompare(a, "ja");
+      const aParts = a.match(/(\d+|\D+)/g) || [];
+      const bParts = b.match(/(\d+|\D+)/g) || [];
+      
+      const maxLength = Math.max(aParts.length, bParts.length);
+      
+      for (let i = 0; i < maxLength; i++) {
+        const aPart = aParts[i] || '';
+        const bPart = bParts[i] || '';
+        
+        const aIsNum = !isNaN(Number(aPart));
+        const bIsNum = !isNaN(Number(bPart));
+        
+        if (aIsNum && bIsNum) {
+          const diff = Number(aPart) - Number(bPart);
+          if (diff !== 0) return order === 'asc' ? diff : -diff;
+        } else {
+          const diff = aPart.localeCompare(bPart);
+          if (diff !== 0) return order === 'asc' ? diff : -diff;
+        }
       }
-      const aIsAlpha = /^[a-zA-Z]/.test(a);
-      const bIsAlpha = /^[a-zA-Z]/.test(b);
-      if (aIsAlpha && !bIsAlpha) return order === 'asc' ? -1 : 1;
-      if (!aIsAlpha && bIsAlpha) return order === 'asc' ? 1 : -1;
-      return order === 'asc'
-        ? a.localeCompare(b, "ja")
-        : b.localeCompare(a, "ja");
+      
+      return 0;
     };
-    return Object.entries(stats).sort((a, b) =>
-      naturalSort(a[0], b[0], sort === 'name-asc' ? 'asc' : 'desc')
-    );
+
+    return result.sort(([a], [b]) => naturalSort(a, b, sort === 'name-asc' ? 'asc' : 'desc'));
   };
 
+  // OCR保存成功時の処理
+  const handleOcrSaveSuccess = () => {
+    if (shopId) {
+      fetchShipments(shopId);
+    }
+  };
+
+  // ステータス日本語→英語キー変換マップ
+  const statusJaToKey = {
+    "SI発行済": "siIssued",
+    "船積スケジュール確定": "scheduleConfirmed",
+    "船積中": "shipping",
+    "輸入通関中": "customsClearance",
+    "倉庫着": "warehouseArrival",
+    "同期済み": "synced"
+  };
+
+  // statusTranslationMapの定義も関数内で
+  const statusTranslationMap: Record<string, string> = {
+    "SI発行済": t('modal.status.siIssued'),
+    "船積スケジュール確定": t('modal.status.scheduleConfirmed'),
+    "船積中": t('modal.status.shipping'),
+    "輸入通関中": t('modal.status.customsClearance'),
+    "倉庫着": t('modal.status.warehouseArrival'),
+    "同期済み": t('modal.status.synced'),
+    "siIssued": t('modal.status.siIssued'),
+    "scheduleConfirmed": t('modal.status.scheduleConfirmed'),
+    "shipping": t('modal.status.shipping'),
+    "customsClearance": t('modal.status.customsClearance'),
+    "warehouseArrival": t('modal.status.warehouseArrival'),
+    "synced": t('modal.status.synced'),
+    "未設定": t('status.notSet'),
+  };
+
+  const statusOrder = [
+    t('modal.status.siIssued'),
+    t('modal.status.scheduleConfirmed'),
+    t('modal.status.shipping'),
+    t('modal.status.customsClearance'),
+    t('modal.status.warehouseArrival'),
+    t('status.productSync'),
+    t('modal.status.synced')
+  ];
 
   // ETAの早い順でソートして上位2件を抽出
   const upcomingShipments = shipments
@@ -284,11 +294,6 @@ export default function Index() {
     { id: 'status', content: t('tabs.status') },
   ];
   const selectedTab = tabs.findIndex(tab => tab.id === detailViewMode);
-
-  // OCRUploader用のコールバック関数 - 新しい出荷データが保存された時にリフレッシュ
-  const handleOcrSaveSuccess = () => {
-    fetchShipments(shopId);
-  };
 
   const filteredAndSortedShipments = shipments
   .filter(s => (s.items || []).some(item => item.name === hoveredProduct))
@@ -330,7 +335,7 @@ export default function Index() {
       <Page
         title={t('title.shipmentsByOwner')}
        
-        primaryAction={<LanguageSwitcher value={lang} onChange={setLang} />}
+        primaryAction={<LanguageSwitcher value={shop} onChange={setShopId} />}
       >
      
      <Layout>
@@ -601,7 +606,7 @@ export default function Index() {
        {/* ここにOCRアップローダーを追加 - shopIdを渡す */}
        <div id="ocr-section" />
         <OCRUploader 
-          shopId={shopId} 
+          shopId={shop} 
           onSaveSuccess={handleOcrSaveSuccess}
           
         />
@@ -654,7 +659,7 @@ export default function Index() {
       <CustomModal
         shipment={selectedShipment}
         onClose={handleModalClose}
-        onUpdated={() => fetchShipments(shopId)}
+        onUpdated={() => fetchShipments(shop)}
       />
     </Page>
   );
