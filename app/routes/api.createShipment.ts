@@ -58,12 +58,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return json({ error: "shipment data is required" }, { status: 400 });
       }
       
-      siNumber = shipment.si_number;
-      shopId = shipment.shop_id;
-      invoiceUrl = shipment.invoice_url;
-      plUrl = shipment.pl_url;
-      siUrl = shipment.si_url;
-      otherUrl = shipment.other_url;
+      // created_at, updated_atフィールドを明示的に除外
+      const { created_at, updated_at, ...cleanShipment } = shipment;
+      
+      siNumber = cleanShipment.si_number;
+      shopId = cleanShipment.shop_id;
+      invoiceUrl = cleanShipment.invoice_url;
+      plUrl = cleanShipment.pl_url;
+      siUrl = cleanShipment.si_url;
+      otherUrl = cleanShipment.other_url;
     } else if (contentType?.includes('multipart/form-data') || contentType?.includes('application/x-www-form-urlencoded')) {
       const formData = await request.formData();
       siNumber = formData.get("siNumber") as string;

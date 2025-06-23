@@ -284,36 +284,20 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     }
   };
 
+  // --- 保存処理 ---
   const handleSave = async () => {
+    if (!formData) return;
+    
+    setSaving(true);
     try {
-      console.log('=== SAVE OPERATION START ===');
-      console.log('Current formData:', JSON.stringify(formData, null, 2));
+      // created_at, updated_atフィールドを除外してデータを準備
+      const { created_at, updated_at, ...saveData } = formData;
       
-      // ファイルURLフィールドの確認
-      const fileFields = ['invoice_url', 'pl_url', 'si_url', 'other_url'];
-      const fileUrls = {};
-      fileFields.forEach(field => {
-        if (formData[field]) {
-          fileUrls[field] = formData[field];
-        }
-      });
-      console.log('File URLs in formData:', fileUrls);
-      
-      // 必須フィールドのチェック
-      if (!formData.si_number) {
-        alert('SI番号は必須です');
-        return;
-      }
-      
-      console.log('Sending data to updateShipment API...');
       const res = await fetch('/api/updateShipment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shipment: formData }),
+        body: JSON.stringify({ shipment: saveData }),
       });
-      
-      console.log('Response status:', res.status);
-      console.log('Response headers:', Object.fromEntries(res.headers.entries()));
       
       if (!res.ok) {
         const errorText = await res.text();
@@ -335,10 +319,11 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       alert(t('modal.messages.saveSuccess'));
       setEditMode(false);
       if (onUpdated) onUpdated();
-      console.log('=== SAVE OPERATION END ===');
     } catch (error) {
       console.error('Save error:', error);
       alert(`保存に失敗しました: ${error.message}`);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -385,11 +370,14 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       
       console.log('Updating database with:', updatedFormData);
       
+      // created_at, updated_atフィールドを除外してデータベースを更新
+      const { created_at, updated_at, ...cleanFormData } = updatedFormData;
+      
       // データベースを更新
       const updateRes = await fetch('/api/updateShipment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shipment: updatedFormData }),
+        body: JSON.stringify({ shipment: cleanFormData }),
       });
 
       if (!updateRes.ok) {

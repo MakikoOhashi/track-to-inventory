@@ -105,7 +105,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     siFile, 
     plFile, 
     otherFile,
-    // ファイルオブジェクトのみを除外し、URLフィールドは保持
+    created_at,
+    updated_at,
+    // ファイルオブジェクトとタイムスタンプフィールドを除外し、URLフィールドは保持
     ...safeData 
   } = shipment;
 

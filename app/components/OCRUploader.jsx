@@ -411,6 +411,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         memo: null,
         is_archived: false,
         shop_id: shopId, // ← 親コンポーネントから受け取ったshopIdを追加
+        // created_at, updated_atフィールドは明示的に除外
       };
 
       // デバッグ：送信するデータをコンソールに出力
