@@ -206,7 +206,7 @@ export default function Index() {
     if (popupTimeout.current) clearTimeout(popupTimeout.current);
     const rect = e.currentTarget.getBoundingClientRect();
     let x = rect.left;
-    let y = rect.bottom + 4;
+    let y = rect.bottom + 8;
 
     // 右端はみ出し防止
     if (x + POPUP_WIDTH > window.innerWidth) {
@@ -214,7 +214,7 @@ export default function Index() {
     }
     // 下端はみ出し防止
     if (y + POPUP_HEIGHT > window.innerHeight) {
-      y = window.innerHeight - POPUP_HEIGHT - 10;
+      y = Math.max(rect.top - POPUP_HEIGHT - 8, 10);
     }
     // 上端にもはみ出さないようにする
     if (y < 0) y = 10;
