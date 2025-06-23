@@ -14,6 +14,7 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
   // 商品データを取得
   useEffect(() => {
     if (fetcher.state === 'idle' && !fetcher.data) {
+      console.log('🔄 ShopifyVariantSelector: Loading products...');
       fetcher.load('/app/products');
     }
   }, [fetcher]);
@@ -22,6 +23,17 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
   const products = fetcher.data?.products || [];
   const error = fetcher.data?.error;
   const isLoading = fetcher.state === 'loading';
+
+  // デバッグログ
+  console.log('🔍 ShopifyVariantSelector Debug:', {
+    fetcherState: fetcher.state,
+    productsCount: products.length,
+    error: error,
+    isLoading: isLoading,
+    selectedProductId: selectedProductId,
+    selectedVariantId: selectedVariantId,
+    hasData: !!fetcher.data
+  });
 
   // 選択された商品のバリアントオプションをメモ化
   const variantOptions = useMemo(() => {
@@ -59,12 +71,14 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
     const variant = variantOptions.find((v) => v.value === selectedVariantId)?.variant;
     
     if (product && variant) {
+      console.log('✅ ShopifyVariantSelector: Variant selected:', { variantId: selectedVariantId, product: product.title });
       onChange(selectedVariantId, { product, variant });
     }
   }, [selectedVariantId, selectedProductId, products, variantOptions, onChange]);
 
   // 選択クリア処理
   const handleClearSelection = useCallback(() => {
+    console.log('🗑️ ShopifyVariantSelector: Clearing selection');
     setSelectedProductId("");
     setSelectedVariantId("");
     if (onChange) {
@@ -74,6 +88,7 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
 
   // 商品選択処理
   const handleProductChange = useCallback((value) => {
+    console.log('📦 ShopifyVariantSelector: Product changed:', value);
     setSelectedProductId(value);
     // 商品が変更されたらバリアント選択をクリア
     setSelectedVariantId("");
@@ -84,11 +99,13 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
 
   // バリアント選択処理
   const handleVariantChange = useCallback((value) => {
+    console.log('🔧 ShopifyVariantSelector: Variant changed:', value);
     setSelectedVariantId(value);
   }, []);
 
   // ローディング中
   if (isLoading) {
+    console.log('⏳ ShopifyVariantSelector: Loading state');
     return (
       <div>
         <Text variant="headingSm">{t('shopifyVariantSelector.title')}</Text>
@@ -99,6 +116,7 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
 
   // エラー表示
   if (error) {
+    console.log('❌ ShopifyVariantSelector: Error state:', error);
     return (
       <div>
         <Text variant="headingSm">{t('shopifyVariantSelector.title')}</Text>
@@ -107,6 +125,7 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
     );
   }
 
+  console.log('✅ ShopifyVariantSelector: Ready state with', products.length, 'products');
   return (
     <div>
       <Text variant="headingSm">{t('shopifyVariantSelector.title')}</Text>

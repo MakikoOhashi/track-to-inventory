@@ -15,7 +15,7 @@ export const action = async ({ request }: any) => {
   try {
     // Shopify認証を実行（fallback処理付き）
     let shopId: string;
-    try {
+  try {
       const { session } = await authenticate.admin(request);
       shopId = session.shop;
     } catch (authError) {
@@ -29,7 +29,7 @@ export const action = async ({ request }: any) => {
         return json({ 
           error: "認証に失敗しました。アプリを再インストールしてください。" 
         }, { status: 401 });
-      }
+  }
     }
 
     const formData = await request.formData();
@@ -38,15 +38,15 @@ export const action = async ({ request }: any) => {
 
     if (!siNumber || !fileType) {
       return json({ error: "SI番号とファイルタイプが必須です" }, { status: 400 });
-    }
+  }
 
     // ファイルパスを構築
     const filePath = `${siNumber}/${fileType}`;
 
     // Supabase Storageからファイルを削除
     const { error: storageError } = await supabase.storage
-      .from("shipment-files")
-      .remove([filePath]);
+    .from("shipment-files")
+    .remove([filePath]);
 
     if (storageError) {
       console.error("Storage delete error:", storageError);
@@ -86,7 +86,7 @@ export const action = async ({ request }: any) => {
     if (dbError) {
       console.error("Database update error:", dbError);
       return json({ error: "データベースの更新に失敗しました" }, { status: 500 });
-    }
+  }
 
     return json({ success: true, message: "ファイルを正常に削除しました" });
   } catch (error) {

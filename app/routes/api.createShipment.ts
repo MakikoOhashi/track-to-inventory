@@ -68,7 +68,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       siUrl = cleanShipment.si_url;
       otherUrl = cleanShipment.other_url;
     } else if (contentType?.includes('multipart/form-data') || contentType?.includes('application/x-www-form-urlencoded')) {
-      const formData = await request.formData();
+    const formData = await request.formData();
       siNumber = formData.get("siNumber") as string;
       shopId = formData.get("shopId") as string;
       invoiceUrl = formData.get("invoiceUrl") as string;

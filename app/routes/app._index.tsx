@@ -53,9 +53,9 @@ type PopupPos = { x: number; y: number };
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     // Shopify認証を実行（認証失敗時は例外が発生）
-    const { session } = await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
     const shop = session.shop;
-    const locale = await i18n.getLocale(request);
+  const locale = await i18n.getLocale(request);
     
     // 認証済みshop情報の検証
     if (!shop) {
@@ -99,7 +99,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function Index() {
   const { shop, shipments: initialShipments, locale: initialLocale } = useLoaderData<typeof loader>();
   const { t, i18n: i18nInstance } = useTranslation();
-  
+
   // 状態管理
   const [shipments, setShipments] = useState<Shipment[]>(initialShipments);
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
@@ -122,19 +122,19 @@ export default function Index() {
   const POPUP_HEIGHT = 300;
 
   // 初期化時にデータを取得（shopIdが変更された時のみ）
-  useEffect(() => {
+    useEffect(() => {
     if (shopId && shopId !== shop) {
       fetchShipments(shopId);
-    }
+      }
   }, [shopId, shop]);
-
+  
   // ガイド関連
-  const handleDismissGuide = () => {
-    setShowStartGuide(false);
+    const handleDismissGuide = () => {
+      setShowStartGuide(false);
     localStorage.setItem('startGuideDismissed', 'true');
-  };
-
-  const handleShowGuide = () => setShowStartGuide(true);
+    };
+  
+    const handleShowGuide = () => setShowStartGuide(true);
 
   // 言語切り替えハンドラー
   const handleLanguageChange = (newLanguage: string) => {
@@ -157,8 +157,8 @@ export default function Index() {
     setError(null);
     
     try {
-      const res = await fetch(`/api/shipments?shop_id=${encodeURIComponent(shopIdValue)}`);
-      if (!res.ok) {
+    const res = await fetch(`/api/shipments?shop_id=${encodeURIComponent(shopIdValue)}`);
+    if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
       const data = await res.json();
@@ -176,7 +176,7 @@ export default function Index() {
   const handleModalClose = () => {
     setSelectedShipment(null);
     if (shopId) {
-      fetchShipments(shopId); // ← 閉じたあともshopIdで絞り込んだデータを取得
+    fetchShipments(shopId); // ← 閉じたあともshopIdで絞り込んだデータを取得
     }
   };
 
@@ -236,7 +236,7 @@ export default function Index() {
   };
 
   const handlePopupMouseLeave = () => {
-    setHoveredProduct(null);
+      setHoveredProduct(null);
   };
 
   // 商品別統計の取得とソート
@@ -269,7 +269,7 @@ export default function Index() {
         const aIsNum = !isNaN(Number(aPart));
         const bIsNum = !isNaN(Number(bPart));
         
-        if (aIsNum && bIsNum) {
+      if (aIsNum && bIsNum) {
           const diff = Number(aPart) - Number(bPart);
           if (diff !== 0) return order === 'asc' ? diff : -diff;
         } else {

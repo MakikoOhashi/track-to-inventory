@@ -371,12 +371,12 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
         method: 'POST',
         body: uploadFormData,
       });
-
+      
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || 'ファイルアップロードに失敗しました');
       }
-
+      
       const data = await res.json();
       console.log('Upload response:', data);
       
@@ -397,11 +397,11 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       
       // データベースを更新
       const updateRes = await fetch('/api/updateShipment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shipment: cleanFormData }),
-      });
-
+        });
+        
       if (!updateRes.ok) {
         const updateErrorData = await updateRes.json().catch(() => ({}));
         throw new Error(updateErrorData.error || 'データベースの更新に失敗しました');
@@ -432,7 +432,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       const formData = new FormData();
       formData.append('siNumber', shipment.si_number);
       formData.append('fileType', type);
-      
+    
       // shopパラメータをURLに追加（認証fallback用）
       const url = new URL('/api/deleteShipmentFile', window.location.origin);
       url.searchParams.append('shop', shipment.shop_id);

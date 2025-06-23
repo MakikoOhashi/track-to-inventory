@@ -20,8 +20,11 @@ type LoaderData = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  console.log('🚀 app.products loader: Starting...');
+  
   try {
     const { admin } = await authenticate.admin(request);
+    console.log('✅ app.products loader: Authentication successful');
     
     // Shopify GraphQLで商品とバリアントを取得
     const query = `
@@ -52,17 +55,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     const variables = { first: 50 };
     
+    console.log('📡 app.products loader: Sending GraphQL request...');
     const response = await admin.graphql(query, { variables });
     const data = await response.json() as any;
     
+    console.log('📊 app.products loader: GraphQL response received');
+    
     // エラー処理
     if (data.errors) {
-      console.error("GraphQL Errors:", data.errors);
+      console.error("❌ app.products loader: GraphQL Errors:", data.errors);
       throw new Error(data.errors.map((e: any) => e.message).join(', '));
     }
 
     // データ存在チェック
     if (!data.data || !data.data.products) {
+      console.error("❌ app.products loader: No products found in response");
       throw new Error("No products found in response");
     }
 
@@ -78,9 +85,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       })),
     }));
 
+    console.log(`✅ app.products loader: Successfully processed ${products.length} products`);
     return json<LoaderData>({ products });
   } catch (error) {
-    console.error("Failed to fetch products:", error);
+    console.error("❌ app.products loader: Failed to fetch products:", error);
     return json<LoaderData>({ 
       products: [],
       error: error instanceof Error ? error.message : "Failed to fetch products"
