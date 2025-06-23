@@ -72,12 +72,20 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       status: shipment.status || '',
       items: shipment.items || [],
       notes: shipment.notes || '',
-      files: shipment.files || []
+      invoice_url: shipment.invoice_url || '',
+      pl_url: shipment.pl_url || '',
+      si_url: shipment.si_url || '',
+      other_url: shipment.other_url || ''
     });
     
     setSelectedStatus(shipment.status || '');
     setSelectedItems(shipment.items || []);
-    setSelectedFiles(shipment.files || []);
+    setSelectedFiles({
+      invoice: shipment.invoice_url || '',
+      pl: shipment.pl_url || '',
+      si: shipment.si_url || '',
+      other: shipment.other_url || ''
+    });
     
   }, [shipment]);
 
