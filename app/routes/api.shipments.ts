@@ -52,7 +52,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (error) {
     return json({ error: error.message }, { status: 500 });
   }
-  return json({ data });
+  return json({ shipments: data });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
