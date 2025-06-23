@@ -44,7 +44,11 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   const [formData, setFormData] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [signedUrlCache, setSignedUrlCache] = useState({});
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
 
   // ステータスオプションを英語キーで統一
   const STATUS_OPTIONS = [
