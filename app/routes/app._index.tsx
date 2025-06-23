@@ -97,8 +97,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 
 export default function Index() {
-  const { shop, shipments: initialShipments } = useLoaderData<typeof loader>();
-  const { t } = useTranslation();
+  const { shop, shipments: initialShipments, locale } = useLoaderData<typeof loader>();
+  const { t, i18n: i18nInstance } = useTranslation();
   
   // 状態管理
   const [shipments, setShipments] = useState<Shipment[]>(initialShipments);
@@ -134,6 +134,11 @@ export default function Index() {
   };
 
   const handleShowGuide = () => setShowStartGuide(true);
+
+  // 言語切り替えハンドラー
+  const handleLanguageChange = (newLanguage: string) => {
+    i18nInstance.changeLanguage(newLanguage);
+  };
 
   // データ取得関数（認証済みshop_idのみ使用）
   const fetchShipments = async (shopIdValue: string) => {
@@ -377,7 +382,7 @@ export default function Index() {
       <Page
         title={t('title.shipmentsByOwner')}
        
-        primaryAction={<LanguageSwitcher value={shop} onChange={setShopId} />}
+        primaryAction={<LanguageSwitcher value={locale || 'ja'} onChange={handleLanguageChange} />}
       >
      
      <Layout>
