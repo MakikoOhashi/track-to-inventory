@@ -93,25 +93,16 @@ async function fetchProductsWithVariants() {
 const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
   const { t } = useTranslation();
   
-  // SSR対応のためのクライアント判定
-  const [isClient, setIsClient] = useState(false);
-  
+  // 状態管理
   const [allProducts, setAllProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
-
   const [selectedProductId, setSelectedProductId] = useState(initialProductId);
   const [selectedVariantId, setSelectedVariantId] = useState(value || "");
   const [apiError, setApiError] = useState("");
-
-  // クライアントサイド判定
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // 商品データ取得をuseCallbackでメモ化
   const loadProducts = useCallback(async () => {
-    if (!isClient) return;
-    
     try {
       setLoadingProducts(true);
       setApiError("");
@@ -124,14 +115,16 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
     } finally {
       setLoadingProducts(false);
     }
-  }, [t, isClient]);
+  }, [t]);
 
-  // 初期化時に商品データを取得（クライアントサイドのみ）
+  // 初期化処理（クライアントサイドのみ）
   useEffect(() => {
-    if (isClient) {
+    // クライアントサイドでのみ実行
+    if (typeof window !== 'undefined') {
+      setIsInitialized(true);
       loadProducts();
     }
-  }, [loadProducts, isClient]);
+  }, [loadProducts]);
 
   // 選択された商品のバリアントオプションをメモ化
   const variantOptions = useMemo(() => {
@@ -163,7 +156,7 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
 
   // 選択されたバリアントが変更された時の処理
   useEffect(() => {
-    if (!isClient || !selectedVariantId || !onChange) return;
+    if (!isInitialized || !selectedVariantId || !onChange) return;
     
     const product = allProducts.find((p) => p.id === selectedProductId);
     const variant = variantOptions.find((v) => v.value === selectedVariantId)?.variant;
@@ -171,38 +164,34 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
     if (product && variant) {
       onChange(selectedVariantId, { product, variant });
     }
-  }, [selectedVariantId, selectedProductId, allProducts, onChange, isClient]);
+  }, [selectedVariantId, selectedProductId, allProducts, onChange, isInitialized]);
 
   // 選択クリア処理
   const handleClearSelection = useCallback(() => {
-    if (!isClient) return;
-    
     setSelectedProductId("");
     setSelectedVariantId("");
     if (onChange) {
       onChange("", {});
     }
-  }, [onChange, isClient]);
+  }, [onChange]);
 
   // 商品選択処理
   const handleProductChange = useCallback((value) => {
-    if (!isClient) return;
     setSelectedProductId(value);
     // 商品が変更されたらバリアント選択をクリア
     setSelectedVariantId("");
     if (onChange) {
       onChange("", {});
     }
-  }, [isClient, onChange]);
+  }, [onChange]);
 
   // バリアント選択処理
   const handleVariantChange = useCallback((value) => {
-    if (!isClient) return;
     setSelectedVariantId(value);
-  }, [isClient]);
+  }, []);
 
-  // SSR中は何も表示しない
-  if (!isClient) {
+  // SSR時とクライアント初期化前は同じ内容を表示（Hydrationエラー防止）
+  if (!isInitialized) {
     return (
       <div>
         <Text variant="headingSm">{t('shopifyVariantSelector.title')}</Text>
