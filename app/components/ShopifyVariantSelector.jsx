@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useFetcher } from '@remix-run/react';
 
 const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
+  console.log('🚀 ShopifyVariantSelector: Component initialized!', { value, initialProductId });
+  
   const { t } = useTranslation();
   const fetcher = useFetcher();
   
@@ -13,6 +15,7 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
 
   // 商品データを取得
   useEffect(() => {
+    console.log('🔄 ShopifyVariantSelector: useEffect triggered', { fetcherState: fetcher.state, hasData: !!fetcher.data });
     if (fetcher.state === 'idle' && !fetcher.data) {
       console.log('🔄 ShopifyVariantSelector: Loading products...');
       fetcher.load('/app/products');
