@@ -388,6 +388,12 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       
       // created_at, updated_atフィールドを除外してデータベースを更新
       const { created_at, updated_at, ...cleanFormData } = updatedFormData;
+      // 日付型フィールドをnull変換
+      const cleanDate = v => v === "" ? null : v;
+      cleanFormData.etd = cleanDate(cleanFormData.etd);
+      cleanFormData.eta = cleanDate(cleanFormData.eta);
+      cleanFormData.clearance_date = cleanDate(cleanFormData.clearance_date);
+      cleanFormData.arrival_date = cleanDate(cleanFormData.arrival_date);
       
       // データベースを更新
       const updateRes = await fetch('/api/updateShipment', {
