@@ -38,6 +38,7 @@ import { i18n } from "~/utils/i18n.server";
 // --- ① LoaderでShopifyセッションからshop（Shop ID）を取得 ---
 import { authenticate } from "~/shopify.server"; // ←例: Shopify Remix SDK
 
+import { createClient } from '@supabase/supabase-js';
 
 type StatusTableProps = {
   shipments: Shipment[];
@@ -50,20 +51,57 @@ type PopupPos = { x: number; y: number };
 
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  // Shopifyセッションからshopドメインを取得
-  const { session } = await authenticate.admin(request);
-  const shop = session.shop; // ここで取得できるかチェック
-  const locale = await i18n.getLocale(request);
-  return json({ shop, locale });
+  try {
+    // Shopify認証を実行（認証失敗時は例外が発生）
+    const { session } = await authenticate.admin(request);
+    const shop = session.shop;
+    const locale = await i18n.getLocale(request);
+    
+    // 認証済みshop情報の検証
+    if (!shop) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
+    
+    // SSRでshipmentsデータを事前取得（認証済みshopのみ）
+    let shipments = [];
+    try {
+      const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+      const { data, error } = await supabase
+        .from('shipments')
+        .select('*')
+        .eq('shop_id', shop); // 認証済みshop_idのみ使用
+      
+      if (error) {
+        console.error('Supabase error:', error);
+        // エラー時は空配列を返す（データ漏洩を防ぐ）
+        shipments = [];
+      } else if (data) {
+        shipments = data;
+      }
+    } catch (error) {
+      console.error('SSR shipments fetch error:', error);
+      // エラー時は空配列を返す（データ漏洩を防ぐ）
+      shipments = [];
+    }
+    
+    return json({ shop, locale, shipments });
+  } catch (error) {
+    // 認証失敗時は401エラー
+    if (error instanceof Response) {
+      throw error;
+    }
+    console.error('Authentication error:', error);
+    throw new Response("Authentication failed", { status: 401 });
+  }
 };
 
 
 export default function Index() {
-  const { shop } = useLoaderData<typeof loader>();
+  const { shop, shipments: initialShipments } = useLoaderData<typeof loader>();
   const { t } = useTranslation();
   
   // 状態管理
-  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [shipments, setShipments] = useState<Shipment[]>(initialShipments);
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [shopId, setShopId] = useState<string>(shop || "");
   const [shopIdInput, setShopIdInput] = useState<string>(shop || "");
@@ -82,12 +120,12 @@ export default function Index() {
   const POPUP_WIDTH = 400;
   const POPUP_HEIGHT = 300;
 
-  // 初期化時にデータを取得
+  // 初期化時にデータを取得（shopIdが変更された時のみ）
   useEffect(() => {
-    if (shopId) {
+    if (shopId && shopId !== shop) {
       fetchShipments(shopId);
     }
-  }, [shopId]);
+  }, [shopId, shop]);
 
   // ガイド関連
   const handleDismissGuide = () => {
@@ -97,9 +135,13 @@ export default function Index() {
 
   const handleShowGuide = () => setShowStartGuide(true);
 
-  // データ取得関数
+  // データ取得関数（認証済みshop_idのみ使用）
   const fetchShipments = async (shopIdValue: string) => {
-    if (!shopIdValue) return;
+    if (!shopIdValue || shopIdValue !== shop) {
+      console.error('Shop ID mismatch or invalid');
+      setError('認証エラーが発生しました');
+      return;
+    }
     
     setLoading(true);
     setError(null);

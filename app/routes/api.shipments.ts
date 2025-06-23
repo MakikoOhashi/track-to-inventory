@@ -3,6 +3,7 @@ import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import { createClient } from '@supabase/supabase-js';
 import type { ActionFunctionArgs } from "@remix-run/node"
 import { checkSILimit } from "~/lib/redis.server"
+import { authenticate } from "~/shopify.server";
 import crypto from "crypto";
 
 // HMAC検証関数
@@ -28,31 +29,40 @@ const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SE
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET!;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const url = new URL(request.url);
-
-    // ★★★ 修正：hmacがある時だけ検証する ★★★
-    const hmac = url.searchParams.get("hmac");
-    if (hmac) {
-      if (!verifyShopifyHmac(url.searchParams, SHOPIFY_API_SECRET)) {
-        return json({ error: "HMAC validation failed" }, { status: 401 });
-      }
+  try {
+    // Shopify認証を実行（認証済みshop_idを取得）
+    const { session } = await authenticate.admin(request);
+    const authenticatedShopId = session.shop;
+    
+    if (!authenticatedShopId) {
+      return json({ error: "Authentication failed" }, { status: 401 });
     }
-    // hmacが無い場合はスキップ
+    
+    // URLパラメータからshop_idを取得（検証用）
+    const url = new URL(request.url);
+    const requestedShopId = url.searchParams.get("shop_id");
+    
+    // 認証済みshop_idとリクエストshop_idの一致を確認
+    if (requestedShopId !== authenticatedShopId) {
+      return json({ error: "Shop ID mismatch" }, { status: 403 });
+    }
+    
+    // 認証済みshop_idのみを使用してデータ取得
+    const { data, error } = await supabase
+      .from('shipments')
+      .select('*')
+      .eq('shop_id', authenticatedShopId);
 
-  const shop_id = url.searchParams.get("shop_id");
-  if (!shop_id) {
-    return json({ error: "shop_id is required" }, { status: 400 });
+    if (error) {
+      console.error('Supabase error:', error);
+      return json({ error: "Database error" }, { status: 500 });
+    }
+    
+    return json({ shipments: data || [] });
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return json({ error: "Authentication failed" }, { status: 401 });
   }
-
-  const { data, error } = await supabase
-    .from('shipments')
-    .select('*')
-    .eq('shop_id', shop_id);
-
-  if (error) {
-    return json({ error: error.message }, { status: 500 });
-  }
-  return json({ shipments: data });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
