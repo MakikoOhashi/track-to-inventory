@@ -208,14 +208,13 @@ export default function Index() {
     let x = rect.left;
     let y = rect.bottom + 4;
 
-
     // 右端はみ出し防止
     if (x + POPUP_WIDTH > window.innerWidth) {
       x = window.innerWidth - POPUP_WIDTH - 10;
     }
     // 下端はみ出し防止
     if (y + POPUP_HEIGHT > window.innerHeight) {
-      y = rect.top - POPUP_HEIGHT + 8;
+      y = window.innerHeight - POPUP_HEIGHT - 10;
     }
     // 上端にもはみ出さないようにする
     if (y < 0) y = 10;
