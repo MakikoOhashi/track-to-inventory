@@ -31,10 +31,13 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   
   // FILE_TYPESの定義を関数内に移動
   const FILE_TYPES = [
-    { label: t('modal.fileTypes.invoice'), key: 'invoice' },
-    { label: t('modal.fileTypes.pl'), key: 'pl' },
-    { label: t('modal.fileTypes.si'), key: 'si' },
-    { label: t('modal.fileTypes.other'), key: 'other' },
+    'image/jpeg',
+    'image/jpg', 
+    'image/png',
+    'image/gif',
+    'image/bmp',
+    'image/webp',
+    'application/pdf'
   ];
   
   const [editMode, setEditMode] = useState(false);
@@ -53,14 +56,28 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     { label: t('modal.status.synced'), value: "synced" },
   ];
 
-  // shipmentデータの初期化と更新
+  // 初期化時の処理
   useEffect(() => {
-    if (shipment) {
-      console.log('Modal: shipment data received:', shipment);
-      setFormData(shipment);
-    } else {
-      console.log('Modal: No shipment data provided - this is normal on initial load');
+    if (!shipment) {
+      // 初期状態では何も表示しない（これは正常な動作）
+      return;
     }
+    
+    // shipmentデータが提供された場合の処理
+    setFormData({
+      si_number: shipment.si_number || '',
+      eta: shipment.eta || '',
+      supplier_name: shipment.supplier_name || '',
+      status: shipment.status || '',
+      items: shipment.items || [],
+      notes: shipment.notes || '',
+      files: shipment.files || []
+    });
+    
+    setSelectedStatus(shipment.status || '');
+    setSelectedItems(shipment.items || []);
+    setSelectedFiles(shipment.files || []);
+    
   }, [shipment]);
 
   // ファイルの署名付きURLを一括取得

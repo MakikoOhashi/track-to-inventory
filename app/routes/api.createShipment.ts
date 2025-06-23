@@ -41,13 +41,40 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   try {
-    const formData = await request.formData();
-    const siNumber = formData.get("siNumber") as string;
-    const shopId = formData.get("shopId") as string;
-    const invoiceUrl = formData.get("invoiceUrl") as string;
-    const plUrl = formData.get("plUrl") as string;
-    const siUrl = formData.get("siUrl") as string;
-    const otherUrl = formData.get("otherUrl") as string;
+    const contentType = request.headers.get('content-type');
+    let siNumber: string;
+    let shopId: string;
+    let invoiceUrl: string;
+    let plUrl: string;
+    let siUrl: string;
+    let otherUrl: string;
+
+    // Content-Typeに応じて適切に解析
+    if (contentType?.includes('application/json')) {
+      const body = await request.json();
+      const shipment = body.shipment;
+      
+      if (!shipment) {
+        return json({ error: "shipment data is required" }, { status: 400 });
+      }
+      
+      siNumber = shipment.si_number;
+      shopId = shipment.shop_id;
+      invoiceUrl = shipment.invoice_url;
+      plUrl = shipment.pl_url;
+      siUrl = shipment.si_url;
+      otherUrl = shipment.other_url;
+    } else if (contentType?.includes('multipart/form-data') || contentType?.includes('application/x-www-form-urlencoded')) {
+      const formData = await request.formData();
+      siNumber = formData.get("siNumber") as string;
+      shopId = formData.get("shopId") as string;
+      invoiceUrl = formData.get("invoiceUrl") as string;
+      plUrl = formData.get("plUrl") as string;
+      siUrl = formData.get("siUrl") as string;
+      otherUrl = formData.get("otherUrl") as string;
+    } else {
+      return json({ error: "Unsupported content type" }, { status: 400 });
+    }
 
     if (!siNumber || !shopId) {
       return json({ error: "必須フィールドが不足しています" }, { status: 400 });
