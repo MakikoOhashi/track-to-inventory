@@ -71,7 +71,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       supplier_name: shipment.supplier_name || '',
       status: shipment.status || '',
       items: shipment.items || [],
-      notes: shipment.notes || '',
+      memo: shipment.memo || '',
       invoice_url: shipment.invoice_url || '',
       pl_url: shipment.pl_url || '',
       si_url: shipment.si_url || '',
