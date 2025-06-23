@@ -506,6 +506,16 @@ export default function Index() {
 
   <Text as="h2" variant="headingLg" id="detail-section">{t('title.detailDisplay')}</Text>
 
+  {/* デバッグ情報 */}
+  {process.env.NODE_ENV === 'development' && (
+    <Banner tone="info">
+      <p>デバッグ情報:</p>
+      <p>Shipments数: {shipments.length}</p>
+      <p>現在の言語: {locale}</p>
+      <p>DetailViewMode: {detailViewMode}</p>
+      <p>SelectedTab: {selectedTab}</p>
+    </Banner>
+  )}
 
                 <Tabs 
                   tabs={tabs}
