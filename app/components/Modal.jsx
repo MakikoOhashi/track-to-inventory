@@ -301,6 +301,13 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     try {
       // created_at, updated_atフィールドを除外してデータを準備
       const { created_at, updated_at, ...saveData } = formData;
+      // si_number以外はnullでもOK。date型は空文字列ならnullに変換
+      const cleanDate = v => v === "" ? null : v;
+      saveData.etd = cleanDate(saveData.etd);
+      saveData.eta = cleanDate(saveData.eta);
+      saveData.clearance_date = cleanDate(saveData.clearance_date);
+      saveData.arrival_date = cleanDate(saveData.arrival_date);
+      // 他のフィールドも空文字列ならnullにしたい場合はここで追加可能
       
       const res = await fetch('/api/updateShipment', {
         method: 'POST',
