@@ -2,7 +2,7 @@ import { Select } from '@shopify/polaris';
 import { useTranslation } from 'react-i18next';
 
 const LanguageSwitcher = ({ value = 'ja', onChange }) => {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
 
   const options = [
     { label: t('language.japanese'), value: 'ja' },
@@ -13,6 +13,12 @@ const LanguageSwitcher = ({ value = 'ja', onChange }) => {
     if (onChange) {
       onChange(selectedValue);
     }
+    
+    // i18nの言語も直接変更
+    i18n.changeLanguage(selectedValue);
+    
+    // localStorageにも保存
+    localStorage.setItem('i18nextLng', selectedValue);
   };
 
   return (

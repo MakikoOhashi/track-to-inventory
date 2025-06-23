@@ -97,7 +97,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 
 export default function Index() {
-  const { shop, shipments: initialShipments, locale } = useLoaderData<typeof loader>();
+  const { shop, shipments: initialShipments, locale: initialLocale } = useLoaderData<typeof loader>();
   const { t, i18n: i18nInstance } = useTranslation();
   
   // 状態管理
@@ -114,6 +114,7 @@ export default function Index() {
   const [siQuery, setSiQuery] = useState("");
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
   const [popupPos, setPopupPos] = useState<PopupPos>({ x: 0, y: 0 });
+  const [locale, setLocale] = useState<string>(initialLocale || 'ja');
   const popupTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // 定数
@@ -138,6 +139,10 @@ export default function Index() {
   // 言語切り替えハンドラー
   const handleLanguageChange = (newLanguage: string) => {
     i18nInstance.changeLanguage(newLanguage);
+    // 言語設定をlocalStorageに保存
+    localStorage.setItem('i18nextLng', newLanguage);
+    // 状態を更新して再レンダリングをトリガー
+    setLocale(newLanguage);
   };
 
   // データ取得関数（認証済みshop_idのみ使用）
