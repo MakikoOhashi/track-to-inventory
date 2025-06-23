@@ -106,9 +106,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }, { status: 403 });
     }
 
-    // 現在の日時を取得
-    const now = new Date().toISOString();
-
     const shipmentData = {
       si_number: siNumber,
       shop_id: shopId,
@@ -119,8 +116,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       other_url: otherUrl || null,
       delayed: false, // デフォルト値
       is_archived: false, // デフォルト値
-      created_at: now,
-      updated_at: now,
     };
 
     const { data: result, error: shipmentError } = await supabase
