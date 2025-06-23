@@ -3,7 +3,7 @@
 client_id = "54d683ca896f499d837fee84e21f76a3"
 name = "TrackToInventory"
 handle = "tracktoinventory"
-application_url = "https://hotels-lightweight-bat-applicable.trycloudflare.com"
+application_url = "https://recipient-handled-anthony-exhibits.trycloudflare.com"
 embedded = true
 
 [build]
@@ -28,9 +28,9 @@ scopes = "read_products,write_products,write_inventory,read_locations"
 
 [auth]
 redirect_urls = [
-  "https://hotels-lightweight-bat-applicable.trycloudflare.com/auth/callback",
-  "https://hotels-lightweight-bat-applicable.trycloudflare.com/auth/shopify/callback",
-  "https://hotels-lightweight-bat-applicable.trycloudflare.com/api/auth/callback"
+  "https://recipient-handled-anthony-exhibits.trycloudflare.com/auth/callback",
+  "https://recipient-handled-anthony-exhibits.trycloudflare.com/auth/shopify/callback",
+  "https://recipient-handled-anthony-exhibits.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

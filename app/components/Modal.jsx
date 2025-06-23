@@ -58,6 +58,8 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     if (shipment) {
       console.log('Modal: shipment data received:', shipment);
       setFormData(shipment);
+    } else {
+      console.log('Modal: No shipment data provided - this is normal on initial load');
     }
   }, [shipment]);
 
@@ -192,10 +194,9 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     }
   };
 
-  // シンプルなデータ検証
+  // データ検証 - shipmentがnullの場合は何も表示しない（正常な状態）
   if (!shipment) {
-    console.warn('Modal: No shipment data provided');
-    return null;
+    return null; // 初期状態では何も表示しない
   }
   
   if (!formData) {
