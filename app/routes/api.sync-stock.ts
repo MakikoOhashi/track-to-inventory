@@ -298,14 +298,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           
           if (adjData.errors) {
             adjGraphqlErrors = adjData.errors;
-            console.error("戦略1 GraphQLエラー:", adjData.errors);
+            console.error("戦略1 GraphQLエラー詳細:", JSON.stringify(adjData.errors, null, 2));
           } else if (!adjData.data?.inventoryAdjustQuantities?.userErrors?.length) {
             success = true;
             usedStrategy = "inventoryAdjustQuantities";
             console.log("戦略1 成功");
           } else {
             adjUserErrors = adjData.data.inventoryAdjustQuantities.userErrors;
-            console.error("戦略1 userErrors:", adjUserErrors);
+            console.error("戦略1 userErrors詳細:", JSON.stringify(adjUserErrors, null, 2));
           }
           
         } catch (strategy1Error) {
@@ -371,14 +371,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             
             if (adjData.errors) {
               adjGraphqlErrors = adjData.errors;
-              console.error("戦略2 GraphQLエラー:", adjData.errors);
+              console.error("戦略2 GraphQLエラー詳細:", JSON.stringify(adjData.errors, null, 2));
             } else if (!adjData.data?.inventorySetQuantities?.userErrors?.length) {
               success = true;
               usedStrategy = "inventorySetQuantities";
               console.log("戦略2 成功");
             } else {
               adjUserErrors = adjData.data.inventorySetQuantities.userErrors;
-              console.error("戦略2 userErrors:", adjUserErrors);
+              console.error("戦略2 userErrors詳細:", JSON.stringify(adjUserErrors, null, 2));
             }
             
           } catch (strategy2Error) {
