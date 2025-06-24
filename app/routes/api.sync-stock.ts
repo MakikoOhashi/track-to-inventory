@@ -387,67 +387,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         }
         
-        // 戦略3: Legacy inventoryBulkAdjustQuantityAtLocation (最終フォールバック)
-        if (!success) {
-          step = "inventoryBulkAdjustQuantityAtLocation";
-          try {
-            console.log("=== 戦略3: Legacy inventoryBulkAdjustQuantityAtLocation ===");
-            
-            const legacyMutation = `
-              mutation inventoryBulkAdjustQuantityAtLocation($inventoryItemAdjustments: [InventoryAdjustItemInput!]!, $locationId: ID!) {
-                inventoryBulkAdjustQuantityAtLocation(inventoryItemAdjustments: $inventoryItemAdjustments, locationId: $locationId) {
-                  inventoryLevels {
-                    available
-                    item {
-                      id
-                    }
-                  }
-                  userErrors {
-                    field
-                    message
-                  }
-                }
-              }
-            `;
-            
-            const legacyVariables = {
-              locationId: locationId,
-              inventoryItemAdjustments: [
-                {
-                  inventoryItemId: inventoryItemId,
-                  availableDelta: item.quantity
-                }
-              ]
-            };
-            
-            console.log("Legacy variables:", JSON.stringify(legacyVariables, null, 2));
-            
-            const legacyResult = await admin.graphql(legacyMutation, {
-              variables: legacyVariables
-            });
-            
-            adjData = await legacyResult.json() as { data?: any; errors?: any };
-            console.log("戦略3 結果:", JSON.stringify(adjData, null, 2));
-            
-            if (adjData.errors) {
-              adjGraphqlErrors = adjData.errors;
-              console.error("戦略3 GraphQLエラー:", adjData.errors);
-            } else if (!adjData.data?.inventoryBulkAdjustQuantityAtLocation?.userErrors?.length) {
-              success = true;
-              usedStrategy = "inventoryBulkAdjustQuantityAtLocation";
-              console.log("戦略3 成功");
-            } else {
-              adjUserErrors = adjData.data.inventoryBulkAdjustQuantityAtLocation.userErrors;
-              console.error("戦略3 userErrors:", adjUserErrors);
-            }
-            
-          } catch (strategy3Error) {
-            adjUserErrors = [{ message: String(strategy3Error) }];
-            console.log("戦略3 例外:", strategy3Error);
-          }
-        }
-        
-        // 成功時
+        // 戦略1・2ともに失敗した場合のみエラー記録
         if (success) {
           results.push({
             variant_id: item.variant_id,
@@ -457,8 +397,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             after_quantity: variant.inventoryQuantity + item.quantity,
             tracking_enabled: variant.inventoryItem.tracked,
             response: adjData?.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup || 
-                     adjData?.data?.inventorySetQuantities?.inventoryAdjustmentGroup ||
-                     adjData?.data?.inventoryBulkAdjustQuantityAtLocation?.inventoryLevels,
+                     adjData?.data?.inventorySetQuantities?.inventoryAdjustmentGroup,
             errors: [],
             strategy_used: usedStrategy,
           });
