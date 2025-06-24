@@ -470,8 +470,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             
             const setQuantitiesVariables = {
               input: {
-                reason: "correction",
-                setQuantities: [
+                name: "correction",
+                quantities: [
                   {
                     inventoryItemId: inventoryItemId,
                     locationId: locationId,
