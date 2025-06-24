@@ -22,6 +22,89 @@ type SyncResult = {
   graphqlErrors?: unknown;
 };
 
+// GraphQLレスポンスの詳細ログ出力関数
+function logGraphQLResponse(step: string, data: any, variables?: any) {
+  console.log(`\n=== ${step} 詳細ログ ===`);
+  console.log("Variables:", JSON.stringify(variables, null, 2));
+  console.log("Response:", JSON.stringify(data, null, 2));
+  
+  // GraphQL errorsの詳細表示
+  if (data.errors && Array.isArray(data.errors)) {
+    console.error(`\n${step} GraphQL Errors:`);
+    data.errors.forEach((error: any, index: number) => {
+      console.error(`  Error ${index + 1}:`, {
+        message: error.message,
+        extensions: error.extensions,
+        path: error.path,
+        locations: error.locations
+      });
+    });
+  }
+  
+  // userErrorsの再帰的検索と表示
+  function findUserErrors(obj: any, path: string = ""): UserError[] {
+    const userErrors: UserError[] = [];
+    
+    if (obj && typeof obj === 'object') {
+      if (obj.userErrors && Array.isArray(obj.userErrors)) {
+        console.error(`\n${step} userErrors found at ${path}:`);
+        obj.userErrors.forEach((error: UserError, index: number) => {
+          console.error(`  UserError ${index + 1}:`, {
+            field: error.field,
+            message: error.message
+          });
+        });
+        userErrors.push(...obj.userErrors);
+      }
+      
+      // 再帰的に検索
+      for (const [key, value] of Object.entries(obj)) {
+        if (value && typeof value === 'object') {
+          userErrors.push(...findUserErrors(value, `${path}.${key}`));
+        }
+      }
+    }
+    
+    return userErrors;
+  }
+  
+  const allUserErrors = findUserErrors(data);
+  if (allUserErrors.length > 0) {
+    console.error(`\n${step} 全userErrors (${allUserErrors.length}件):`, allUserErrors);
+  }
+  
+  console.log(`=== ${step} ログ終了 ===\n`);
+}
+
+// エラー判定の改善された関数
+function hasErrors(data: any): { hasGraphQLErrors: boolean; hasUserErrors: boolean; userErrors: UserError[] } {
+  const hasGraphQLErrors = data.errors && Array.isArray(data.errors) && data.errors.length > 0;
+  
+  function findUserErrors(obj: any): UserError[] {
+    const userErrors: UserError[] = [];
+    
+    if (obj && typeof obj === 'object') {
+      if (obj.userErrors && Array.isArray(obj.userErrors)) {
+        userErrors.push(...obj.userErrors);
+      }
+      
+      // 再帰的に検索
+      for (const value of Object.values(obj)) {
+        if (value && typeof value === 'object') {
+          userErrors.push(...findUserErrors(value));
+        }
+      }
+    }
+    
+    return userErrors;
+  }
+  
+  const userErrors = findUserErrors(data);
+  const hasUserErrors = userErrors.length > 0;
+  
+  return { hasGraphQLErrors, hasUserErrors, userErrors };
+}
+
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     const { admin } = await authenticate.admin(request);
@@ -51,7 +134,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const locationResult = await admin.graphql(locationsQuery);
     
     const locationData = await locationResult.json();
-    console.log("Location取得結果:", locationData);
+    logGraphQLResponse("Location取得", locationData);
     
     if (!locationData || !locationData.data || !locationData.data.locations) {
       return json({ 
@@ -77,6 +160,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     for (const item of items) {
       let step = "variantQuery";
       try {
+        console.log(`\n=== バリアント処理開始: ${item.variant_id} ===`);
+        console.log("処理対象:", { variant_id: item.variant_id, quantity: item.quantity });
+        
         // 1. バリアント情報を詳細取得（在庫設定含む）
         const variantQuery = `
           query($id: ID!) {
@@ -97,12 +183,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         `;
         
+        const variantVariables = { id: item.variant_id };
+        console.log("バリアント取得変数:", JSON.stringify(variantVariables, null, 2));
+        
         const variantRes = await admin.graphql(variantQuery, { 
-          variables: { id: item.variant_id } 
+          variables: variantVariables 
         });
         const variantData = await variantRes.json() as { data?: any; errors?: any };
         
-        if (variantData.errors) {
+        logGraphQLResponse("バリアント取得", variantData, variantVariables);
+        
+        const { hasGraphQLErrors, hasUserErrors, userErrors } = hasErrors(variantData);
+        
+        if (hasGraphQLErrors) {
           results.push({
             variant_id: item.variant_id,
             error: "バリアントGraphQLエラー",
@@ -123,6 +216,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           });
           continue;
         }
+
+        console.log("バリアント情報:", {
+          id: variant.id,
+          title: variant.product.title,
+          inventoryQuantity: variant.inventoryQuantity,
+          tracked: variant.inventoryItem.tracked
+        });
 
         const inventoryItemId = variant.inventoryItem?.id;
         if (!inventoryItemId) {
@@ -155,17 +255,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
           `;
           
-          const trackingResult = await admin.graphql(enableTrackingMutation, {
-            variables: {
-              input: {
-                id: inventoryItemId,
-                tracked: true
-              }
+          const trackingVariables = {
+            input: {
+              id: inventoryItemId,
+              tracked: true
             }
+          };
+          
+          console.log("在庫追跡有効化変数:", JSON.stringify(trackingVariables, null, 2));
+          
+          const trackingResult = await admin.graphql(enableTrackingMutation, {
+            variables: trackingVariables
           });
           
           const trackingData = await trackingResult.json() as { data?: any; errors?: any };
-          if (trackingData.errors) {
+          logGraphQLResponse("在庫追跡有効化", trackingData, trackingVariables);
+          
+          const trackingErrorCheck = hasErrors(trackingData);
+          if (trackingErrorCheck.hasGraphQLErrors) {
             results.push({
               variant_id: item.variant_id,
               error: "在庫追跡有効化GraphQLエラー",
@@ -175,13 +282,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             });
             continue;
           }
-          if (trackingData.data?.inventoryItemUpdate?.userErrors?.length > 0) {
+          if (trackingErrorCheck.hasUserErrors) {
             results.push({
               variant_id: item.variant_id,
               error: "在庫追跡有効化userError",
               errorType: "userError",
               failedStep: step,
-              errors: trackingData.data.inventoryItemUpdate.userErrors,
+              errors: trackingErrorCheck.userErrors,
             });
             continue;
           }
@@ -206,17 +313,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
           `;
           
-          const variantUpdateResult = await admin.graphql(variantUpdateMutation, {
-            variables: {
-              input: {
-                id: item.variant_id,
-                inventoryPolicy: 'DENY' // 在庫切れ時は販売停止
-              }
+          const variantUpdateVariables = {
+            input: {
+              id: item.variant_id,
+              inventoryPolicy: 'DENY' // 在庫切れ時は販売停止
             }
+          };
+          
+          console.log("バリアント更新変数:", JSON.stringify(variantUpdateVariables, null, 2));
+          
+          const variantUpdateResult = await admin.graphql(variantUpdateMutation, {
+            variables: variantUpdateVariables
           });
           
           const variantUpdateData = await variantUpdateResult.json() as { data?: any; errors?: any };
-          if (variantUpdateData.errors) {
+          logGraphQLResponse("バリアント更新", variantUpdateData, variantUpdateVariables);
+          
+          const variantUpdateErrorCheck = hasErrors(variantUpdateData);
+          if (variantUpdateErrorCheck.hasGraphQLErrors) {
             results.push({
               variant_id: item.variant_id,
               error: "バリアント更新GraphQLエラー",
@@ -226,13 +340,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             });
             continue;
           }
-          if (variantUpdateData.data?.productVariantUpdate?.userErrors?.length > 0) {
+          if (variantUpdateErrorCheck.hasUserErrors) {
             results.push({
               variant_id: item.variant_id,
               error: "バリアント更新userError",
               errorType: "userError",
               failedStep: step,
-              errors: variantUpdateData.data.productVariantUpdate.userErrors,
+              errors: variantUpdateErrorCheck.userErrors,
             });
             continue;
           }
@@ -287,25 +401,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
           };
           
-          console.log("Variables:", JSON.stringify(mutationVariables, null, 2));
+          console.log("戦略1 変数:", JSON.stringify(mutationVariables, null, 2));
           
           const adjResult = await admin.graphql(adjMutation, {
             variables: mutationVariables
           });
           
           adjData = await adjResult.json() as { data?: any; errors?: any };
-          console.log("戦略1 結果:", JSON.stringify(adjData, null, 2));
+          logGraphQLResponse("戦略1: inventoryAdjustQuantities", adjData, mutationVariables);
           
-          if (adjData.errors) {
+          const strategy1ErrorCheck = hasErrors(adjData);
+          if (strategy1ErrorCheck.hasGraphQLErrors) {
             adjGraphqlErrors = adjData.errors;
-            console.error("戦略1 GraphQLエラー詳細:", JSON.stringify(adjData.errors, null, 2));
-          } else if (!adjData.data?.inventoryAdjustQuantities?.userErrors?.length) {
+            console.error("戦略1 GraphQLエラー - 次の戦略を試行");
+          } else if (!strategy1ErrorCheck.hasUserErrors) {
             success = true;
             usedStrategy = "inventoryAdjustQuantities";
             console.log("戦略1 成功");
           } else {
-            adjUserErrors = adjData.data.inventoryAdjustQuantities.userErrors;
-            console.error("戦略1 userErrors詳細:", JSON.stringify(adjUserErrors, null, 2));
+            adjUserErrors = strategy1ErrorCheck.userErrors;
+            console.error("戦略1 userErrors - 次の戦略を試行");
           }
           
         } catch (strategy1Error) {
@@ -322,6 +437,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             // 現在の在庫量を取得
             const currentQuantity = variant.inventoryQuantity || 0;
             const newQuantity = Math.max(0, currentQuantity + item.quantity);
+            
+            console.log("在庫計算:", {
+              currentQuantity,
+              delta: item.quantity,
+              newQuantity
+            });
             
             const setQuantitiesMutation = `
               mutation($input: InventorySetQuantitiesInput!) {
@@ -360,25 +481,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               }
             };
             
-            console.log("Set quantities variables:", JSON.stringify(setQuantitiesVariables, null, 2));
+            console.log("戦略2 変数:", JSON.stringify(setQuantitiesVariables, null, 2));
             
             const setResult = await admin.graphql(setQuantitiesMutation, {
               variables: setQuantitiesVariables
             });
             
             adjData = await setResult.json() as { data?: any; errors?: any };
-            console.log("戦略2 結果:", JSON.stringify(adjData, null, 2));
+            logGraphQLResponse("戦略2: inventorySetQuantities", adjData, setQuantitiesVariables);
             
-            if (adjData.errors) {
+            const strategy2ErrorCheck = hasErrors(adjData);
+            if (strategy2ErrorCheck.hasGraphQLErrors) {
               adjGraphqlErrors = adjData.errors;
-              console.error("戦略2 GraphQLエラー詳細:", JSON.stringify(adjData.errors, null, 2));
-            } else if (!adjData.data?.inventorySetQuantities?.userErrors?.length) {
+              console.error("戦略2 GraphQLエラー - 全ての戦略が失敗");
+            } else if (!strategy2ErrorCheck.hasUserErrors) {
               success = true;
               usedStrategy = "inventorySetQuantities";
               console.log("戦略2 成功");
             } else {
-              adjUserErrors = adjData.data.inventorySetQuantities.userErrors;
-              console.error("戦略2 userErrors詳細:", JSON.stringify(adjUserErrors, null, 2));
+              adjUserErrors = strategy2ErrorCheck.userErrors;
+              console.error("戦略2 userErrors - 全ての戦略が失敗");
             }
             
           } catch (strategy2Error) {
@@ -389,6 +511,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         
         // 戦略1・2ともに失敗した場合のみエラー記録
         if (success) {
+          console.log(`バリアント ${item.variant_id} 処理成功: ${usedStrategy}`);
           results.push({
             variant_id: item.variant_id,
             product_title: variant.product.title,
@@ -402,6 +525,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             strategy_used: usedStrategy,
           });
         } else {
+          console.error(`バリアント ${item.variant_id} 処理失敗:`, {
+            errorType: adjGraphqlErrors ? "graphql" : (adjUserErrors.length ? "userError" : "unknown"),
+            failedStep: step,
+            userErrors: adjUserErrors,
+            graphqlErrors: adjGraphqlErrors
+          });
+          
           // 失敗詳細を記録
           results.push({
             variant_id: item.variant_id,
@@ -414,6 +544,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           });
         }
       } catch (itemError) {
+        console.error(`バリアント ${item.variant_id} 例外エラー:`, itemError);
         results.push({
           variant_id: item.variant_id,
           error: itemError instanceof Error ? itemError.message : String(itemError),
@@ -423,8 +554,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
     }
     
+    console.log("同期処理完了:", {
+      totalItems: items.length,
+      results: results.map(r => ({
+        variant_id: r.variant_id,
+        success: !r.error,
+        error: r.error,
+        strategy: r.strategy_used
+      }))
+    });
+    
     return json({ results });
   } catch (error) {
+    console.error("同期処理全体エラー:", error);
     return json({ 
       error: error instanceof Error ? error.message : String(error),
       debug: error instanceof Error ? error.stack : undefined
