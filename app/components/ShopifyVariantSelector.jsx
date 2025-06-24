@@ -92,9 +92,10 @@ async function fetchProductsWithVariants() {
 
 const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
   console.log('🚀 ShopifyVariantSelector: Component initialized!', { value, initialProductId });
+  console.log('🔍 ShopifyVariantSelector: Props received:', { value, onChange: typeof onChange, initialProductId });
   
   const { t } = useTranslation();
-  
+
   // 状態管理
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -111,9 +112,15 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
         setError("");
         console.log('🔄 ShopifyVariantSelector: Loading products...');
         const productsData = await fetchProductsWithVariants();
+        console.log('📦 ShopifyVariantSelector: Products loaded:', productsData);
         setProducts(productsData);
       } catch (err) {
         console.error('❌ ShopifyVariantSelector: Failed to load products:', err);
+        console.error('❌ ShopifyVariantSelector: Error details:', {
+          name: err.name,
+          message: err.message,
+          stack: err.stack
+        });
         setProducts([]);
         setError(t('shopifyVariantSelector.fetchError', { message: err.message }));
       } finally {
@@ -145,12 +152,12 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
     }
     
     return product.variants.map((v) => ({
-      label: `${v.title}（SKU: ${v.sku || '-' }）` + 
-        (v.selectedOptions && v.selectedOptions.length
-          ? ` / ${v.selectedOptions.map(opt => `${opt.name}:${opt.value}`).join(', ')}`
-          : ''),
-      value: v.id,
-      variant: v,
+        label: `${v.title}（SKU: ${v.sku || '-' }）` + 
+          (v.selectedOptions && v.selectedOptions.length
+            ? ` / ${v.selectedOptions.map(opt => `${opt.name}:${opt.value}`).join(', ')}`
+            : ''),
+        value: v.id,
+        variant: v,
     }));
   }, [selectedProductId, products]);
 
@@ -159,7 +166,7 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
     if (value !== selectedVariantId) {
       setSelectedVariantId(value || "");
     }
-  }, [value, selectedVariantId]);
+  }, [value]);
 
   // 選択されたバリアントが変更された時の処理
   useEffect(() => {
@@ -227,41 +234,41 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
   return (
     <div>
       <Text variant="headingSm">{t('shopifyVariantSelector.title')}</Text>
-      <Select
-        label={t('shopifyVariantSelector.productSelectLabel')}
-        options={[
-          { label: t('shopifyVariantSelector.pleaseSelect'), value: "" },
+          <Select
+            label={t('shopifyVariantSelector.productSelectLabel')}
+            options={[
+              { label: t('shopifyVariantSelector.pleaseSelect'), value: "" },
           ...products.map((p) => ({
-            label: p.title,
-            value: p.id,
-          })),
-        ]}
-        value={selectedProductId}
+                label: p.title,
+                value: p.id,
+              })),
+            ]}
+            value={selectedProductId}
         onChange={handleProductChange}
-      />
-      {variantOptions.length > 0 && (
-        <Select
-          label={t('shopifyVariantSelector.variantSelectLabel')}
-          options={[
-            { label: t('shopifyVariantSelector.pleaseSelect'), value: "" },
-            ...variantOptions.map((v) => ({
-              label: v.label,
-              value: v.value,
-            })),
-          ]}
-          value={selectedVariantId}
+          />
+          {variantOptions.length > 0 && (
+            <Select
+              label={t('shopifyVariantSelector.variantSelectLabel')}
+              options={[
+                { label: t('shopifyVariantSelector.pleaseSelect'), value: "" },
+                ...variantOptions.map((v) => ({
+                  label: v.label,
+                  value: v.value,
+                })),
+              ]}
+              value={selectedVariantId}
           onChange={handleVariantChange}
-          disabled={!selectedProductId}
-        />
-      )}
-      {(selectedProductId || selectedVariantId) && (
-        <Button
-          size="slim"
+              disabled={!selectedProductId}
+            />
+          )}
+          {(selectedProductId || selectedVariantId) && (
+            <Button
+              size="slim"
           onClick={handleClearSelection}
-          style={{ marginTop: 4 }}
-        >
-          {t('shopifyVariantSelector.clearSelection')}
-        </Button>
+              style={{ marginTop: 4 }}
+            >
+              {t('shopifyVariantSelector.clearSelection')}
+            </Button>
       )}
       {selectedVariantId && (
         <Text variant="bodySm" tone="subdued">

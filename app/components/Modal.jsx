@@ -47,6 +47,10 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
 
+  // デバッグログ: editModeの状態を監視
+  console.log('🔍 Modal: editMode state:', editMode);
+  console.log('🔍 Modal: formData state:', formData);
+
   // ステータスオプションを英語キーで統一
   const STATUS_OPTIONS = [
     { label: t('modal.status.siIssued'), value: "siIssued" },
@@ -579,6 +583,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
             />
             {/* 積載商品リスト */}
             <Text as="h4" variant="headingSm">{t('modal.sections.itemList')}</Text>
+            {console.log('🔍 Modal: Rendering items:', formData.items)}
             {(formData.items || []).map((item, idx) => (
               <InlineStack key={idx} gap="200" align="center">
                 <TextField
@@ -625,12 +630,13 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
             ))}
             <Button
               size="slim"
-              onClick={() =>
+              onClick={() => {
+                console.log('🔍 Modal: Adding new item');
                 setFormData(prev => ({
                   ...prev,
                   items: [...(prev.items || []), { name: "", quantity: 1 }]
-                }))
-              }
+                }));
+              }}
             >
               ＋{t('modal.buttons.addItem')}
             </Button>
