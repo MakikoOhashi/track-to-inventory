@@ -111,18 +111,35 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     ...safeData 
   } = shipment;
 
-  console.log('Safe data to upsert:', safeData); // Debug log
+  // 空文字列の日付フィールドをnullに変換（PostgreSQL DATE型エラー対策）
+  const cleanDateField = (value: any) => {
+    if (value === '' || value === undefined) {
+      return null;
+    }
+    return value;
+  };
+
+  // 日付フィールドをクリーンアップ
+  const cleanedData = {
+    ...safeData,
+    eta: cleanDateField(safeData.eta),
+    etd: cleanDateField(safeData.etd),
+    clearance_date: cleanDateField(safeData.clearance_date),
+    arrival_date: cleanDateField(safeData.arrival_date)
+  };
+
+  console.log('Safe data to upsert:', cleanedData); // Debug log
   console.log('File URL fields included:', {
-    invoice_url: safeData.invoice_url,
-    si_url: safeData.si_url,
-    pl_url: safeData.pl_url,
-    other_url: safeData.other_url
+    invoice_url: cleanedData.invoice_url,
+    si_url: cleanedData.si_url,
+    pl_url: cleanedData.pl_url,
+    other_url: cleanedData.other_url
   }); // Debug log
 
   try {
     const { data, error } = await supabaseClient
       .from('shipments')
-      .upsert([safeData]);
+      .upsert([cleanedData]);
 
     if (error) {
       console.error('Supabase upsert error:', error);
