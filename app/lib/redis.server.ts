@@ -14,7 +14,6 @@ const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-
 // ===== プラン設定 =====
 
 export type UserPlan = 'free' | 'basic' | 'pro'
@@ -26,20 +25,6 @@ const PLAN_LIMITS = {
 } as const
 
 // ===== ストアID取得 =====
-
-/**
- * リクエストからストアIDを取得（APIルート用）
- */
-export async function getStoreId(request: Request): Promise<string> {
-  const url = new URL(request.url)
-  const shopId = url.searchParams.get('shop_id') || url.searchParams.get('shopId')
-  
-  if (!shopId) {
-    throw new Error('shop_id parameter is required')
-  }
-  
-  return shopId
-}
 
 /**
  * Shopify認証を使用してストアIDを取得（ページルート用）
@@ -115,14 +100,6 @@ export async function checkAndIncrementAI(userId: string): Promise<void> {
   await redis.incr(`ai:${userId}:${month}`)
 }
 
-/**
- * リクエストからストアIDを取得してAI制限チェック
- */
-export async function checkAndIncrementAIFromRequest(request: Request): Promise<void> {
-  const storeId = await getStoreId(request)
-  await checkAndIncrementAI(storeId)
-}
-
 // ===== OCR使用回数制限 =====
 
 /**
@@ -144,14 +121,6 @@ export async function checkAndIncrementOCR(userId: string): Promise<void> {
   }
   
   await redis.incr(`ocr:${userId}:${month}`)
-}
-
-/**
- * リクエストからストアIDを取得してOCR制限チェック
- */
-export async function checkAndIncrementOCRFromRequest(request: Request): Promise<void> {
-  const storeId = await getStoreId(request)
-  await checkAndIncrementOCR(storeId)
 }
 
 // ===== 使用状況取得 =====

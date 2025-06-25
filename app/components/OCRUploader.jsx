@@ -71,6 +71,16 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
           headers: { "Content-Type": "application/json" },
         });
         
+        if (res.status === 401) {
+          let data;
+          try {
+            data = await res.json();
+          } catch {
+            data = {};
+          }
+          throw new Error(data.error || "認証に失敗しました。アプリを再インストールしてください。");
+        }
+        
         if (res.status === 429) {
             let data;
           try {
@@ -313,6 +323,18 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
           fields,
         }),
       });
+      
+      // ★ 401エラー（認証エラー）の専用ハンドリング
+      if (res.status === 401) {
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
+        setAiError(data.error || "認証に失敗しました。アプリを再インストールしてください。");
+        return;
+      }
       
       // ★ 429エラー（使用回数制限）の専用ハンドリング
       let data;

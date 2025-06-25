@@ -1,6 +1,7 @@
-import { json, ActionFunctionArgs } from "@remix-run/node";
+import { json, type ActionFunctionArgs } from "@remix-run/node";
 import { generateGeminiContent } from "~/lib/geminiClient";
-import { checkAndIncrementAIFromRequest } from "~/lib/redis.server";
+import { checkAndIncrementAI } from "~/lib/redis.server";
+import { authenticate } from "~/shopify.server";
 
 type Fields = { [key: string]: string | string[] };
 type RequestBody = { text: string; fields: Fields };
@@ -32,12 +33,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   
   // 🔥 AI使用制限チェック（ここで回数制限＆カウント増加）
   try {
-    await checkAndIncrementAIFromRequest(request);
+    // Shopify認証を実行
+    const { session } = await authenticate.admin(request);
+    const shopId = session.shop;
+    console.log('✅ Shopify authentication successful, shopId:', shopId);
+
+    await checkAndIncrementAI(shopId);
   } catch (error) {
+    // 認証エラーの場合は401を返す
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes("認証に失敗しました") || errorMessage.includes("shop_id parameter is required")) {
+      return json({ 
+        error: "認証に失敗しました。アプリを再インストールしてください。",
+        type: "auth_error"
+      }, { status: 401 });
+    }
+    
     // 制限に達した場合は429エラーを返す
     return json(
       { 
-        error: error instanceof Error ? error.message : "AI usage limit exceeded",
+        error: errorMessage,
         type: "usage_limit"
       }, 
       { status: 429 }
