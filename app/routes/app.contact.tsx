@@ -92,9 +92,6 @@ export default function Contact() {
             <div style={{ padding: '20px', maxWidth: 500 }}>
               <Text as="h2" variant="headingMd">{t("contact.formTitle")}</Text>
               <br />
-              <div style={{ marginBottom: "1em", fontSize: "0.9em", color: "#666" }}>
-                {t("contact.shopLabel")}: <b>{shop ?? t("contact.unknown")}</b>
-              </div>
               {!isAdmin && (
                 <Banner tone="critical">
                   {error ?? t("contact.adminOnly")}
