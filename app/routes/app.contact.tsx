@@ -101,7 +101,9 @@ export default function Contact() {
   return (
     <Page title={t("contact.title")}>
       <Box paddingBlockEnd="200">
-        <LanguageSwitcher value={i18n.language} onChange={i18n.changeLanguage} />
+        <div style={{ maxWidth: 200 }}>
+          <LanguageSwitcher value={i18n.language} onChange={i18n.changeLanguage} />
+        </div>
       </Box>
       <Layout>
         <Layout.Section>
