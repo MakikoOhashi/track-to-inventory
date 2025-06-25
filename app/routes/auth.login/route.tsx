@@ -20,14 +20,12 @@ import { loginErrorMessage } from "./error.server";
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const errors = loginErrorMessage(await login(request));
-
-  return { errors, polarisTranslations };
+  // 初期表示用。login(request)は呼ばない。
+  return { errors: { shop: "" }, polarisTranslations };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const errors = loginErrorMessage(await login(request));
-
   return {
     errors,
   };
