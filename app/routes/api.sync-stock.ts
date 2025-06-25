@@ -428,11 +428,72 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           console.log("戦略1 例外:", strategy1Error);
         }
         
-        // 戦略2: inventorySetQuantities (フォールバック)
+        // 戦略2: inventoryAdjustQuantity (単数形) - より安定したAPI
+        if (!success) {
+          step = "inventoryAdjustQuantity";
+          try {
+            console.log("=== 戦略2: inventoryAdjustQuantity (単数形) ===");
+            
+            // inventoryLevelIdを生成（Shopifyの形式: gid://shopify/InventoryLevel/1234567890）
+            const inventoryLevelId = `gid://shopify/InventoryLevel/${inventoryItemId.split('/').pop()}_${locationId.split('/').pop()}`;
+            
+            console.log("InventoryLevel ID:", inventoryLevelId);
+            
+            const adjustQuantityMutation = `
+              mutation($input: InventoryAdjustQuantityInput!) {
+                inventoryAdjustQuantity(input: $input) {
+                  inventoryLevel {
+                    id
+                    available
+                  }
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }
+            `;
+            
+            const adjustQuantityVariables = {
+              input: {
+                inventoryLevelId: inventoryLevelId,
+                delta: item.quantity
+              }
+            };
+            
+            console.log("戦略2 変数:", JSON.stringify(adjustQuantityVariables, null, 2));
+            
+            const adjustResult = await admin.graphql(adjustQuantityMutation, {
+              variables: adjustQuantityVariables
+            });
+            
+            adjData = await adjustResult.json() as { data?: any; errors?: any };
+            logGraphQLResponse("戦略2: inventoryAdjustQuantity", adjData, adjustQuantityVariables);
+            
+            const strategy2ErrorCheck = hasErrors(adjData);
+            if (strategy2ErrorCheck.hasGraphQLErrors) {
+              adjGraphqlErrors = adjData.errors;
+              console.error("戦略2 GraphQLエラー - 次の戦略を試行");
+            } else if (!strategy2ErrorCheck.hasUserErrors) {
+              success = true;
+              usedStrategy = "inventoryAdjustQuantity";
+              console.log("戦略2 成功");
+            } else {
+              adjUserErrors = strategy2ErrorCheck.userErrors;
+              console.error("戦略2 userErrors - 次の戦略を試行");
+            }
+            
+          } catch (strategy2Error) {
+            adjUserErrors = [{ message: String(strategy2Error) }];
+            console.log("戦略2 例外:", strategy2Error);
+          }
+        }
+        
+        // 戦略3: inventorySetQuantities (フォールバック)
         if (!success) {
           step = "inventorySetQuantities";
           try {
-            console.log("=== 戦略2: inventorySetQuantities ===");
+            console.log("=== 戦略3: inventorySetQuantities ===");
             
             // 現在の在庫量を取得
             const currentQuantity = variant.inventoryQuantity || 0;
@@ -471,6 +532,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             const setQuantitiesVariables = {
               input: {
                 name: "correction",
+                reason: "correction",
                 quantities: [
                   {
                     inventoryItemId: inventoryItemId,
@@ -481,31 +543,31 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               }
             };
             
-            console.log("戦略2 変数:", JSON.stringify(setQuantitiesVariables, null, 2));
+            console.log("戦略3 変数:", JSON.stringify(setQuantitiesVariables, null, 2));
             
             const setResult = await admin.graphql(setQuantitiesMutation, {
               variables: setQuantitiesVariables
             });
             
             adjData = await setResult.json() as { data?: any; errors?: any };
-            logGraphQLResponse("戦略2: inventorySetQuantities", adjData, setQuantitiesVariables);
+            logGraphQLResponse("戦略3: inventorySetQuantities", adjData, setQuantitiesVariables);
             
-            const strategy2ErrorCheck = hasErrors(adjData);
-            if (strategy2ErrorCheck.hasGraphQLErrors) {
+            const strategy3ErrorCheck = hasErrors(adjData);
+            if (strategy3ErrorCheck.hasGraphQLErrors) {
               adjGraphqlErrors = adjData.errors;
-              console.error("戦略2 GraphQLエラー - 全ての戦略が失敗");
-            } else if (!strategy2ErrorCheck.hasUserErrors) {
+              console.error("戦略3 GraphQLエラー - 全ての戦略が失敗");
+            } else if (!strategy3ErrorCheck.hasUserErrors) {
               success = true;
               usedStrategy = "inventorySetQuantities";
-              console.log("戦略2 成功");
+              console.log("戦略3 成功");
             } else {
-              adjUserErrors = strategy2ErrorCheck.userErrors;
-              console.error("戦略2 userErrors - 全ての戦略が失敗");
+              adjUserErrors = strategy3ErrorCheck.userErrors;
+              console.error("戦略3 userErrors - 全ての戦略が失敗");
             }
             
-          } catch (strategy2Error) {
-            adjUserErrors = [{ message: String(strategy2Error) }];
-            console.log("戦略2 例外:", strategy2Error);
+          } catch (strategy3Error) {
+            adjUserErrors = [{ message: String(strategy3Error) }];
+            console.log("戦略3 例外:", strategy3Error);
           }
         }
         
