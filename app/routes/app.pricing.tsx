@@ -10,6 +10,7 @@ import {
 } from "@shopify/polaris";
 import { authenticate } from "~/shopify.server";
 import { useTranslation } from "react-i18next";
+import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -17,7 +18,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function Pricing() {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
   const plans = [
     {
       key: "free",
@@ -107,6 +108,9 @@ export default function Pricing() {
 
   return (
     <Page title={t("pricing.title")}>
+      <Box paddingBlockEnd="200">
+        <LanguageSwitcher value={i18n.language} onChange={i18n.changeLanguage} />
+      </Box>
       <Box paddingBlockStart="400" paddingBlockEnd="400">
         {/* プランカード - レスポンシブGrid */}
         <style>

@@ -1,10 +1,11 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useActionData, useLoaderData, useNavigation } from "@remix-run/react";
-import { Page, Card, Layout, Text, TextField, Button, DropZone, Banner } from "@shopify/polaris";
+import { Page, Card, Layout, Text, TextField, Button, DropZone, Banner, Box } from "@shopify/polaris";
 import { useState, useCallback } from "react";
 import { authenticate } from "~/shopify.server";
 import { useTranslation } from "react-i18next";
+import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
 type LoaderData = {
   shop: string | null;
@@ -73,7 +74,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Contact() {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const { shop, isAdmin, error } = useLoaderData<LoaderData>();
@@ -99,6 +100,9 @@ export default function Contact() {
 
   return (
     <Page title={t("contact.title")}>
+      <Box paddingBlockEnd="200">
+        <LanguageSwitcher value={i18n.language} onChange={i18n.changeLanguage} />
+      </Box>
       <Layout>
         <Layout.Section>
           <Card>
