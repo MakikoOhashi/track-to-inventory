@@ -21,6 +21,17 @@ export default function App() {
   return (
     <I18nextProvider i18n={i18n}>
     <AppProvider isEmbeddedApp>
+    <NavMenu>
+        <Link to="/app" rel="home">
+          Home
+        </Link>
+        <Link to="/app/pricing">
+          Pricing
+        </Link>
+        <Link to="/app/contact">
+          Contact
+        </Link>
+      </NavMenu>
       <Outlet />
     </AppProvider>
     </I18nextProvider>
