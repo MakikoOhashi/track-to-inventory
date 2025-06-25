@@ -434,10 +434,51 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           try {
             console.log("=== 戦略2: inventoryAdjustQuantity (単数形) ===");
             
-            // inventoryLevelIdを生成（Shopifyの形式: gid://shopify/InventoryLevel/1234567890）
-            const inventoryLevelId = `gid://shopify/InventoryLevel/${inventoryItemId.split('/').pop()}_${locationId.split('/').pop()}`;
+            // 正確なInventoryLevel IDを取得
+            const inventoryLevelQuery = `
+              query($inventoryItemId: ID!, $locationId: ID!) {
+                inventoryLevel(inventoryItemId: $inventoryItemId, locationId: $locationId) {
+                  id
+                  available
+                  item {
+                    id
+                  }
+                  location {
+                    id
+                  }
+                }
+              }
+            `;
             
-            console.log("InventoryLevel ID:", inventoryLevelId);
+            const levelQueryVariables = {
+              inventoryItemId: inventoryItemId,
+              locationId: locationId
+            };
+            
+            console.log("InventoryLevel取得変数:", JSON.stringify(levelQueryVariables, null, 2));
+            
+            const levelResult = await admin.graphql(inventoryLevelQuery, {
+              variables: levelQueryVariables
+            });
+            
+            const levelData = await levelResult.json() as { data?: any; errors?: any };
+            logGraphQLResponse("InventoryLevel取得", levelData, levelQueryVariables);
+            
+            const levelErrorCheck = hasErrors(levelData);
+            if (levelErrorCheck.hasGraphQLErrors || levelErrorCheck.hasUserErrors) {
+              console.error("InventoryLevel取得エラー - 戦略2をスキップ");
+              throw new Error("InventoryLevel取得に失敗");
+            }
+            
+            const inventoryLevel = levelData.data?.inventoryLevel;
+            if (!inventoryLevel) {
+              console.error("InventoryLevelが見つかりません - 戦略2をスキップ");
+              throw new Error("InventoryLevelが見つかりません");
+            }
+            
+            const inventoryLevelId = inventoryLevel.id;
+            console.log("取得したInventoryLevel ID:", inventoryLevelId);
+            console.log("現在の在庫数:", inventoryLevel.available);
             
             const adjustQuantityMutation = `
               mutation($input: InventoryAdjustQuantityInput!) {
@@ -531,8 +572,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             
             const setQuantitiesVariables = {
               input: {
-                name: "correction",
+                name: "available",
                 reason: "correction",
+                ignoreCompareQuantity: true,
                 quantities: [
                   {
                     inventoryItemId: inventoryItemId,
@@ -571,6 +613,67 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         }
         
+        // 戦略4: inventoryBulkAdjustQuantityAtLocation (最後の手段)
+        if (!success) {
+          step = "inventoryBulkAdjustQuantityAtLocation";
+          try {
+            console.log("=== 戦略4: inventoryBulkAdjustQuantityAtLocation ===");
+            
+            const bulkAdjustMutation = `
+              mutation($input: InventoryBulkAdjustQuantityAtLocationInput!) {
+                inventoryBulkAdjustQuantityAtLocation(input: $input) {
+                  inventoryLevels {
+                    id
+                    available
+                  }
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }
+            `;
+            
+            const bulkAdjustVariables = {
+              input: {
+                locationId: locationId,
+                changes: [
+                  {
+                    inventoryItemId: inventoryItemId,
+                    delta: item.quantity
+                  }
+                ]
+              }
+            };
+            
+            console.log("戦略4 変数:", JSON.stringify(bulkAdjustVariables, null, 2));
+            
+            const bulkResult = await admin.graphql(bulkAdjustMutation, {
+              variables: bulkAdjustVariables
+            });
+            
+            adjData = await bulkResult.json() as { data?: any; errors?: any };
+            logGraphQLResponse("戦略4: inventoryBulkAdjustQuantityAtLocation", adjData, bulkAdjustVariables);
+            
+            const strategy4ErrorCheck = hasErrors(adjData);
+            if (strategy4ErrorCheck.hasGraphQLErrors) {
+              adjGraphqlErrors = adjData.errors;
+              console.error("戦略4 GraphQLエラー - 全ての戦略が失敗");
+            } else if (!strategy4ErrorCheck.hasUserErrors) {
+              success = true;
+              usedStrategy = "inventoryBulkAdjustQuantityAtLocation";
+              console.log("戦略4 成功");
+            } else {
+              adjUserErrors = strategy4ErrorCheck.userErrors;
+              console.error("戦略4 userErrors - 全ての戦略が失敗");
+            }
+            
+          } catch (strategy4Error) {
+            adjUserErrors = [{ message: String(strategy4Error) }];
+            console.log("戦略4 例外:", strategy4Error);
+          }
+        }
+        
         // 戦略1・2ともに失敗した場合のみエラー記録
         if (success) {
           console.log(`バリアント ${item.variant_id} 処理成功: ${usedStrategy}`);
@@ -582,7 +685,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             after_quantity: variant.inventoryQuantity + item.quantity,
             tracking_enabled: variant.inventoryItem.tracked,
             response: adjData?.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup || 
-                     adjData?.data?.inventorySetQuantities?.inventoryAdjustmentGroup,
+                     adjData?.data?.inventoryAdjustQuantity?.inventoryLevel ||
+                     adjData?.data?.inventorySetQuantities?.inventoryAdjustmentGroup ||
+                     adjData?.data?.inventoryBulkAdjustQuantityAtLocation?.inventoryLevels,
             errors: [],
             strategy_used: usedStrategy,
           });
