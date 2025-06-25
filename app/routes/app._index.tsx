@@ -195,18 +195,6 @@ export default function Index() {
   const getStatusStats = (shipments: Shipment[]): StatusStats => {
     const stats: StatusStats = {};
     
-    // デバッグ: 実際のステータス値を確認
-    console.log('=== デバッグ: ステータス値確認 ===');
-    shipments.forEach((s, index) => {
-      console.log(`Shipment ${index}:`, {
-        si_number: s.si_number,
-        status: s.status,
-        statusType: typeof s.status,
-        statusLength: s.status?.length,
-        statusTrimmed: s.status?.trim()
-      });
-    });
-    
     shipments.forEach((s) => {
       // データベースの英語ステータスを翻訳された値に変換
       let translatedStatus: string;
@@ -238,12 +226,6 @@ export default function Index() {
       
       if (!stats[translatedStatus]) stats[translatedStatus] = [];
       stats[translatedStatus].push(s);
-    });
-    
-    // デバッグ: 最終的な統計結果
-    console.log('=== デバッグ: 統計結果 ===');
-    Object.keys(stats).forEach(status => {
-      console.log(`"${status}": ${stats[status].length}件`);
     });
     
     return stats;
@@ -624,18 +606,8 @@ export default function Index() {
     <BlockStack gap="500">
     <Text as="h3" variant="headingMd">{t('title.statusChart')}</Text>
     
-    {/* デバッグ情報 */}
-    <Banner tone="info">
-      <p>デバッグ情報:</p>
-      <p>statusOrder: {JSON.stringify(statusOrder)}</p>
-      <p>statusOrder.length: {statusOrder.length}</p>
-      <p>shipments.length: {shipments.length}</p>
-    </Banner>
-    
       {statusOrder.map((status, index) => {
-        console.log(`=== ステータス ${index}: "${status}" ===`);
         const shipmentsForStatus = getStatusStats(shipments)[status] || [];
-        console.log(`  shipmentsForStatus.length: ${shipmentsForStatus.length}`);
         
         const rows = shipmentsForStatus.flatMap(s =>
           (s.items || []).map(item => [
@@ -664,9 +636,6 @@ export default function Index() {
             })()
           ])
         );
-        
-        console.log(`  rows.length: ${rows.length}`);
-        console.log(`  rows:`, rows);
         
         return rows.length > 0 ?(
           <Box key={status} paddingBlock="400">
