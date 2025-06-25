@@ -49,7 +49,8 @@
     "warehouseArrived": "Warehouse Arrived",
     "synced": "Synced",
     "notSet": "Not Set",
-    "productSync": "Product Sync"
+    "productSync": "Product Sync",
+    "noData": "No data for this status"
   },
   "sort": {
     "ascending": "▲ {{field}}",
@@ -212,7 +213,9 @@
     "error": "Failed to submit.",
     "name": "Name",
     "email": "Email address",
-    "message": "Message"
+    "message": "Message",
+    "fileUpload": "Drag & drop an image file here, or click to select",
+    "submit": "Submit"
   },
   "pricing": {
     "title": "Subscription Plans",

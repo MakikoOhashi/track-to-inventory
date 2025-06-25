@@ -662,7 +662,7 @@ export default function Index() {
           </Box>
         ): (
           <Box key={status} paddingBlock="400">
-            <Text as="h4" variant="headingMd">{status} (0件)</Text>
+            <Text as="h4" variant="headingMd">{t('status.noData')}</Text>
             <Banner tone="info">このステータスにはデータがありません</Banner>
           </Box>
         );

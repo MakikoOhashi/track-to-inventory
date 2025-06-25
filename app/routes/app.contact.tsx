@@ -167,7 +167,7 @@ export default function Contact() {
                   disabled={!isAdmin}
                 >
                   {!file ? (
-                    <DropZone.FileUpload actionTitle="画像ファイルをここにドラッグ＆ドロップ、またはクリックで選択" />
+                    <DropZone.FileUpload actionTitle={t('contact.fileUpload')} />
                   ) : (
                     <div>{file.name}</div>
                   )}
@@ -182,7 +182,7 @@ export default function Contact() {
                   disabled={!isAdmin}
                   aria-disabled={!isAdmin}
                 >
-                  送信
+                  {t('contact.submit')}
                 </Button>
               </form>
             </div>
