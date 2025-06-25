@@ -663,7 +663,7 @@ export default function Index() {
         ): (
           <Box key={status} paddingBlock="400">
             <Text as="h4" variant="headingMd">{t('status.noData')}</Text>
-            <Banner tone="info">このステータスにはデータがありません</Banner>
+            <Banner tone="info">{t('status.noData')}</Banner>
           </Box>
         );
         })}
