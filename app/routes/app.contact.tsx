@@ -132,7 +132,7 @@ export default function Contact() {
                 onSubmit={handleSubmit}
               >
                 <TextField
-                  label="お名前"
+                  label={t('contact.name')}
                   name="name"
                   value={name}
                   onChange={setName}
@@ -141,7 +141,7 @@ export default function Contact() {
                 />
                 <br />
                 <TextField
-                  label="メールアドレス"
+                  label={t('contact.email')}
                   name="email"
                   type="email"
                   value={email}
@@ -151,7 +151,7 @@ export default function Contact() {
                 />
                 <br />
                 <TextField
-                  label="お問い合わせ内容"
+                  label={t('contact.message')}
                   name="message"
                   value={message}
                   onChange={setMessage}

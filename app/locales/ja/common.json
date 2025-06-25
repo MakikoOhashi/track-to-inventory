@@ -208,7 +208,10 @@
     "unknown": "不明",
     "adminOnly": "Shopify管理者のみアクセスできます。",
     "success": "送信が完了しました！",
-    "error": "送信に失敗しました。"
+    "error": "送信に失敗しました。",
+    "name": "お名前",
+    "email": "メールアドレス",
+    "message": "お問い合わせ内容"
   },
   "pricing": {
     "title": "サブスクリプションプラン",

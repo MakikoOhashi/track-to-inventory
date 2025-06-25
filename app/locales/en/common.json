@@ -209,7 +209,10 @@
     "unknown": "Unknown",
     "adminOnly": "Only Shopify admin can access.",
     "success": "Submission completed!",
-    "error": "Failed to submit."
+    "error": "Failed to submit.",
+    "name": "Name",
+    "email": "Email address",
+    "message": "Message"
   },
   "pricing": {
     "title": "Subscription Plans",
