@@ -195,9 +195,21 @@ export default function Index() {
   const getStatusStats = (shipments: Shipment[]): StatusStats => {
     const stats: StatusStats = {};
     shipments.forEach((s) => {
-      const status = s.status || t('status.notSet');
-      if (!stats[status]) stats[status] = [];
-      stats[status].push(s);
+      // ステータスを翻訳された形式に統一
+      let translatedStatus: string;
+      
+      // 日本語ステータスを翻訳キーに変換
+      if (s.status === "SI発行済") translatedStatus = t('modal.status.siIssued');
+      else if (s.status === "船積スケジュール確定") translatedStatus = t('modal.status.scheduleConfirmed');
+      else if (s.status === "船積中") translatedStatus = t('modal.status.shipping');
+      else if (s.status === "輸入通関中") translatedStatus = t('modal.status.customsClearance');
+      else if (s.status === "倉庫着") translatedStatus = t('modal.status.warehouseArrival');
+      else if (s.status === "同期済み") translatedStatus = t('modal.status.synced');
+      else if (!s.status) translatedStatus = t('status.notSet');
+      else translatedStatus = s.status; // その他の場合は元のステータスを使用
+      
+      if (!stats[translatedStatus]) stats[translatedStatus] = [];
+      stats[translatedStatus].push(s);
     });
     return stats;
   };
@@ -591,7 +603,17 @@ export default function Index() {
             {s.si_number}
           </span>, 
             item.name,
-            item.quantity
+            item.quantity,
+            // ステータスを翻訳して表示
+            (() => {
+              if (s.status === "SI発行済") return t('modal.status.siIssued');
+              if (s.status === "船積スケジュール確定") return t('modal.status.scheduleConfirmed');
+              if (s.status === "船積中") return t('modal.status.shipping');
+              if (s.status === "輸入通関中") return t('modal.status.customsClearance');
+              if (s.status === "倉庫着") return t('modal.status.warehouseArrival');
+              if (s.status === "同期済み") return t('modal.status.synced');
+              return s.status || t('status.notSet');
+            })()
           ])
         );
         return rows.length > 0 ?(
@@ -599,8 +621,8 @@ export default function Index() {
             <BlockStack gap="300">
             <Text as="h4" variant="headingMd">{status}</Text>
             <DataTable
-              columnContentTypes={['text', 'text', 'numeric']}
-              headings={[t('label.siNumber'), t('label.productName'), t('label.quantity')]}
+              columnContentTypes={['text', 'text', 'numeric', 'text']}
+              headings={[t('label.siNumber'), t('label.productName'), t('label.quantity'), t('label.status')]}
               rows={rows}
             />
           </BlockStack>
