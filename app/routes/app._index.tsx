@@ -207,58 +207,33 @@ export default function Index() {
       });
     });
     
-    // デバッグ: 翻訳関数の動作確認
-    console.log('=== デバッグ: 翻訳関数確認 ===');
-    console.log('t("modal.status.siIssued"):', t('modal.status.siIssued'));
-    console.log('t("modal.status.scheduleConfirmed"):', t('modal.status.scheduleConfirmed'));
-    console.log('t("modal.status.shipping"):', t('modal.status.shipping'));
-    console.log('t("modal.status.customsClearance"):', t('modal.status.customsClearance'));
-    console.log('t("modal.status.warehouseArrival"):', t('modal.status.warehouseArrival'));
-    console.log('t("modal.status.synced"):', t('modal.status.synced'));
-    console.log('t("status.notSet"):', t('status.notSet'));
-    
     shipments.forEach((s) => {
-      // ステータスを翻訳された形式に統一
+      // データベースの英語ステータスを翻訳された値に変換
       let translatedStatus: string;
       
-      // 空白文字を除去して比較
-      const cleanStatus = s.status?.trim() || '';
-      
-      // デバッグ: 各ステータスの変換過程
-      console.log(`変換前: "${s.status}" -> クリーン: "${cleanStatus}"`);
-      
-      // 日本語ステータスを翻訳キーに変換
-      if (cleanStatus === "SI発行済") {
+      if (s.status === "siIssued") {
         translatedStatus = t('modal.status.siIssued');
-        console.log(`  -> 変換後: "${translatedStatus}"`);
       }
-      else if (cleanStatus === "船積スケジュール確定") {
+      else if (s.status === "scheduleConfirmed") {
         translatedStatus = t('modal.status.scheduleConfirmed');
-        console.log(`  -> 変換後: "${translatedStatus}"`);
       }
-      else if (cleanStatus === "船積中") {
+      else if (s.status === "shipping") {
         translatedStatus = t('modal.status.shipping');
-        console.log(`  -> 変換後: "${translatedStatus}"`);
       }
-      else if (cleanStatus === "輸入通関中") {
+      else if (s.status === "customsClearance") {
         translatedStatus = t('modal.status.customsClearance');
-        console.log(`  -> 変換後: "${translatedStatus}"`);
       }
-      else if (cleanStatus === "倉庫着") {
+      else if (s.status === "warehouseArrival") {
         translatedStatus = t('modal.status.warehouseArrival');
-        console.log(`  -> 変換後: "${translatedStatus}"`);
       }
-      else if (cleanStatus === "同期済み") {
+      else if (s.status === "productSync") {
+        translatedStatus = t('status.productSync');
+      }
+      else if (s.status === "synced") {
         translatedStatus = t('modal.status.synced');
-        console.log(`  -> 変換後: "${translatedStatus}"`);
-      }
-      else if (!cleanStatus) {
-        translatedStatus = t('status.notSet');
-        console.log(`  -> 変換後: "${translatedStatus}" (未設定)`);
       }
       else {
-        translatedStatus = s.status || 'Unknown'; // その他の場合は元のステータスを使用
-        console.log(`  -> 変換後: "${translatedStatus}" (その他)`);
+        translatedStatus = t('status.notSet');
       }
       
       if (!stats[translatedStatus]) stats[translatedStatus] = [];
@@ -678,12 +653,13 @@ export default function Index() {
             item.quantity || 0,
             // ステータスを翻訳して表示
             (() => {
-              if (s.status === "SI発行済") return t('modal.status.siIssued');
-              if (s.status === "船積スケジュール確定") return t('modal.status.scheduleConfirmed');
-              if (s.status === "船積中") return t('modal.status.shipping');
-              if (s.status === "輸入通関中") return t('modal.status.customsClearance');
-              if (s.status === "倉庫着") return t('modal.status.warehouseArrival');
-              if (s.status === "同期済み") return t('modal.status.synced');
+              if (s.status === "siIssued") return t('modal.status.siIssued');
+              if (s.status === "scheduleConfirmed") return t('modal.status.scheduleConfirmed');
+              if (s.status === "shipping") return t('modal.status.shipping');
+              if (s.status === "customsClearance") return t('modal.status.customsClearance');
+              if (s.status === "warehouseArrival") return t('modal.status.warehouseArrival');
+              if (s.status === "productSync") return t('status.productSync');
+              if (s.status === "synced") return t('modal.status.synced');
               return s.status || t('status.notSet');
             })()
           ])
@@ -695,7 +671,19 @@ export default function Index() {
         return rows.length > 0 ?(
           <Box key={status} paddingBlock="400">
             <BlockStack gap="300">
-            <Text as="h4" variant="headingMd">{status}</Text>
+            <Text as="h4" variant="headingMd">
+              {(() => {
+                // 英語のステータスを翻訳して表示
+                if (status === "siIssued") return t('modal.status.siIssued');
+                if (status === "scheduleConfirmed") return t('modal.status.scheduleConfirmed');
+                if (status === "shipping") return t('modal.status.shipping');
+                if (status === "customsClearance") return t('modal.status.customsClearance');
+                if (status === "warehouseArrival") return t('modal.status.warehouseArrival');
+                if (status === "productSync") return t('status.productSync');
+                if (status === "synced") return t('modal.status.synced');
+                return status;
+              })()}
+            </Text>
             <DataTable
               columnContentTypes={['text', 'text', 'numeric', 'text']}
               headings={[t('label.siNumber'), t('label.productName'), t('label.quantity'), t('label.status')]}
