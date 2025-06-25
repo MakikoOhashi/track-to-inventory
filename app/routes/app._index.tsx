@@ -194,23 +194,83 @@ export default function Index() {
   // ステータスごとグループ化関数
   const getStatusStats = (shipments: Shipment[]): StatusStats => {
     const stats: StatusStats = {};
+    
+    // デバッグ: 実際のステータス値を確認
+    console.log('=== デバッグ: ステータス値確認 ===');
+    shipments.forEach((s, index) => {
+      console.log(`Shipment ${index}:`, {
+        si_number: s.si_number,
+        status: s.status,
+        statusType: typeof s.status,
+        statusLength: s.status?.length,
+        statusTrimmed: s.status?.trim()
+      });
+    });
+    
+    // デバッグ: 翻訳関数の動作確認
+    console.log('=== デバッグ: 翻訳関数確認 ===');
+    console.log('t("modal.status.siIssued"):', t('modal.status.siIssued'));
+    console.log('t("modal.status.scheduleConfirmed"):', t('modal.status.scheduleConfirmed'));
+    console.log('t("modal.status.shipping"):', t('modal.status.shipping'));
+    console.log('t("modal.status.customsClearance"):', t('modal.status.customsClearance'));
+    console.log('t("modal.status.warehouseArrival"):', t('modal.status.warehouseArrival'));
+    console.log('t("modal.status.synced"):', t('modal.status.synced'));
+    console.log('t("status.notSet"):', t('status.notSet'));
+    
     shipments.forEach((s) => {
       // ステータスを翻訳された形式に統一
       let translatedStatus: string;
       
+      // 空白文字を除去して比較
+      const cleanStatus = s.status?.trim() || '';
+      
+      // デバッグ: 各ステータスの変換過程
+      console.log(`変換前: "${s.status}" -> クリーン: "${cleanStatus}"`);
+      
       // 日本語ステータスを翻訳キーに変換
-      if (s.status === "SI発行済") translatedStatus = t('modal.status.siIssued');
-      else if (s.status === "船積スケジュール確定") translatedStatus = t('modal.status.scheduleConfirmed');
-      else if (s.status === "船積中") translatedStatus = t('modal.status.shipping');
-      else if (s.status === "輸入通関中") translatedStatus = t('modal.status.customsClearance');
-      else if (s.status === "倉庫着") translatedStatus = t('modal.status.warehouseArrival');
-      else if (s.status === "同期済み") translatedStatus = t('modal.status.synced');
-      else if (!s.status) translatedStatus = t('status.notSet');
-      else translatedStatus = s.status; // その他の場合は元のステータスを使用
+      if (cleanStatus === "SI発行済") {
+        translatedStatus = t('modal.status.siIssued');
+        console.log(`  -> 変換後: "${translatedStatus}"`);
+      }
+      else if (cleanStatus === "船積スケジュール確定") {
+        translatedStatus = t('modal.status.scheduleConfirmed');
+        console.log(`  -> 変換後: "${translatedStatus}"`);
+      }
+      else if (cleanStatus === "船積中") {
+        translatedStatus = t('modal.status.shipping');
+        console.log(`  -> 変換後: "${translatedStatus}"`);
+      }
+      else if (cleanStatus === "輸入通関中") {
+        translatedStatus = t('modal.status.customsClearance');
+        console.log(`  -> 変換後: "${translatedStatus}"`);
+      }
+      else if (cleanStatus === "倉庫着") {
+        translatedStatus = t('modal.status.warehouseArrival');
+        console.log(`  -> 変換後: "${translatedStatus}"`);
+      }
+      else if (cleanStatus === "同期済み") {
+        translatedStatus = t('modal.status.synced');
+        console.log(`  -> 変換後: "${translatedStatus}"`);
+      }
+      else if (!cleanStatus) {
+        translatedStatus = t('status.notSet');
+        console.log(`  -> 変換後: "${translatedStatus}" (未設定)`);
+      }
+      else {
+        translatedStatus = s.status || 'Unknown'; // その他の場合は元のステータスを使用
+        console.log(`  -> 変換後: "${translatedStatus}" (その他)`);
+      }
       
       if (!stats[translatedStatus]) stats[translatedStatus] = [];
       stats[translatedStatus].push(s);
     });
+    
+    // デバッグ: 最終的な統計結果
+    console.log('=== デバッグ: 統計結果 ===');
+    Object.keys(stats).forEach(status => {
+      console.log(`"${status}": ${stats[status].length}件`);
+    });
+    
     return stats;
   };
 
@@ -384,8 +444,8 @@ export default function Index() {
         >
           {s.si_number}
         </span>,
-        item?.name ?? '',
-        item?.quantity ?? '',
+        item?.name || 'Unknown',
+        item?.quantity || 0,
         s.status
       ];
     });
@@ -588,8 +648,20 @@ export default function Index() {
      {detailViewMode === 'status' && (
     <BlockStack gap="500">
     <Text as="h3" variant="headingMd">{t('title.statusChart')}</Text>
-      {statusOrder.map(status => {
+    
+    {/* デバッグ情報 */}
+    <Banner tone="info">
+      <p>デバッグ情報:</p>
+      <p>statusOrder: {JSON.stringify(statusOrder)}</p>
+      <p>statusOrder.length: {statusOrder.length}</p>
+      <p>shipments.length: {shipments.length}</p>
+    </Banner>
+    
+      {statusOrder.map((status, index) => {
+        console.log(`=== ステータス ${index}: "${status}" ===`);
         const shipmentsForStatus = getStatusStats(shipments)[status] || [];
+        console.log(`  shipmentsForStatus.length: ${shipmentsForStatus.length}`);
+        
         const rows = shipmentsForStatus.flatMap(s =>
           (s.items || []).map(item => [
             <span
@@ -598,12 +670,12 @@ export default function Index() {
             tabIndex={0}
             onKeyDown={e => { if (e.key === 'Enter') setSelectedShipment(s); }}
             title={t('message.clickForDetails')}
-            key={s.si_number + item.name}
+            key={s.si_number + (item.name || 'unknown')}
           >
             {s.si_number}
           </span>, 
-            item.name,
-            item.quantity,
+            item.name || 'Unknown',
+            item.quantity || 0,
             // ステータスを翻訳して表示
             (() => {
               if (s.status === "SI発行済") return t('modal.status.siIssued');
@@ -616,6 +688,10 @@ export default function Index() {
             })()
           ])
         );
+        
+        console.log(`  rows.length: ${rows.length}`);
+        console.log(`  rows:`, rows);
+        
         return rows.length > 0 ?(
           <Box key={status} paddingBlock="400">
             <BlockStack gap="300">
@@ -627,7 +703,12 @@ export default function Index() {
             />
           </BlockStack>
           </Box>
-        ): null;
+        ): (
+          <Box key={status} paddingBlock="400">
+            <Text as="h4" variant="headingMd">{status} (0件)</Text>
+            <Banner tone="info">このステータスにはデータがありません</Banner>
+          </Box>
+        );
         })}
       </BlockStack>
         )}
