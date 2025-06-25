@@ -3,7 +3,6 @@ import { json } from "@remix-run/node";
 import { useActionData, useLoaderData, useNavigation } from "@remix-run/react";
 import { Page, Card, Layout, Text, TextField, Button, DropZone, Banner, Box } from "@shopify/polaris";
 import { useState, useCallback } from "react";
-import { authenticate } from "~/shopify.server";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
@@ -14,34 +13,16 @@ type LoaderData = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  try {
-    const ctx = await authenticate.admin(request);
-    const shop = ctx.session?.shop ?? null;
-    return json<LoaderData>({
-      shop,
-      isAdmin: !!shop, // shopが取得できた場合のみフォーム送信許可
-    });
-  } catch (e) {
-    return json<LoaderData>({
-      shop: null,
-      isAdmin: false,
-      error: "Shopify管理者のみアクセスできます。ログインし直してください。",
-    });
-  }
+  // 認証をスキップ
+  return json<LoaderData>({
+    shop: null,
+    isAdmin: true, // 全員フォーム送信可
+  });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  let shop = "";
-  try {
-    const ctx = await authenticate.admin(request);
-    shop = ctx.session?.shop ?? "";
-    if (!shop) {
-      return json({ error: "ストアIDが取得できません。Shopify管理者として再ログインしてください。" }, { status: 401 });
-    }
-  } catch {
-    return json({ error: "Shopify認証エラー。再ログインしてください。" }, { status: 401 });
-  }
-
+  // 認証をスキップ
+  // 必要ならshop情報はフォームから取得 or 空文字でOK
   const formData = await request.formData();
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
@@ -63,8 +44,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await resend.emails.send({
       from: "onboarding@resend.dev",
       to: "makiron19831014@gmail.com",
-      subject: `お問い合わせ from ${name} [${shop}]`,
-      text: `ショップ: ${shop}\n名前: ${name}\nメール: ${email}\n内容: ${message}`,
+      subject: `お問い合わせ from ${name}`,
+      text: `名前: ${name}\nメール: ${email}\n内容: ${message}`,
       attachments,
     });
     return json({ ok: true });
