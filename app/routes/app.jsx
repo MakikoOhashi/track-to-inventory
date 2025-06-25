@@ -4,6 +4,7 @@ import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { authenticate } from "../shopify.server";
+import { json } from "@remix-run/node";
 
 // i18nをimport
 import { I18nextProvider } from "react-i18next";
@@ -12,9 +13,14 @@ import i18n from "../i18n";
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  const { session } = await authenticate.admin(request);
+  const shop = session?.shop || "";
+  
+  return json({ apiKey: process.env.SHOPIFY_API_KEY || "" }, {
+    headers: {
+      "X-Shop-Domain": shop
+    }
+  });
 };
 
 export default function App() {
