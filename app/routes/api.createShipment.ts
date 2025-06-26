@@ -44,6 +44,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const contentType = request.headers.get('content-type');
     let siNumber: string;
     let shopId: string;
+    let supplierName: string;
+    let transportType: string;
+    let items: any[];
     let invoiceUrl: string;
     let plUrl: string;
     let siUrl: string;
@@ -63,6 +66,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       
       siNumber = cleanShipment.si_number;
       shopId = cleanShipment.shop_id;
+      supplierName = cleanShipment.supplier_name;
+      transportType = cleanShipment.transport_type;
+      items = cleanShipment.items || [];
       invoiceUrl = cleanShipment.invoice_url;
       plUrl = cleanShipment.pl_url;
       siUrl = cleanShipment.si_url;
@@ -71,6 +77,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const formData = await request.formData();
       siNumber = formData.get("siNumber") as string;
       shopId = formData.get("shopId") as string;
+      supplierName = formData.get("supplierName") as string;
+      transportType = formData.get("transportType") as string;
+      const itemsStr = formData.get("items") as string;
+      items = itemsStr ? JSON.parse(itemsStr) : [];
       invoiceUrl = formData.get("invoiceUrl") as string;
       plUrl = formData.get("plUrl") as string;
       siUrl = formData.get("siUrl") as string;
@@ -112,6 +122,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const shipmentData = {
       si_number: siNumber,
       shop_id: shopId,
+      supplier_name: supplierName || null,
+      transport_type: transportType || null,
+      items: items, // JSONBフィールドとして保存
       status: "SI発行済", // デフォルトステータス
       invoice_url: invoiceUrl || null,
       pl_url: plUrl || null,
@@ -120,6 +133,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       delayed: false, // デフォルト値
       is_archived: false, // デフォルト値
     };
+
+    console.log('📤 Supabaseに保存するデータ:', shipmentData);
 
     const { data: result, error: shipmentError } = await supabase
       .from("shipments")

@@ -9,13 +9,15 @@ function logGraphQLResponse(step: string, data: any, variables?: any) {
   
   // GraphQL errorsの詳細表示
   if (data.errors && Array.isArray(data.errors)) {
-    console.error(`\n${step} GraphQL Errors:`);
+    console.error(`\n${step} GraphQL Errors (${data.errors.length}件):`);
     data.errors.forEach((error: any, index: number) => {
       console.error(`  Error ${index + 1}:`, {
         message: error.message,
         extensions: error.extensions,
         path: error.path,
-        locations: error.locations
+        locations: error.locations,
+        code: error.extensions?.code,
+        field: error.path?.join('.')
       });
     });
   }
