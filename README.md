@@ -1,371 +1,253 @@
-# Shopify App Template - Remix
+# Track to Inventory - Shopify入荷管理アプリ
 
-This is a template for building a [Shopify app](https://shopify.dev/docs/apps/getting-started) using the [Remix](https://remix.run) framework.
+Shopifyストアの「入荷・在庫連携」を効率化するプロフェッショナル向け業務アプリです。
 
-Rather than cloning this repo, you can use your preferred package manager and the Shopify CLI with [these steps](https://shopify.dev/docs/apps/getting-started/create).
+Track to Inventoryは、Shopifyストアの入荷管理を効率化するためのアプリです。船荷証券（SI）の追跡から在庫同期まで、輸入ビジネスに必要な機能を一つのアプリで提供します。
 
-Visit the [`shopify.dev` documentation](https://shopify.dev/docs/api/shopify-app-remix) for more details on the Remix app package.
+## 🚀 主な機能
 
-## Quick start
+### 📦 入荷管理
+- **SI番号追跡**: 船荷証券（SI）のステータス管理
+- **入荷予定管理**: ETD/ETAによる入荷スケジュール管理
+- **ステータス管理**: SI発行済みから倉庫着まで6段階のステータス
+- **商品別管理**: 積載商品の詳細管理
 
-### Prerequisites
+### 🔍 OCR機能
+- **画像・PDF対応**: インボイスやパッキングリストから自動テキスト抽出
+- **AI補完**: Google Geminiによる未入力項目の自動補完（日本語文脈にも対応）
+- **手動入力**: OCRを使わない直接入力も可能
+- **使用制限**: プラン別の月間使用回数制限
 
-Before you begin, you'll need the following:
+### 🔄 Shopify同期
+- **在庫同期**: 入荷情報をShopify在庫と自動同期
+- **商品マッピング**: Shopify variant IDとの連携
+- **リアルタイム更新**: 入荷状況の即座反映
 
-1. **Node.js**: [Download and install](https://nodejs.org/en/download/) it if you haven't already.
-2. **Shopify Partner Account**: [Create an account](https://partners.shopify.com/signup) if you don't have one.
-3. **Test Store**: Set up either a [development store](https://help.shopify.com/en/partners/dashboard/development-stores#create-a-development-store) or a [Shopify Plus sandbox store](https://help.shopify.com/en/partners/dashboard/managing-stores/plus-sandbox-store) for testing your app.
+### 📁 ファイル管理
+- **関連ファイル**: インボイス、パッキングリスト、SI等の管理
+- **プレビュー機能**: アップロードしたファイルの表示
+- **セキュア保存**: 安全なファイルストレージ
 
-### Setup
+### 🌐 多言語対応
+- **日本語・英語**: 完全な多言語サポート
+- **動的切り替え**: リアルタイム言語変更
 
-If you used the CLI to create the template, you can skip this section.
+## 🛠️ 技術スタック
 
-Using yarn:
+- **フレームワーク**: [Remix](https://remix.run)
+- **Shopify統合**: [@shopify/shopify-app-remix](https://shopify.dev/docs/api/shopify-app-remix)
+- **UI**: [Shopify Polaris](https://polaris.shopify.com/)
+- **データベース**: [Supabase](https://supabase.com/) (PostgreSQL)
+- **OCR**: [Tesseract.js](https://tesseract.projectnaptha.com/)
+- **AI**: [Google Gemini](https://ai.google.dev/)
+- **ファイルストレージ**: [Upstash Redis](https://upstash.com/)
+- **国際化**: [react-i18next](https://react.i18next.com/)
 
-```shell
-yarn install
-```
+## 📋 前提条件
 
-Using npm:
+開発を始める前に、以下が必要です：
 
-```shell
+1. **Node.js**: v18.20以上またはv20.10以上
+2. **Shopify Partner Account**: [アカウント作成](https://partners.shopify.com/signup)
+3. **テストストア**: [開発ストア](https://help.shopify.com/en/partners/dashboard/development-stores#create-a-development-store)または[Plus サンドボックス](https://help.shopify.com/en/partners/dashboard/managing-stores/plus-sandbox-store)
+4. **Supabase**: データベース用のSupabaseプロジェクト
+5. **Google Cloud**: Gemini API用のプロジェクトとAPIキー
+6. **Upstash**: Redis用のUpstashプロジェクト
+
+## ⚙️ セットアップ
+
+### 1. リポジトリのクローンと依存関係のインストール
+
+```bash
+git clone <repository-url>
+cd track-to-inventory
 npm install
 ```
 
-Using pnpm:
+### 2. 環境変数の設定
 
-```shell
-pnpm install
+`.env`ファイルを作成し、以下の環境変数を設定してください：
+
+```env
+# Shopify
+SHOPIFY_API_KEY=your_shopify_api_key
+SHOPIFY_API_SECRET=your_shopify_api_secret
+SHOPIFY_SCOPES=write_products,read_products,write_inventory,read_inventory
+SHOPIFY_APP_URL=https://your-app-url.com
+
+# Supabase
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# Google Gemini
+GEMINI_API_KEY=your_gemini_api_key
+
+# Upstash Redis
+UPSTASH_REDIS_REST_URL=your_upstash_redis_url
+UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token
+
+# その他
+NODE_ENV=development
 ```
 
-### Local Development
+### 3. データベースのセットアップ
 
-Using yarn:
+```bash
+# Prismaクライアントの生成
+npx prisma generate
 
-```shell
-yarn dev
+# データベースマイグレーションの実行
+npx prisma migrate deploy
 ```
 
-Using npm:
+### 4. Shopifyアプリの設定
 
-```shell
+```bash
+# Shopify CLIでアプリをリンク
+npm run config:link
+
+# 開発サーバーの起動
 npm run dev
 ```
 
-Using pnpm:
+## 🚀 開発
 
-```shell
-pnpm run dev
+### 開発サーバーの起動
+
+```bash
+npm run dev
 ```
 
-Press P to open the URL to your app. Once you click install, you can start development.
+### ビルド
 
-Local development is powered by [the Shopify CLI](https://shopify.dev/docs/apps/tools/cli). It logs into your partners account, connects to an app, provides environment variables, updates remote config, creates a tunnel and provides commands to generate extensions.
-
-### Authenticating and querying data
-
-To authenticate and query data you can use the `shopify` const that is exported from `/app/shopify.server.js`:
-
-```js
-export async function loader({ request }) {
-  const { admin } = await shopify.authenticate.admin(request);
-
-  const response = await admin.graphql(`
-    {
-      products(first: 25) {
-        nodes {
-          title
-          description
-        }
-      }
-    }`);
-
-  const {
-    data: {
-      products: { nodes },
-    },
-  } = await response.json();
-
-  return nodes;
-}
-```
-
-This template comes preconfigured with examples of:
-
-1. Setting up your Shopify app in [/app/shopify.server.ts](https://github.com/Shopify/shopify-app-template-remix/blob/main/app/shopify.server.ts)
-2. Querying data using Graphql. Please see: [/app/routes/app.\_index.tsx](https://github.com/Shopify/shopify-app-template-remix/blob/main/app/routes/app._index.tsx).
-3. Responding to mandatory webhooks in [/app/routes/webhooks.tsx](https://github.com/Shopify/shopify-app-template-remix/blob/main/app/routes/webhooks.tsx)
-
-Please read the [documentation for @shopify/shopify-app-remix](https://www.npmjs.com/package/@shopify/shopify-app-remix#authenticating-admin-requests) to understand what other API's are available.
-
-## Deployment
-
-### Application Storage
-
-This template uses [Prisma](https://www.prisma.io/) to store session data, by default using an [SQLite](https://www.sqlite.org/index.html) database.
-The database is defined as a Prisma schema in `prisma/schema.prisma`.
-
-This use of SQLite works in production if your app runs as a single instance.
-The database that works best for you depends on the data your app needs and how it is queried.
-You can run your database of choice on a server yourself or host it with a SaaS company.
-Here’s a short list of databases providers that provide a free tier to get started:
-
-| Database   | Type             | Hosters                                                                                                                                                                                                                               |
-| ---------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MySQL      | SQL              | [Digital Ocean](https://www.digitalocean.com/products/managed-databases-mysql), [Planet Scale](https://planetscale.com/), [Amazon Aurora](https://aws.amazon.com/rds/aurora/), [Google Cloud SQL](https://cloud.google.com/sql/docs/mysql) |
-| PostgreSQL | SQL              | [Digital Ocean](https://www.digitalocean.com/products/managed-databases-postgresql), [Amazon Aurora](https://aws.amazon.com/rds/aurora/), [Google Cloud SQL](https://cloud.google.com/sql/docs/postgres)                                   |
-| Redis      | Key-value        | [Digital Ocean](https://www.digitalocean.com/products/managed-databases-redis), [Amazon MemoryDB](https://aws.amazon.com/memorydb/)                                                                                                        |
-| MongoDB    | NoSQL / Document | [Digital Ocean](https://www.digitalocean.com/products/managed-databases-mongodb), [MongoDB Atlas](https://www.mongodb.com/atlas/database)                                                                                                  |
-
-To use one of these, you can use a different [datasource provider](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#datasource) in your `schema.prisma` file, or a different [SessionStorage adapter package](https://github.com/Shopify/shopify-api-js/blob/main/packages/shopify-api/docs/guides/session-storage.md).
-
-### Build
-
-Remix handles building the app for you, by running the command below with the package manager of your choice:
-
-Using yarn:
-
-```shell
-yarn build
-```
-
-Using npm:
-
-```shell
+```bash
 npm run build
 ```
 
-Using pnpm:
+### テスト
 
-```shell
-pnpm run build
+```bash
+# テストの実行
+npm run test
+
+# テストUIの起動
+npm run test:ui
 ```
 
-## Hosting
+## 📖 使用方法
 
-When you're ready to set up your app in production, you can follow [our deployment documentation](https://shopify.dev/docs/apps/deployment/web) to host your app on a cloud provider like [Heroku](https://www.heroku.com/) or [Fly.io](https://fly.io/).
+### 1. アプリのインストール
 
-When you reach the step for [setting up environment variables](https://shopify.dev/docs/apps/deployment/web#set-env-vars), you also need to set the variable `NODE_ENV=production`.
+1. Shopify Partner Dashboardでアプリを作成
+2. 開発ストアにアプリをインストール
+3. 必要な権限を承認
 
-### Hosting on Vercel
+### 2. 入荷情報の登録
 
-Using the Vercel Preset is recommended when hosting your Shopify Remix app on Vercel. You'll also want to ensure imports that would normally come from `@remix-run/node` are imported from `@vercel/remix` instead. Learn more about hosting Remix apps on Vercel [here](https://vercel.com/docs/frameworks/remix).
+#### OCRを使用した自動入力
+1. 「画像アップロード & OCR」セクションに移動
+2. インボイスやパッキングリストの画像/PDFをアップロード
+3. 「OCR実行」ボタンをクリック
+4. 必要に応じて「AIで未入力項目を補完」を実行
+5. 内容を確認して「この内容で登録」をクリック
 
-```diff
-// vite.config.ts
-import { vitePlugin as remix } from "@remix-run/dev";
-import { defineConfig, type UserConfig } from "vite";
-import tsconfigPaths from "vite-tsconfig-paths";
-+ import { vercelPreset } from '@vercel/remix/vite';
+#### 手動入力
+1. 「手動でSI情報を入力」ボタンをクリック
+2. 必要な情報を直接入力
+3. 「この内容で登録」をクリック
 
-installGlobals();
+### 3. 入荷状況の管理
 
-export default defineConfig({
-  plugins: [
-    remix({
-      ignoredRouteFiles: ["**/.*"],
-+     presets: [vercelPreset()],
-    }),
-    tsconfigPaths(),
-  ],
-});
-```
+- **カード表示**: 視覚的に分かりやすいカード形式
+- **テーブル表示**: 詳細な情報を一覧表示
+- **ステータス管理**: ドラッグ&ドロップでステータス変更
+- **検索機能**: SI番号による検索
 
-## Troubleshooting
+### 4. Shopify在庫との同期
 
-### Database tables don't exist
+1. 入荷情報の詳細を開く
+2. 「Shopify在庫と同期」ボタンをクリック
+3. 同期状況を確認
 
-If you get this error:
+## 🔧 設定
 
-```
-The table `main.Session` does not exist in the current database.
-```
+### プラン別制限
 
-You need to create the database for Prisma. Run the `setup` script in `package.json` using your preferred package manager.
+- **Freeプラン**: 月間OCR使用回数制限あり
+- **Proプラン**: 制限なし、全機能利用可能
 
-### Navigating/redirecting breaks an embedded app
+### ファイルアップロード制限
 
-Embedded Shopify apps must maintain the user session, which can be tricky inside an iFrame. To avoid issues:
+- 最大ファイルサイズ: 10MB
+- 対応形式: 画像（JPG, PNG, GIF）、PDF
 
-1. Use `Link` from `@remix-run/react` or `@shopify/polaris`. Do not use `<a>`.
-2. Use the `redirect` helper returned from `authenticate.admin`. Do not use `redirect` from `@remix-run/node`
-3. Use `useSubmit` or `<Form/>` from `@remix-run/react`. Do not use a lowercase `<form/>`.
+## 🚀 デプロイ
 
-This only applies if your app is embedded, which it will be by default.
+### Vercelでのデプロイ
 
-### Non Embedded
+1. Vercelプロジェクトを作成
+2. 環境変数を設定
+3. デプロイを実行
 
-Shopify apps are best when they are embedded in the Shopify Admin, which is how this template is configured. If you have a reason to not embed your app please make the following changes:
-
-1. Ensure `embedded = false` is set in [shopify.app.toml`](./shopify.app.toml). [Docs here](https://shopify.dev/docs/apps/build/cli-for-apps/app-configuration#global).
-2. Pass `isEmbeddedApp: false` to `shopifyApp()` in `./app/shopify.server.js|ts`.
-3. Change the `isEmbeddedApp` prop to `isEmbeddedApp={false}` for the `AppProvider` in `/app/routes/app.jsx|tsx`.
-4. Remove the `@shopify/app-bridge-react` dependency from [package.json](./package.json) and `vite.config.ts|js`.
-5. Remove anything imported from `@shopify/app-bridge-react`.  For example: `NavMenu`, `TitleBar` and `useAppBridge`.
-
-### OAuth goes into a loop when I change my app's scopes
-
-If you change your app's scopes and authentication goes into a loop and fails with a message from Shopify that it tried too many times, you might have forgotten to update your scopes with Shopify.
-To do that, you can run the `deploy` CLI command.
-
-Using yarn:
-
-```shell
-yarn deploy
-```
-
-Using npm:
-
-```shell
+```bash
 npm run deploy
 ```
 
-Using pnpm:
+### その他のプラットフォーム
 
-```shell
-pnpm run deploy
+- **Heroku**: `heroku create && git push heroku main`
+- **Fly.io**: `fly launch`
+- **Railway**: Railway Dashboardから直接デプロイ
+
+## 🐛 トラブルシューティング
+
+### よくある問題
+
+#### OCRが動作しない
+- ファイル形式が対応しているか確認
+- ファイルサイズが10MB以下か確認
+- プランの使用制限に達していないか確認
+
+#### Shopify同期が失敗する
+- 商品の「数量を追跡する」が有効になっているか確認
+- 商品の「配送が必要な商品です」が有効になっているか確認
+- Shopify variant IDが正しく設定されているか確認
+
+#### 認証エラーが発生する
+- アプリを再インストール
+- 環境変数が正しく設定されているか確認
+
+### ログの確認
+
+```bash
+# 開発環境でのログ確認
+npm run dev
+
+# 本番環境でのログ確認（プラットフォーム依存）
 ```
 
-### My shop-specific webhook subscriptions aren't updated
+## 📝 ライセンス
 
-If you are registering webhooks in the `afterAuth` hook, using `shopify.registerWebhooks`, you may find that your subscriptions aren't being updated.  
+このプロジェクトはMITライセンスの下で公開されています。
 
-Instead of using the `afterAuth` hook, the recommended approach is to declare app-specific webhooks in the `shopify.app.toml` file.  This approach is easier since Shopify will automatically update changes to webhook subscriptions every time you run `deploy` (e.g: `npm run deploy`).  Please read these guides to understand more:
+## 🤝 コントリビューション
 
-1. [app-specific vs shop-specific webhooks](https://shopify.dev/docs/apps/build/webhooks/subscribe#app-specific-subscriptions)
-2. [Create a subscription tutorial](https://shopify.dev/docs/apps/build/webhooks/subscribe/get-started?framework=remix&deliveryMethod=https)
+1. このリポジトリをフォーク
+2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
+3. 変更をコミット (`git commit -m 'Add some amazing feature'`)
+4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
+5. プルリクエストを作成
 
-If you do need shop-specific webhooks, please keep in mind that the package calls `afterAuth` in 2 scenarios:
+## 📞 サポート
 
-- After installing the app
-- When an access token expires
+- **ドキュメント**: [Notion](https://www.notion.so/track-to-inventory-211c3eba44cb803dbc79f9a485bc8342)
+- **Issues**: GitHub Issuesでバグ報告や機能要望
+- **Email**: サポート用メールアドレス
 
-During normal development, the app won't need to re-authenticate most of the time, so shop-specific subscriptions aren't updated. To force your app to update the subscriptions, you can uninstall and reinstall it in your development store. That will force the OAuth process and call the `afterAuth` hook.
+## 🔄 更新履歴
 
-### Admin created webhook failing HMAC validation
+詳細な変更履歴は[CHANGELOG.md](./CHANGELOG.md)を参照してください。
 
-Webhooks subscriptions created in the [Shopify admin](https://help.shopify.com/en/manual/orders/notifications/webhooks) will fail HMAC validation. This is because the webhook payload is not signed with your app's secret key.  There are 2 solutions:
+---
 
-1. Use [app-specific webhooks](https://shopify.dev/docs/apps/build/webhooks/subscribe#app-specific-subscriptions) defined in your toml file instead (recommended)
-2. Create [webhook subscriptions](https://shopify.dev/docs/api/shopify-app-remix/v1/guide-webhooks) using the `shopifyApp` object.
-
-Test your webhooks with the [Shopify CLI](https://shopify.dev/docs/apps/tools/cli/commands#webhook-trigger) or by triggering events manually in the Shopify admin(e.g. Updating the product title to trigger a `PRODUCTS_UPDATE`).
-
-### Incorrect GraphQL Hints
-
-By default the [graphql.vscode-graphql](https://marketplace.visualstudio.com/items?itemName=GraphQL.vscode-graphql) extension for VS Code will assume that GraphQL queries or mutations are for the [Shopify Admin API](https://shopify.dev/docs/api/admin). This is a sensible default, but it may not be true if:
-
-1. You use another Shopify API such as the storefront API.
-2. You use a third party GraphQL API.
-
-in this situation, please update the [.graphqlrc.ts](https://github.com/Shopify/shopify-app-template-remix/blob/main/.graphqlrc.ts) config.
-
-### First parameter has member 'readable' that is not a ReadableStream.
-
-See [hosting on Vercel](#hosting-on-vercel).
-
-### Admin object undefined on webhook events triggered by the CLI
-
-When you trigger a webhook event using the Shopify CLI, the `admin` object will be `undefined`. This is because the CLI triggers an event with a valid, but non-existent, shop. The `admin` object is only available when the webhook is triggered by a shop that has installed the app.
-
-Webhooks triggered by the CLI are intended for initial experimentation testing of your webhook configuration. For more information on how to test your webhooks, see the [Shopify CLI documentation](https://shopify.dev/docs/apps/tools/cli/commands#webhook-trigger).
-
-### Using Defer & await for streaming responses
-
-To test [streaming using defer/await](https://remix.run/docs/en/main/guides/streaming) during local development you'll need to use the Shopify CLI slightly differently:
-
-1. First setup ngrok: https://ngrok.com/product/secure-tunnels
-2. Create an ngrok tunnel on port 8080: `ngrok http 8080`.
-3. Copy the forwarding address. This should be something like: `https://f355-2607-fea8-bb5c-8700-7972-d2b5-3f2b-94ab.ngrok-free.app`
-4. In a separate terminal run `yarn shopify app dev --tunnel-url=TUNNEL_URL:8080` replacing `TUNNEL_URL` for the address you copied in step 3.
-
-By default the CLI uses a cloudflare tunnel. Unfortunately it cloudflare tunnels wait for the Response stream to finish, then sends one chunk.
-
-This will not affect production, since tunnels are only for local development.
-
-### Using MongoDB and Prisma
-
-By default this template uses SQLlite as the database. It is recommended to move to a persisted database for production. If you choose to use MongoDB, you will need to make some modifications to the schema and prisma configuration. For more information please see the [Prisma MongoDB documentation](https://www.prisma.io/docs/orm/overview/databases/mongodb).
-
-Alternatively you can use a MongDB database directly with the [MongoDB session storage adapter](https://github.com/Shopify/shopify-app-js/tree/main/packages/apps/session-storage/shopify-app-session-storage-mongodb).
-
-#### Mapping the id field
-
-In MongoDB, an ID must be a single field that defines an @id attribute and a @map("\_id") attribute.
-The prisma adapter expects the ID field to be the ID of the session, and not the \_id field of the document.
-
-To make this work you can add a new field to the schema that maps the \_id field to the id field. For more information see the [Prisma documentation](https://www.prisma.io/docs/orm/prisma-schema/data-model/models#defining-an-id-field)
-
-```prisma
-model Session {
-  session_id  String    @id @default(auto()) @map("_id") @db.ObjectId
-  id          String    @unique
-...
-}
-```
-
-#### Error: The "mongodb" provider is not supported with this command
-
-MongoDB does not support the [prisma migrate](https://www.prisma.io/docs/orm/prisma-migrate/understanding-prisma-migrate/overview) command. Instead, you can use the [prisma db push](https://www.prisma.io/docs/orm/reference/prisma-cli-reference#db-push) command and update the `shopify.web.toml` file with the following commands. If you are using MongoDB please see the [Prisma documentation](https://www.prisma.io/docs/orm/overview/databases/mongodb) for more information.
-
-```toml
-[commands]
-predev = "npx prisma generate && npx prisma db push"
-dev = "npm exec remix vite:dev"
-```
-
-#### Prisma needs to perform transactions, which requires your mongodb server to be run as a replica set
-
-See the [Prisma documentation](https://www.prisma.io/docs/getting-started/setup-prisma/start-from-scratch/mongodb/connect-your-database-node-mongodb) for connecting to a MongoDB database.
-
-### I want to use Polaris v13.0.0 or higher
-
-Currently, this template is set up to work on node v18.20 or higher. However, `@shopify/polaris` is limited to v12 because v13 can only run on node v20+.
-
-You don't have to make any changes to the code in order to be able to upgrade Polaris to v13, but you'll need to do the following:
-
-- Upgrade your node version to v20.10 or higher.
-- Update your `Dockerfile` to pull `FROM node:20-alpine` instead of `node:18-alpine`
-
-### "nbf" claim timestamp check failed
-
-This error will occur of the `nbf` claim timestamp check failed. This is because the JWT token is expired.
-If you  are consistently getting this error, it could be that the clock on your machine is not in sync with the server.
-
-To fix this ensure you have enabled `Set time and date automatically` in the `Date and Time` settings on your computer.
-
-## Benefits
-
-Shopify apps are built on a variety of Shopify tools to create a great merchant experience.
-
-<!-- TODO: Uncomment this after we've updated the docs -->
-<!-- The [create an app](https://shopify.dev/docs/apps/getting-started/create) tutorial in our developer documentation will guide you through creating a Shopify app using this template. -->
-
-The Remix app template comes with the following out-of-the-box functionality:
-
-- [OAuth](https://github.com/Shopify/shopify-app-js/tree/main/packages/shopify-app-remix#authenticating-admin-requests): Installing the app and granting permissions
-- [GraphQL Admin API](https://github.com/Shopify/shopify-app-js/tree/main/packages/shopify-app-remix#using-the-shopify-admin-graphql-api): Querying or mutating Shopify admin data
-- [Webhooks](https://github.com/Shopify/shopify-app-js/tree/main/packages/shopify-app-remix#authenticating-webhook-requests): Callbacks sent by Shopify when certain events occur
-- [AppBridge](https://shopify.dev/docs/api/app-bridge): This template uses the next generation of the Shopify App Bridge library which works in unison with previous versions.
-- [Polaris](https://polaris.shopify.com/): Design system that enables apps to create Shopify-like experiences
-
-## Tech Stack
-
-This template uses [Remix](https://remix.run). The following Shopify tools are also included to ease app development:
-
-- [Shopify App Remix](https://shopify.dev/docs/api/shopify-app-remix) provides authentication and methods for interacting with Shopify APIs.
-- [Shopify App Bridge](https://shopify.dev/docs/apps/tools/app-bridge) allows your app to seamlessly integrate your app within Shopify's Admin.
-- [Polaris React](https://polaris.shopify.com/) is a powerful design system and component library that helps developers build high quality, consistent experiences for Shopify merchants.
-- [Webhooks](https://github.com/Shopify/shopify-app-js/tree/main/packages/shopify-app-remix#authenticating-webhook-requests): Callbacks sent by Shopify when certain events occur
-- [Polaris](https://polaris.shopify.com/): Design system that enables apps to create Shopify-like experiences
-
-## Resources
-
-- [Remix Docs](https://remix.run/docs/en/v1)
-- [Shopify App Remix](https://shopify.dev/docs/api/shopify-app-remix)
-- [Introduction to Shopify apps](https://shopify.dev/docs/apps/getting-started)
-- [App authentication](https://shopify.dev/docs/apps/auth)
-- [Shopify CLI](https://shopify.dev/docs/apps/tools/cli)
-- [App extensions](https://shopify.dev/docs/apps/app-extensions/list)
-- [Shopify Functions](https://shopify.dev/docs/api/functions)
-- [Getting started with internationalizing your app](https://shopify.dev/docs/apps/best-practices/internationalization/getting-started)
+**Track to Inventory** - Shopify入荷管理を効率化するための最適なソリューション
