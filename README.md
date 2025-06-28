@@ -193,11 +193,6 @@ npm run test:ui
 npm run deploy
 ```
 
-### その他のプラットフォーム
-
-- **Heroku**: `heroku create && git push heroku main`
-- **Fly.io**: `fly launch`
-- **Railway**: Railway Dashboardから直接デプロイ
 
 ## 🐛 トラブルシューティング
 
@@ -242,7 +237,7 @@ npm run dev
 
 - **ドキュメント**: [Notion](https://www.notion.so/track-to-inventory-211c3eba44cb803dbc79f9a485bc8342)
 - **Issues**: GitHub Issuesでバグ報告や機能要望
-- **Email**: サポート用メールアドレス
+- **Email**: サポート用メールアドレス　ohashinaomaki@gmail.com
 
 ## 🔄 更新履歴
 
@@ -251,3 +246,39 @@ npm run dev
 ---
 
 **Track to Inventory** - Shopify入荷管理を効率化するための最適なソリューション
+
+
+---
+
+## 🇺🇸 English Summary
+
+### Track to Inventory – Shopify Inventory Management App
+
+**Track to Inventory** is a Shopify app designed to streamline the inventory management process for import-based businesses.  
+It provides powerful features for tracking shipping instructions (SI), managing arrival schedules, synchronizing stock with Shopify, and automating data extraction using OCR and AI.
+
+### 🔧 Key Features
+
+- **SI Tracking**: Manage six detailed status stages from SI creation to warehouse arrival  
+- **Arrival Scheduling**: Plan inbound shipments using ETD/ETA dates  
+- **OCR + AI**: Extract data from invoices and packing lists with Tesseract.js and auto-fill missing values using Google Gemini  
+- **Shopify Sync**: Automatically update Shopify inventory based on shipment status  
+- **File Management**: Upload and preview related files securely (e.g., invoices, SI, packing lists)  
+- **Multilingual UI**: Fully supports both Japanese and English with real-time language switching
+
+### 🛠 Tech Stack
+
+- **Framework**: Remix  
+- **UI**: Shopify Polaris  
+- **Database**: Supabase (PostgreSQL)  
+- **OCR**: Tesseract.js  
+- **AI**: Google Gemini  
+- **Storage**: Upstash Redis  
+- **Internationalization**: react-i18next
+
+---
+
+For any inquiries, testing access, or support, feel free to reach out.  
+This app is designed for operational efficiency in real-world import workflows.
+
+Support [Notion]：https://quiet-thrill-c13.notion.site/Track-To-Inventory-User-Guide-217c3eba44cb80ffa65ce7df3fde3cf8
