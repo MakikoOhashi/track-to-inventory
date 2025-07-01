@@ -14,18 +14,19 @@ import { getCurrentPlan } from "~/lib/shopifyBilling.server";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
-export const loader = async ({ request }) => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  const plan = await getCurrentPlan(session.shop, session.accessToken);
+  // sessionオブジェクトをそのまま渡す
+  const plan = await getCurrentPlan(session);
   return json({ plan });
 };
 
 export default function Pricing() {
-  const { plan } = useLoaderData();
+  const { plan } = useLoaderData<typeof loader>();
   const { t, i18n } = useTranslation("common");
 
   // プラン選択時のAPI呼び出し
-  const handlePlanSelect = async (planKey) => {
+  const handlePlanSelect = async (planKey: string) => {
     const res = await fetch("/api/billing-subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

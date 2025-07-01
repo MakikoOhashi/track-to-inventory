@@ -16,26 +16,12 @@ type ActiveSubscriptionsResponse = {
   data: ActiveSubscriptionsData;
 };
 
-export async function getCurrentPlan(shop: string, accessToken?: string): Promise<UserPlan> {
+export async function getCurrentPlan(session: Session): Promise<UserPlan> {
   const skipBilling = process.env.DISABLE_BILLING === "true";
 
   if (skipBilling) {
-    return (await redis.get<UserPlan>(`plan:${shop}`)) ?? "free";
+    return (await redis.get<UserPlan>(`plan:${session.shop}`)) ?? "free";
   }
-
-  if (!accessToken) {
-    throw new Error("Shopify accessToken is required to check billing");
-  }
-
-  // Sessionオブジェクトを作成
-  const session = new Session({
-    id: `offline_${shop}`,
-    shop, // "xxxxx.myshopify.com" 形式
-    state: "",
-    isOnline: false,
-    accessToken,
-    scope: process.env.SCOPES || "",
-  });
 
   const client = new GraphqlClient({ session });
 
@@ -59,13 +45,13 @@ export async function getCurrentPlan(shop: string, accessToken?: string): Promis
 
   // Pro優先→Basic→Free
   if (subs.some((s: any) => planNameMap[s.name] === "pro" && s.status === "ACTIVE")) {
-    await redis.set(`plan:${shop}`, "pro");
+    await redis.set(`plan:${session.shop}`, "pro");
     return "pro";
   }
   if (subs.some((s: any) => planNameMap[s.name] === "basic" && s.status === "ACTIVE")) {
-    await redis.set(`plan:${shop}`, "basic");
+    await redis.set(`plan:${session.shop}`, "basic");
     return "basic";
   }
-  await redis.set(`plan:${shop}`, "free");
+  await redis.set(`plan:${session.shop}`, "free");
   return "free";
 }
