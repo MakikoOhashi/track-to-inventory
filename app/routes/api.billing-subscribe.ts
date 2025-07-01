@@ -22,7 +22,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const { plan: planKey } = await request.json();
 
-  // 既存プラン確認（getCurrentPlanの呼び出しを修正）
+  // 既存プラン確認
   const currentPlan = await getCurrentPlan(session);
   if (currentPlan === planKey) {
     return json({ alreadyActive: true });

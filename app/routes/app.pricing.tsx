@@ -16,7 +16,6 @@ import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  // sessionオブジェクトをそのまま渡す
   const plan = await getCurrentPlan(session);
   return json({ plan });
 };
