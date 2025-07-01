@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { authenticate } from "~/shopify.server"
 
 // Redisクライアント初期化
-const redis = new Redis({
+export const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 })
