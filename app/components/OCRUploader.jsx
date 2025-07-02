@@ -564,6 +564,9 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
           <Text variant="bodyMd">{file.name}</Text>
         )}
       </DropZone>
+      <Link url="/instruction_demo.png" external>
+      OCRテスト用画像
+      </Link>
       {file && (
         <div style={{ marginTop: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
