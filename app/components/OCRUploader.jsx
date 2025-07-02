@@ -567,12 +567,20 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         )}
       </DropZone>
       {/* public/instruction_demo.png へのリンク。public/はURLに含めず、/instruction_demo.png でOK */}
-      <Button
-        fullWidth
-        onClick={() => window.open(demoImageUrl, "_blank", "noopener,noreferrer")}
+      <a
+        href={demoImageUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          fontSize: "13px",
+          color: "#6d7175",
+          textDecoration: "underline",
+          marginTop: 8,
+          display: "inline-block"
+        }}
       >
         {t('ocr.testImageLabel')}
-      </Button>
+      </a>
       {file && (
         <div style={{ marginTop: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
