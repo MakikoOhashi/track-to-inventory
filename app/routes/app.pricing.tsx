@@ -52,7 +52,7 @@ export default function Pricing() {
   }
 
   // Shopify管理画面のアプリ課金ページURL（必要に応じてyour-app-handleを修正）
-  const billingUrl = shop ? `https://${shop}/admin/billing` : undefined;
+  const billingUrl = shop ? `https://${shop}/admin/settings/billing` : undefined;
   const goToBillingLabel = t("pricing.goToShopifyBilling", { defaultValue: "Shopifyでプラン管理" }) as string;
 
   const plans = [
