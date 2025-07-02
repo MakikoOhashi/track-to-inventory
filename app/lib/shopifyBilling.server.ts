@@ -35,7 +35,10 @@ export async function getCurrentPlan(session: Session): Promise<UserPlan> {
       (session as any).scope = process.env.SCOPES || "";
     }
 
-    const client = new GraphqlClient({ session });
+    const client = new GraphqlClient({
+      session,
+      apiVersion: "2024-01" as any
+    });
 
     const query = `
       {
