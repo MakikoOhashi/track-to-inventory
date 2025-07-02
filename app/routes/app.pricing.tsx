@@ -13,23 +13,23 @@ import { authenticate } from "~/shopify.server";
 import { getCurrentPlan } from "~/lib/shopifyBilling.server";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
-import { Form } from "@remix-run/react";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     const { session } = await authenticate.admin(request);
     const plan = await getCurrentPlan(session);
-    return json({ plan });
+    // shopドメインも渡す
+    return json({ plan, shop: session.shop });
   } catch (error) {
     console.error('Pricing loader error:', error);
     // エラーが発生してもUIは表示し、デフォルトでfreeプランを返す
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return json({ plan: "free", error: errorMessage });
+    return json({ plan: "free", error: errorMessage, shop: undefined });
   }
 };
 
 export default function Pricing() {
-  const { plan, error } = useLoaderData<{ plan: string; error?: string }>();
+  const { plan, error, shop } = useLoaderData<{ plan: string; error?: string; shop?: string }>();
   const { t, i18n } = useTranslation("common");
 
   // エラーがある場合は表示
@@ -37,27 +37,8 @@ export default function Pricing() {
     console.warn("Pricing page error:", error);
   }
 
-  const handlePlanSelect = async (planKey: string) => {
-    try {
-      const res = await fetch("/api/billing-subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: planKey }),
-      });
-      if (res.redirected) {
-        window.location.href = res.url;
-      } else {
-        const data = await res.json();
-        if (data.alreadyActive) {
-          alert("すでにこのプランが有効です");
-        } else if (data.error) {
-          alert(data.error);
-        }
-      }
-    } catch (error) {
-      alert("通信エラーが発生しました");
-    }
-  };
+  // Shopify管理画面のアプリ課金ページURL（必要に応じてyour-app-handleを修正）
+  const billingUrl = shop ? `https://${shop}/admin/billing` : undefined;
 
   const plans = [
     {
@@ -75,8 +56,8 @@ export default function Pricing() {
         t("plan.free.feature7"),
       ],
       button: (
-        <Button disabled={plan === "free"} fullWidth onClick={() => handlePlanSelect("free") }>
-          {plan === "free" ? t("plan.free.current") : t("plan.free.select")}
+        <Button fullWidth url={billingUrl} external>
+          {t("pricing.goToShopifyBilling")}
         </Button>
       ),
       highlight: false,
@@ -97,8 +78,8 @@ export default function Pricing() {
         t("plan.basic.feature7"),
       ],
       button: (
-        <Button disabled={plan === "basic"} fullWidth variant="primary" onClick={() => handlePlanSelect("basic") }>
-          {plan === "basic" ? t("plan.basic.current") : t("plan.basic.select")}
+        <Button fullWidth variant="primary" url={billingUrl} external>
+          {t("pricing.goToShopifyBilling")}
         </Button>
       ),
       highlight: true,
@@ -123,8 +104,8 @@ export default function Pricing() {
         t("plan.pro.feature7"),
       ],
       button: (
-        <Button disabled={plan === "pro"} fullWidth variant="primary" onClick={() => handlePlanSelect("pro") }>
-          {plan === "pro" ? t("plan.pro.current") : t("plan.pro.select")}
+        <Button fullWidth variant="primary" url={billingUrl} external>
+          {t("pricing.goToShopifyBilling")}
         </Button>
       ),
       highlight: true,
