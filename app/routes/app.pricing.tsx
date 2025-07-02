@@ -12,7 +12,7 @@ import {
 import { authenticate } from "~/shopify.server";
 import { getCurrentPlan } from "~/lib/shopifyBilling.server";
 import { useTranslation } from "react-i18next";
-import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
@@ -28,6 +28,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 };
 
+function BillingButton({ billingUrl, children }: { billingUrl?: string, children: string | undefined }) {
+  if (!billingUrl || !children) return null;
+  return (
+    <a
+      href={billingUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{ textDecoration: 'none', display: 'block' }}
+    >
+      <Button fullWidth>{children}</Button>
+    </a>
+  );
+}
+
 export default function Pricing() {
   const { plan, error, shop } = useLoaderData<{ plan: string; error?: string; shop?: string }>();
   const { t, i18n } = useTranslation("common");
@@ -39,6 +53,7 @@ export default function Pricing() {
 
   // Shopify管理画面のアプリ課金ページURL（必要に応じてyour-app-handleを修正）
   const billingUrl = shop ? `https://${shop}/admin/billing` : undefined;
+  const goToBillingLabel = t("pricing.goToShopifyBilling", { defaultValue: "Shopifyでプラン管理" }) as string;
 
   const plans = [
     {
@@ -56,9 +71,7 @@ export default function Pricing() {
         t("plan.free.feature7"),
       ],
       button: (
-        <Button fullWidth url={billingUrl} external>
-          {t("pricing.goToShopifyBilling")}
-        </Button>
+        <BillingButton billingUrl={billingUrl}>{goToBillingLabel}</BillingButton>
       ),
       highlight: false,
       badge: null,
@@ -78,9 +91,7 @@ export default function Pricing() {
         t("plan.basic.feature7"),
       ],
       button: (
-        <Button fullWidth variant="primary" url={billingUrl} external>
-          {t("pricing.goToShopifyBilling")}
-        </Button>
+        <BillingButton billingUrl={billingUrl}>{goToBillingLabel}</BillingButton>
       ),
       highlight: true,
       badge: (
@@ -104,9 +115,7 @@ export default function Pricing() {
         t("plan.pro.feature7"),
       ],
       button: (
-        <Button fullWidth variant="primary" url={billingUrl} external>
-          {t("pricing.goToShopifyBilling")}
-        </Button>
+        <BillingButton billingUrl={billingUrl}>{goToBillingLabel}</BillingButton>
       ),
       highlight: true,
       badge: (
