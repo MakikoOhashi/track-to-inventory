@@ -328,5 +328,8 @@
     "selectedVariantId": "選択中バリアントID: {{variantId}}",
     "loadingProducts": "商品リスト取得中",
     "fetchError": "商品一覧の取得に失敗しました: {{message}}"
+  },
+  "ocr": {
+    "testImageLabel": "OCRテスト用画像"
   }
 }

@@ -565,8 +565,9 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
           <Text variant="bodyMd">{file.name}</Text>
         )}
       </DropZone>
+      {/* public/instruction_demo.png へのリンク。public/はURLに含めず、/instruction_demo.png でOK */}
       <Link url="/instruction_demo.png" external>
-      OCRテスト用画像
+        {t('ocr.testImageLabel')}
       </Link>
       {file && (
         <div style={{ marginTop: 16 }}>

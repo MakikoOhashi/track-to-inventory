@@ -329,5 +329,8 @@
     "selectedVariantId": "Selected Variant ID: {{variantId}}",
     "loadingProducts": "Loading product list",
     "fetchError": "Failed to fetch product list: {{message}}"
+  },
+  "ocr": {
+    "testImageLabel": "Sample image for OCR test"
   }
 }
