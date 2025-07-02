@@ -61,11 +61,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     `;
     const mutationRes = await admin.graphql(mutation);
     const mutationJson = await mutationRes.json();
-    const subscriptionData = mutationJson?.data?.appSubscriptionCreate;
+    // Shopify GraphQLの標準エラー配列を詳細に出力
+    const mutationJsonAny = mutationJson as any;
+    if (Array.isArray(mutationJsonAny.errors) && mutationJsonAny.errors.length > 0) {
+      console.error("GraphQL error details (errors):", mutationJsonAny.errors);
+    }
+    // 念のため全体も出力
+    if (!mutationJsonAny.data || !mutationJsonAny.data.appSubscriptionCreate) {
+      console.error("GraphQL mutation response (full):", mutationJsonAny);
+    }
+    const subscriptionData = mutationJsonAny?.data?.appSubscriptionCreate;
     if (!subscriptionData) {
       return json({ error: "Invalid response from Shopify" }, { status: 500 });
     }
     if (subscriptionData.userErrors && subscriptionData.userErrors.length > 0) {
+      console.error("GraphQL error details (userErrors):", subscriptionData.userErrors);
       const errorMessages = subscriptionData.userErrors.map((err: any) => err.message).join(", ");
       return json({ error: `Subscription creation failed: ${errorMessages}` }, { status: 400 });
     }
