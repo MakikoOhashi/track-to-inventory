@@ -19,57 +19,62 @@ type AppSubscriptionCreateResponse = {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  const { plan: planKey } = await request.json();
-
-  // 既存プラン確認
-  const currentPlan = await getCurrentPlan(session);
-  if (currentPlan === planKey) {
-    return json({ alreadyActive: true });
-  }
-
-  // プランごとの設定
-  const planConfigs = {
-    basic: {
-      name: "Basic Plan",
-      price: { amount: 9.99, currencyCode: "USD" },
-    },
-    pro: {
-      name: "Pro Plan",
-      price: { amount: 29.99, currencyCode: "USD" },
-    },
-  } as const;
-
-  type PlanKey = keyof typeof planConfigs;
-
-  const planConfig = planConfigs[planKey as PlanKey];
-
-  if (!planConfig) return json({ error: "Invalid plan" }, { status: 400 });
-
-  // GraphQL mutation
-  const mutation = `
-    mutation appSubscriptionCreate {
-      appSubscriptionCreate(
-        name: "${planConfig.name}",
-        returnUrl: "${process.env.APP_URL}/billing/callback?shop=${session.shop}",
-        test: true,
-        lineItems: [{
-          plan: {
-            appRecurringPricingDetails: {
-              price: { amount: ${planConfig.price.amount}, currencyCode: ${planConfig.price.currencyCode} }
-            }
-          }
-        }]
-      ) {
-        confirmationUrl
-        userErrors { field, message }
-      }
-    }
-  `;
-
-  const client = new GraphqlClient({ session });
-  
   try {
+    const { session } = await authenticate.admin(request);
+    const { plan: planKey } = await request.json();
+
+    // 既存プラン確認
+    const currentPlan = await getCurrentPlan(session);
+    if (currentPlan === planKey) {
+      return json({ alreadyActive: true });
+    }
+
+    // プランごとの設定
+    const planConfigs = {
+      basic: {
+        name: "Basic Plan",
+        price: { amount: 9.99, currencyCode: "USD" },
+      },
+      pro: {
+        name: "Pro Plan",
+        price: { amount: 29.99, currencyCode: "USD" },
+      },
+    } as const;
+
+    type PlanKey = keyof typeof planConfigs;
+
+    const planConfig = planConfigs[planKey as PlanKey];
+
+    if (!planConfig) return json({ error: "Invalid plan" }, { status: 400 });
+
+    // GraphQL mutation
+    const mutation = `
+      mutation appSubscriptionCreate {
+        appSubscriptionCreate(
+          name: "${planConfig.name}",
+          returnUrl: "${process.env.APP_URL}/billing/callback?shop=${session.shop}",
+          test: true,
+          lineItems: [{
+            plan: {
+              appRecurringPricingDetails: {
+                price: { amount: ${planConfig.price.amount}, currencyCode: ${planConfig.price.currencyCode} }
+              }
+            }
+          }]
+        ) {
+          confirmationUrl
+          userErrors { field, message }
+        }
+      }
+    `;
+
+    // scopeが設定されていない場合は環境変数から取得してsessionに追加
+    if (!session.scope) {
+      (session as any).scope = process.env.SCOPES || "";
+    }
+
+    const client = new GraphqlClient({ session });
+    
     // 型アサーションを使用してレスポンスの型を指定
     const response = await client.query<AppSubscriptionCreateResponse>({ data: mutation });
 
@@ -91,11 +96,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ error: "Failed to create subscription - no confirmation URL" }, { status: 500 });
     }
 
-    // hostパラメータを取得
-    const url = new URL(request.url);
-    const host = url.searchParams.get("host");
+    // session.hostを使用（URLクエリパラメータではなく）
+    const host = (session as any).host;
     if (!host) {
-      return json({ error: "Missing host parameter" }, { status: 400 });
+      return json({ error: "Missing host parameter in session" }, { status: 400 });
     }
 
     // hostパラメータを付与してリダイレクト
