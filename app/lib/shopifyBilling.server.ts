@@ -23,6 +23,17 @@ export async function getCurrentPlan(session: Session): Promise<UserPlan> {
     return (await redis.get<UserPlan>(`plan:${session.shop}`)) ?? "free";
   }
 
+  // sessionの整合性チェック
+  if (!session || !session.shop || !session.accessToken) {
+    console.error("Invalid session:", session);
+    throw new Error("Invalid Shopify session");
+  }
+
+  // scopeが設定されていない場合は環境変数から取得してsessionに追加
+  if (!session.scope) {
+    (session as any).scope = process.env.SCOPES || "";
+  }
+
   const client = new GraphqlClient({ session });
 
   const query = `
