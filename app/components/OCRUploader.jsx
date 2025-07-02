@@ -566,9 +566,12 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         )}
       </DropZone>
       {/* public/instruction_demo.png へのリンク。public/はURLに含めず、/instruction_demo.png でOK */}
-      <Link url="https://track-to-inventory.onrender.com/instruction_demo.png" external>
+      <Button
+        fullWidth
+        onClick={() => window.open(imageUrl, "_blank", "noopener,noreferrer")}
+      >
         {t('ocr.testImageLabel')}
-      </Link>
+      </Button>
       {file && (
         <div style={{ marginTop: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
