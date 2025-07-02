@@ -15,31 +15,48 @@ import { useTranslation } from "react-i18next";
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  const plan = await getCurrentPlan(session);
-  return json({ plan });
+  try {
+    const { session } = await authenticate.admin(request);
+    const plan = await getCurrentPlan(session);
+    return json({ plan });
+  } catch (error) {
+    console.error('Pricing loader error:', error);
+    // エラーが発生してもUIは表示し、デフォルトでfreeプランを返す
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return json({ plan: "free", error: errorMessage });
+  }
 };
 
 export default function Pricing() {
-  const { plan } = useLoaderData<typeof loader>();
+  const { plan, error } = useLoaderData<{ plan: string; error?: string }>();
   const { t, i18n } = useTranslation("common");
+
+  // エラーがある場合は表示
+  if (error) {
+    console.warn("Pricing page error:", error);
+  }
 
   // プラン選択時のAPI呼び出し
   const handlePlanSelect = async (planKey: string) => {
-    const res = await fetch("/api/billing-subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plan: planKey }),
-    });
-    if (res.redirected) {
-      window.location.href = res.url;
-    } else {
-      const data = await res.json();
-      if (data.alreadyActive) {
-        alert("すでにこのプランが有効です");
-      } else if (data.error) {
-        alert(data.error);
+    try {
+      const res = await fetch("/api/billing-subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: planKey }),
+      });
+      if (res.redirected) {
+        window.location.href = res.url;
+      } else {
+        const data = await res.json();
+        if (data.alreadyActive) {
+          alert("すでにこのプランが有効です");
+        } else if (data.error) {
+          alert(data.error);
+        }
       }
+    } catch (error) {
+      console.error("Plan selection error:", error);
+      alert("プラン選択中にエラーが発生しました。もう一度お試しください。");
     }
   };
 
