@@ -23,17 +23,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (!planConfig) return json({ error: "Invalid plan" }, { status: 400 });
 
     // 1. 現在のプランを取得
-    const statusRes = await admin.graphql(`
-      {
-        currentAppInstallation {
-          activeSubscriptions {
-            name
-            status
+    let statusJson;
+    try {
+      const statusRes = await admin.graphql(`
+        {
+          currentAppInstallation {
+            activeSubscriptions {
+              name
+              status
+            }
           }
         }
+      `);
+      statusJson = await statusRes.json();
+    } catch (error: any) {
+      if (error.graphQLErrors) {
+        console.error("GraphQL Client error.graphQLErrors (status):", error.graphQLErrors);
       }
-    `);
-    const statusJson = await statusRes.json();
+      if (error.response) {
+        console.error("GraphQL Client error.response (status):", error.response);
+      }
+      console.error("GraphQL Client error (status, full):", error);
+      return json({ error: "Failed to fetch current plan from Shopify" }, { status: 500 });
+    }
     const subs = statusJson?.data?.currentAppInstallation?.activeSubscriptions || [];
     if (subs.some((s: any) => s.name === planConfig.name && s.status === "ACTIVE")) {
       return json({ alreadyActive: true });
@@ -59,16 +71,28 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
       }
     `;
-    const mutationRes = await admin.graphql(mutation);
-    const mutationJson = await mutationRes.json();
-    // Shopify GraphQLの標準エラー配列を詳細に出力
-    const mutationJsonAny = mutationJson as any;
-    if (Array.isArray(mutationJsonAny.errors) && mutationJsonAny.errors.length > 0) {
-      console.error("GraphQL error details (errors):", mutationJsonAny.errors);
-    }
-    // 念のため全体も出力
-    if (!mutationJsonAny.data || !mutationJsonAny.data.appSubscriptionCreate) {
-      console.error("GraphQL mutation response (full):", mutationJsonAny);
+    let mutationJsonAny;
+    try {
+      const mutationRes = await admin.graphql(mutation);
+      const mutationJson = await mutationRes.json();
+      mutationJsonAny = mutationJson as any;
+      // Shopify GraphQLの標準エラー配列を詳細に出力
+      if (Array.isArray(mutationJsonAny.errors) && mutationJsonAny.errors.length > 0) {
+        console.error("GraphQL error details (errors):", mutationJsonAny.errors);
+      }
+      // 念のため全体も出力
+      if (!mutationJsonAny.data || !mutationJsonAny.data.appSubscriptionCreate) {
+        console.error("GraphQL mutation response (full):", mutationJsonAny);
+      }
+    } catch (error: any) {
+      if (error.graphQLErrors) {
+        console.error("GraphQL Client error.graphQLErrors (mutation):", error.graphQLErrors);
+      }
+      if (error.response) {
+        console.error("GraphQL Client error.response (mutation):", error.response);
+      }
+      console.error("GraphQL Client error (mutation, full):", error);
+      return json({ error: "Failed to create subscription on Shopify" }, { status: 500 });
     }
     const subscriptionData = mutationJsonAny?.data?.appSubscriptionCreate;
     if (!subscriptionData) {
