@@ -28,9 +28,9 @@ scopes = "read_products,write_products,write_inventory,read_locations"
 
 [auth]
 redirect_urls = [
-  "https://wage-collectible-distinct-plots.trycloudflare.com/auth/callback",
-  "https://wage-collectible-distinct-plots.trycloudflare.com/auth/shopify/callback",
-  "https://wage-collectible-distinct-plots.trycloudflare.com/api/auth/callback"
+  "https://track-to-inventory.onrender.com/auth/callback",
+  "https://track-to-inventory.onrender.com/auth/shopify/callback",
+  "https://track-to-inventory.onrender.com/api/auth/callback"
 ]
 
 [pos]

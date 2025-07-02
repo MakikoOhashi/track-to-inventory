@@ -56,7 +56,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       mutation appSubscriptionCreate {
         appSubscriptionCreate(
           name: \"${planConfig.name}\",
-          returnUrl: \"${process.env.APP_URL}/billing/callback?shop=${session.shop}\",
+          returnUrl: \"${process.env.SHOPIFY_APP_URL}/billing/callback?shop=${session.shop}\",
           test: true,
           lineItems: [{
             plan: {
