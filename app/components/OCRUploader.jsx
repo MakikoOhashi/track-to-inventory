@@ -9,6 +9,7 @@ import {
   Button,
   Banner,
   Select,
+  Link,
 } from "@shopify/polaris";
 import { useTranslation } from "react-i18next";
 import Tesseract from "tesseract.js";
