@@ -38,12 +38,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       statusJson = await statusRes.json();
     } catch (error: any) {
       if (error.graphQLErrors) {
-        console.error("GraphQL Client error.graphQLErrors (status):", error.graphQLErrors);
+        console.error("GraphQL Client error.graphQLErrors (status):", JSON.stringify(error.graphQLErrors, null, 2));
       }
       if (error.response) {
-        console.error("GraphQL Client error.response (status):", error.response);
+        console.error("GraphQL Client error.response (status):", JSON.stringify(error.response, null, 2));
       }
-      console.error("GraphQL Client error (status, full):", error);
+      console.error("GraphQL Client error (status, full):", JSON.stringify(error, null, 2));
       return json({ error: "Failed to fetch current plan from Shopify" }, { status: 500 });
     }
     const subs = statusJson?.data?.currentAppInstallation?.activeSubscriptions || [];
@@ -78,20 +78,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       mutationJsonAny = mutationJson as any;
       // Shopify GraphQLの標準エラー配列を詳細に出力
       if (Array.isArray(mutationJsonAny.errors) && mutationJsonAny.errors.length > 0) {
-        console.error("GraphQL error details (errors):", mutationJsonAny.errors);
+        console.error("GraphQL error details (errors):", JSON.stringify(mutationJsonAny.errors, null, 2));
       }
       // 念のため全体も出力
       if (!mutationJsonAny.data || !mutationJsonAny.data.appSubscriptionCreate) {
-        console.error("GraphQL mutation response (full):", mutationJsonAny);
+        console.error("GraphQL mutation response (full):", JSON.stringify(mutationJsonAny, null, 2));
       }
     } catch (error: any) {
       if (error.graphQLErrors) {
-        console.error("GraphQL Client error.graphQLErrors (mutation):", error.graphQLErrors);
+        console.error("GraphQL Client error.graphQLErrors (mutation):", JSON.stringify(error.graphQLErrors, null, 2));
       }
       if (error.response) {
-        console.error("GraphQL Client error.response (mutation):", error.response);
+        console.error("GraphQL Client error.response (mutation):", JSON.stringify(error.response, null, 2));
       }
-      console.error("GraphQL Client error (mutation, full):", error);
+      console.error("GraphQL Client error (mutation, full):", JSON.stringify(error, null, 2));
       return json({ error: "Failed to create subscription on Shopify" }, { status: 500 });
     }
     const subscriptionData = mutationJsonAny?.data?.appSubscriptionCreate;
@@ -99,7 +99,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ error: "Invalid response from Shopify" }, { status: 500 });
     }
     if (subscriptionData.userErrors && subscriptionData.userErrors.length > 0) {
-      console.error("GraphQL error details (userErrors):", subscriptionData.userErrors);
+      console.error("GraphQL error details (userErrors):", JSON.stringify(subscriptionData.userErrors, null, 2));
       const errorMessages = subscriptionData.userErrors.map((err: any) => err.message).join(", ");
       return json({ error: `Subscription creation failed: ${errorMessages}` }, { status: 400 });
     }
@@ -114,7 +114,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
     return redirect(`${confirmationUrl}&host=${encodeURIComponent(host)}`);
   } catch (error) {
-    console.error("Billing subscription error:", error);
+    console.error("Billing subscription error:", JSON.stringify(error, null, 2));
     return json({ error: "Failed to process subscription request" }, { status: 500 });
   }
 };
