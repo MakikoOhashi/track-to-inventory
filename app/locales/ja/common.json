@@ -238,7 +238,8 @@
       "priority": "優先",
       "fileCapacityValue": "1件あたり最大10MB×4枚",
       "fileCapacityValuePro": "1件あたり最大10MB×4枚※使用状況に応じ制限の可能性あり"
-    }
+    },
+    "goToShopifyBilling": "Shopifyでプラン管理"
   },
   "plan": {
     "free": {

@@ -239,7 +239,8 @@
       "priority": "Priority",
       "fileCapacityValue": "Up to 10MB × 4 files per record",
       "fileCapacityValuePro": "Up to 10MB × 4 files per record (may be limited depending on usage)"
-    }
+    },
+    "goToShopifyBilling": "Manage plan in Shopify"
   },
   "plan": {
     "free": {
