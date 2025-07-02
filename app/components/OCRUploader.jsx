@@ -36,6 +36,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   const [isClient, setIsClient] = useState(false);
   const [usageInfo, setUsageInfo] = useState(null); // 使用状況情報を保存
   const [showManualForm, setShowManualForm] = useState(false);
+  const demoImageUrl = "https://track-to-inventory.onrender.com/instruction_demo.png";
 
    // クライアント判定（SSR対策）
    useEffect(() => {
@@ -568,7 +569,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       {/* public/instruction_demo.png へのリンク。public/はURLに含めず、/instruction_demo.png でOK */}
       <Button
         fullWidth
-        onClick={() => window.open(imageUrl, "_blank", "noopener,noreferrer")}
+        onClick={() => window.open(demoImageUrl, "_blank", "noopener,noreferrer")}
       >
         {t('ocr.testImageLabel')}
       </Button>
