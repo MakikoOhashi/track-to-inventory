@@ -37,6 +37,28 @@ export default function Pricing() {
     console.warn("Pricing page error:", error);
   }
 
+  const handlePlanSelect = async (planKey: string) => {
+    try {
+      const res = await fetch("/api/billing-subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: planKey }),
+      });
+      if (res.redirected) {
+        window.location.href = res.url;
+      } else {
+        const data = await res.json();
+        if (data.alreadyActive) {
+          alert("すでにこのプランが有効です");
+        } else if (data.error) {
+          alert(data.error);
+        }
+      }
+    } catch (error) {
+      alert("通信エラーが発生しました");
+    }
+  };
+
   const plans = [
     {
       key: "free",
@@ -53,12 +75,9 @@ export default function Pricing() {
         t("plan.free.feature7"),
       ],
       button: (
-        <Form method="post" action="/api/billing-subscribe">
-          <input type="hidden" name="plan" value="free" />
-          <Button disabled={plan === "free"} fullWidth>
-            {plan === "free" ? t("plan.free.current") : t("plan.free.select")}
-          </Button>
-        </Form>
+        <Button disabled={plan === "free"} fullWidth onClick={() => handlePlanSelect("free") }>
+          {plan === "free" ? t("plan.free.current") : t("plan.free.select")}
+        </Button>
       ),
       highlight: false,
       badge: null,
@@ -78,12 +97,9 @@ export default function Pricing() {
         t("plan.basic.feature7"),
       ],
       button: (
-        <Form method="post" action="/api/billing-subscribe">
-          <input type="hidden" name="plan" value="basic" />
-          <Button disabled={plan === "basic"} fullWidth variant="primary">
-            {plan === "basic" ? t("plan.basic.current") : t("plan.basic.select")}
-          </Button>
-        </Form>
+        <Button disabled={plan === "basic"} fullWidth variant="primary" onClick={() => handlePlanSelect("basic") }>
+          {plan === "basic" ? t("plan.basic.current") : t("plan.basic.select")}
+        </Button>
       ),
       highlight: true,
       badge: (
@@ -107,12 +123,9 @@ export default function Pricing() {
         t("plan.pro.feature7"),
       ],
       button: (
-        <Form method="post" action="/api/billing-subscribe">
-          <input type="hidden" name="plan" value="pro" />
-          <Button disabled={plan === "pro"} fullWidth variant="primary">
-            {plan === "pro" ? t("plan.pro.current") : t("plan.pro.select")}
-          </Button>
-        </Form>
+        <Button disabled={plan === "pro"} fullWidth variant="primary" onClick={() => handlePlanSelect("pro") }>
+          {plan === "pro" ? t("plan.pro.current") : t("plan.pro.select")}
+        </Button>
       ),
       highlight: true,
       badge: (
