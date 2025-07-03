@@ -537,12 +537,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             console.log("=== 戦略3: inventorySetQuantities ===");
             
             // 現在の在庫量を取得
-            const currentQuantity = variant.inventoryQuantity || 0;
-            const newQuantity = Math.max(0, currentQuantity + item.quantity);
-            
+            const currentQuantity = Number(variant.inventoryQuantity) || 0;
+            const delta = Number(item.quantity) || 0;
+            const newQuantity = Math.max(0, currentQuantity + delta);
             console.log("在庫計算:", {
               currentQuantity,
-              delta: item.quantity,
+              delta,
               newQuantity
             });
             
