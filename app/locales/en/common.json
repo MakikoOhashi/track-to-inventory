@@ -157,7 +157,8 @@
         "requiresShipping": "Check \"This product requires shipping\" for the target product",
         "variantId": "Ensure Shopify variant ID is correctly set for the product"
       },
-      "warning": "If these settings are not correct, inventory sync may fail."
+      "warning": "If these settings are not correct, inventory sync may fail.",
+      "important": "Please make sure to assign a variant to every item and save before pressing the sync button. You cannot re-sync after synchronization."
     }
   },
   "ocrUploader": {

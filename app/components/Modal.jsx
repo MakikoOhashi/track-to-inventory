@@ -692,6 +692,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
                   <li>{t('modal.syncNotice.checklist.variantId')}</li>
                 </ul>
                 <p>{t('modal.syncNotice.warning')}</p>
+                <p style={{color: 'red', fontWeight: 'bold'}}>{t('modal.syncNotice.important')}</p>
               </Banner>
               <Button
                 primary
