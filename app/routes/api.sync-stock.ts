@@ -639,15 +639,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         }
         
-        // 戦略4: inventoryBulkAdjustQuantityAtLocation (最後の手段)
+        // 戦略4: inventoryAdjustQuantities (最後の手段)
         if (!success) {
-          step = "inventoryBulkAdjustQuantityAtLocation";
+          step = "inventoryAdjustQuantities";
           try {
-            console.log("=== 戦略4: inventoryBulkAdjustQuantityAtLocation ===");
+            console.log("=== 戦略4: inventoryAdjustQuantities (最後の手段) ===");
             
             const bulkAdjustMutation = `
-              mutation($input: InventoryBulkAdjustQuantityAtLocationInput!) {
-                inventoryBulkAdjustQuantityAtLocation(input: $input) {
+              mutation($input: InventoryAdjustQuantitiesInput!) {
+                inventoryAdjustQuantities(input: $input) {
                   inventoryLevels {
                     id
                     available
@@ -662,13 +662,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             
             const bulkAdjustVariables = {
               input: {
-                locationId: locationId,
-                changes: [
+                inventoryItemAdjustments: [
                   {
                     inventoryItemId: inventoryItemId,
-                    delta: item.quantity
+                    availableDelta: item.quantity
                   }
-                ]
+                ],
+                locationId: locationId
               }
             };
             
@@ -679,7 +679,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             });
             
             adjData = await bulkResult.json() as { data?: any; errors?: any };
-            logGraphQLResponse("戦略4: inventoryBulkAdjustQuantityAtLocation", adjData, bulkAdjustVariables);
+            logGraphQLResponse("戦略4: inventoryAdjustQuantities", adjData, bulkAdjustVariables);
             
             const strategy4ErrorCheck = hasErrors(adjData);
             if (strategy4ErrorCheck.hasGraphQLErrors) {
@@ -687,7 +687,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               console.error("戦略4 GraphQLエラー - 全ての戦略が失敗");
             } else if (!strategy4ErrorCheck.hasUserErrors) {
               success = true;
-              usedStrategy = "inventoryBulkAdjustQuantityAtLocation";
+              usedStrategy = "inventoryAdjustQuantities";
               console.log("戦略4 成功");
             } else {
               adjUserErrors = strategy4ErrorCheck.userErrors;
