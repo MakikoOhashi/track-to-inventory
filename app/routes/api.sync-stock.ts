@@ -367,17 +367,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           const adjMutation = `
             mutation($input: InventoryAdjustQuantitiesInput!) {
               inventoryAdjustQuantities(input: $input) {
-                inventoryAdjustmentGroup {
-                  reason
-                  changes {
-                    delta
-                    quantityAfterChange
-                    item {
-                      id
-                    }
-                    location {
-                      id
-                    }
+                inventoryLevels {
+                  available
+                  location {
+                    name
                   }
                 }
                 userErrors {
@@ -390,14 +383,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           
           const mutationVariables = {
             input: {
-              reason: "correction",
-              changes: [
+              inventoryItemAdjustments: [
                 {
-                  delta: item.quantity,
                   inventoryItemId: inventoryItemId,
-                  locationId: locationId
+                  availableDelta: item.quantity
                 }
-              ]
+              ],
+              locationId: locationId
             }
           };
           
