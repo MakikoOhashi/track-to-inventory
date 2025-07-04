@@ -440,12 +440,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 inventoryLevel(inventoryItemId: $inventoryItemId, locationId: $locationId) {
                   id
                   available
-                  item {
-                    id
-                  }
-                  location {
-                    id
-                  }
                 }
               }
             `;
@@ -471,15 +465,61 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
             
             const inventoryLevel = levelData.data?.inventoryLevel;
+            let inventoryLevelId: string | undefined;
             if (!inventoryLevel) {
-              console.error("InventoryLevelが見つかりません - 戦略2をスキップ");
-              throw new Error("InventoryLevelが見つかりません");
+              // inventoryActivateで自動紐付けを試みる
+              console.log("InventoryLevelが未作成。inventoryActivateで初期化を試みます。");
+              const activateMutation = `
+                mutation inventoryActivate($inventoryItemId: ID!, $locationId: ID!) {
+                  inventoryActivate(inventoryItemId: $inventoryItemId, locationId: $locationId) {
+                    inventoryLevel {
+                      id
+                      available
+                    }
+                    userErrors {
+                      field
+                      message
+                    }
+                  }
+                }
+              `;
+              const activateVariables = {
+                inventoryItemId: inventoryItemId,
+                locationId: locationId
+              };
+              const activateResult = await admin.graphql(activateMutation, { variables: activateVariables });
+              const activateData = await activateResult.json();
+              logGraphQLResponse("inventoryActivate", activateData, activateVariables);
+              const activateErrors = hasErrors(activateData);
+              if (activateErrors.hasGraphQLErrors || activateErrors.hasUserErrors) {
+                results.push({
+                  variant_id: item.variant_id,
+                  error: "This product is not tracked at the current location and could not be activated. Please enable inventory tracking in your Shopify admin.",
+                  errorType: "inventoryLevelActivateFailed",
+                  failedStep: step,
+                  errors: activateErrors.userErrors,
+                  graphqlErrors: [],
+                });
+                continue;
+              }
+              // 再度inventoryLevel取得
+              inventoryLevelId = activateData.data?.inventoryActivate?.inventoryLevel?.id;
+              if (!inventoryLevelId) {
+                results.push({
+                  variant_id: item.variant_id,
+                  error: "Inventory level activation succeeded but no inventoryLevel ID returned.",
+                  errorType: "inventoryLevelActivateNoId",
+                  failedStep: step,
+                });
+                continue;
+              }
+              console.log("inventoryActivateで作成したInventoryLevel ID:", inventoryLevelId);
+            } else {
+              inventoryLevelId = inventoryLevel.id;
+              console.log("取得したInventoryLevel ID:", inventoryLevelId);
+              console.log("現在の在庫数:", inventoryLevel.available);
             }
-            
-            const inventoryLevelId = inventoryLevel.id;
-            console.log("取得したInventoryLevel ID:", inventoryLevelId);
-            console.log("現在の在庫数:", inventoryLevel.available);
-            
+            // adjustQuantityMutation以下の処理でinventoryLevelIdを使う
             const adjustQuantityMutation = `
               mutation($input: InventoryAdjustQuantityInput!) {
                 inventoryAdjustQuantity(input: $input) {
@@ -494,23 +534,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 }
               }
             `;
-            
             const adjustQuantityVariables = {
               input: {
                 inventoryLevelId: inventoryLevelId,
                 delta: item.quantity
               }
             };
-            
             console.log("戦略2 変数:", JSON.stringify(adjustQuantityVariables, null, 2));
-            
             const adjustResult = await admin.graphql(adjustQuantityMutation, {
               variables: adjustQuantityVariables
             });
-            
             adjData = await adjustResult.json() as { data?: any; errors?: any };
             logGraphQLResponse("戦略2: inventoryAdjustQuantity", adjData, adjustQuantityVariables);
-            
             const strategy2ErrorCheck = hasErrors(adjData);
             if (strategy2ErrorCheck.hasGraphQLErrors) {
               adjGraphqlErrors = adjData.errors;
@@ -523,7 +558,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               adjUserErrors = strategy2ErrorCheck.userErrors;
               console.error("戦略2 userErrors - 次の戦略を試行");
             }
-            
           } catch (strategy2Error) {
             adjUserErrors = [{ message: String(strategy2Error) }];
             console.log("戦略2 例外:", strategy2Error);
