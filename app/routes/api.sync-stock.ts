@@ -428,8 +428,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             
             // 正確なInventoryLevel IDを取得
             const inventoryLevelQuery = `
-              query($inventoryItemId: ID!, $locationId: ID!) {
-                inventoryLevel(inventoryItemId: $inventoryItemId, locationId: $locationId) {
+              query($inventoryItemIds: [ID!]!, $locationIds: [ID!]!) {
+                inventoryLevels(inventoryItemIds: $inventoryItemIds, locationIds: $locationIds) {
                   id
                   available
                 }
@@ -437,8 +437,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             `;
             
             const levelQueryVariables = {
-              inventoryItemId: inventoryItemId,
-              locationId: locationId
+              inventoryItemIds: [inventoryItemId],
+              locationIds: [locationId]
             };
             
             console.log("InventoryLevel取得変数:", JSON.stringify(levelQueryVariables, null, 2));
@@ -456,9 +456,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               throw new Error("InventoryLevel取得に失敗");
             }
             
-            const inventoryLevel = levelData.data?.inventoryLevel;
+            const inventoryLevels = levelData.data?.inventoryLevels;
             let inventoryLevelId: string | undefined;
-            if (!inventoryLevel) {
+            if (!inventoryLevels || inventoryLevels.length === 0) {
               // inventoryActivateで自動紐付けを試みる
               console.log("InventoryLevelが未作成。inventoryActivateで初期化を試みます。");
               const activateMutation = `
@@ -507,9 +507,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               }
               console.log("inventoryActivateで作成したInventoryLevel ID:", inventoryLevelId);
             } else {
-              inventoryLevelId = inventoryLevel.id;
+              inventoryLevelId = inventoryLevels[0].id;
               console.log("取得したInventoryLevel ID:", inventoryLevelId);
-              console.log("現在の在庫数:", inventoryLevel.available);
+              console.log("現在の在庫数:", inventoryLevels[0].available);
             }
             // adjustQuantityMutation以下の処理でinventoryLevelIdを使う
             const adjustQuantityMutation = `
