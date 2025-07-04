@@ -278,7 +278,8 @@ export default function Index() {
     shipments.forEach(shipment => {
       (shipment.items || []).forEach(item => {
         const name = item.name || 'Unknown';
-        productMap.set(name, (productMap.get(name) || 0) + (item.quantity || 0));
+        const quantity = Number(item.quantity) || 0;
+        productMap.set(name, (productMap.get(name) || 0) + quantity);
       });
     });
 

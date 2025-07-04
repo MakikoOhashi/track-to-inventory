@@ -255,12 +255,16 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         for (let pattern of patterns) {
           const match = line.match(pattern);
           if (match) {
-            items.push({
-              name: match[3] ? match[3].trim() : match[2] ? match[2].trim() : "",
-              quantity: parseInt(match[3] ? match[3].replace(/,/g, "") : "1") || 1,
-              product_code: match[1] || match[2] || "",
-              unit_price: match[4] || ""
-            });
+            const quantity = parseInt(match[3] ? match[3].replace(/,/g, "") : "1") || 1;
+            // 数量が1以上であることを確認
+            if (quantity >= 1) {
+              items.push({
+                name: match[3] ? match[3].trim() : match[2] ? match[2].trim() : "",
+                quantity: quantity,
+                product_code: match[1] || match[2] || "",
+                unit_price: match[4] || ""
+              });
+            }
             break;
           }
         }
@@ -281,11 +285,26 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
    // フォーム編集
   const handleFieldChange = (key, val) => setFields(f => ({ ...f, [key]: val }));
 
-  // 商品リスト編集
+  // 商品リスト編集（数量のバリデーション追加）
   const handleItemChange = (idx, key, value) => {
     setFields(f => ({
       ...f,
-      items: f.items.map((item, i) => i === idx ? { ...item, [key]: value } : item)
+      items: f.items.map((item, i) => {
+        if (i === idx) {
+          const updatedItem = { ...item, [key]: value };
+          // 数量の場合は正の数値のみ許可
+          if (key === 'quantity') {
+            const numValue = Number(value);
+            if (numValue < 1) {
+              updatedItem.quantity = 1; // 最小値1に設定
+            } else {
+              updatedItem.quantity = numValue;
+            }
+          }
+          return updatedItem;
+        }
+        return item;
+      })
     }));
   };
 
@@ -690,8 +709,16 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
                         label={t("ocrUploader.quantity")}
                         type="number"
                         value={item.quantity || ""}
-                        onChange={v => handleItemChange(idx, "quantity", v)}
+                        onChange={v => {
+                          const numValue = Number(v);
+                          // 正の整数のみ許可（1以上）
+                          if (numValue >= 1) {
+                            handleItemChange(idx, "quantity", numValue);
+                          }
+                        }}
                         autoComplete="off"
+                        min={1}
+                        step={1}
                         style={{ width: 100 }}
                       />
                       <Button size="slim" destructive onClick={() => handleRemoveItem(idx)}>{t("ocrUploader.delete")}</Button>

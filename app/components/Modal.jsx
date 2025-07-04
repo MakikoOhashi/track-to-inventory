@@ -600,11 +600,18 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
                   type="number"
                   value={String(item.quantity || "")}
                   onChange={v => {
+                    const numValue = Number(v);
                     const items = [...formData.items];
-                    items[idx].quantity = Number(v);
+                    // 正の整数のみ許可（1以上）
+                    if (numValue >= 1) {
+                      items[idx].quantity = numValue;
+                    } else {
+                      items[idx].quantity = 1; // 最小値1に設定
+                    }
                     setFormData(prev => ({ ...prev, items }));
                   }}
                   min={1}
+                  step={1}
                 />
                 <ShopifyVariantSelector
                   value={item.variant_id || ""}
