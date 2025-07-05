@@ -36,7 +36,11 @@ function logGraphQLResponse(step: string, data: any, variables?: any) {
         message: error.message,
         extensions: error.extensions,
         path: error.path,
-        locations: error.locations
+        locations: error.locations,
+        // 追加: エラーコードも出力
+        code: error.extensions?.code,
+        // 追加: 完全なエラーオブジェクト
+        fullError: error
       });
     });
   }
@@ -107,8 +111,15 @@ function hasErrors(data: any): { hasGraphQLErrors: boolean; hasUserErrors: boole
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
-    const { admin } = await authenticate.admin(request);
+    const { admin, session } = await authenticate.admin(request);
     const { items } = await request.json();
+    
+    // アプリの権限情報をログ出力
+    console.log("=== アプリ権限情報 ===");
+    console.log("Shop:", session.shop);
+    console.log("Access Token:", session.accessToken ? "存在" : "なし");
+    console.log("Scope:", session.scope);
+    console.log("=====================");
     
     if (!items || items.length === 0) {
       return json({ error: "同期する商品がありません" }, { status: 400 });
