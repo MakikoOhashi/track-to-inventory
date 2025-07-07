@@ -641,22 +641,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         }
         
-        // 戦略4: inventoryAdjustQuantities (最後の手段)
+        // 戦略4: inventoryAdjustQuantities (最後の手段) - inventoryActivate対応版
         if (!success) {
           step = "inventoryAdjustQuantities";
           try {
             console.log("=== 戦略4: inventoryAdjustQuantities (最後の手段) ===");
             
-            const bulkAdjustMutation = `
-              mutation($input: InventoryAdjustQuantitiesInput!) {
-                inventoryAdjustQuantities(input: $input) {
-                  inventoryAdjustmentGroup {
-                    createdAt
-                    reason
-                    changes {
-                      name
-                      delta
-                    }
+            // まずinventoryActivateで在庫管理を開始
+            console.log("戦略4: inventoryActivateで在庫管理を開始");
+            const activateMutation = `
+              mutation inventoryActivate($inventoryItemId: ID!, $locationId: ID!) {
+                inventoryActivate(inventoryItemId: $inventoryItemId, locationId: $locationId) {
+                  inventoryLevel {
+                    id
+                    available
                   }
                   userErrors {
                     field
@@ -665,41 +663,77 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 }
               }
             `;
-            
-            const bulkAdjustVariables = {
-              input: {
-                reason: "correction",
-                name: "available",
-                changes: [
-                  {
-                    delta: item.quantity,
-                    inventoryItemId: inventoryItemId,
-                    locationId: locationId
-                  }
-                ]
-              }
+            const activateVariables = {
+              inventoryItemId: inventoryItemId,
+              locationId: locationId
             };
+            const activateResult = await admin.graphql(activateMutation, { variables: activateVariables });
+            const activateData = await activateResult.json() as { data?: any; errors?: any };
+            logGraphQLResponse("戦略4: inventoryActivate", activateData, activateVariables);
             
-            console.log("戦略4 変数:", JSON.stringify(bulkAdjustVariables, null, 2));
-            
-            const bulkResult = await admin.graphql(bulkAdjustMutation, {
-              variables: bulkAdjustVariables
-            });
-            
-            adjData = await bulkResult.json() as { data?: any; errors?: any };
-            logGraphQLResponse("戦略4: inventoryAdjustQuantities", adjData, bulkAdjustVariables);
-            
-            const strategy4ErrorCheck = hasErrors(adjData);
-            if (strategy4ErrorCheck.hasGraphQLErrors) {
-              adjGraphqlErrors = adjData.errors;
-              console.error("戦略4 GraphQLエラー - 全ての戦略が失敗");
-            } else if (!strategy4ErrorCheck.hasUserErrors) {
-              success = true;
-              usedStrategy = "inventoryAdjustQuantities";
-              console.log("戦略4 成功");
+            const activateErrors = hasErrors(activateData);
+            if (activateErrors.hasGraphQLErrors || activateErrors.hasUserErrors) {
+              console.error("戦略4: inventoryActivate失敗 - 在庫調整をスキップ");
+              adjUserErrors = activateErrors.userErrors;
+              adjGraphqlErrors = activateData.errors;
             } else {
-              adjUserErrors = strategy4ErrorCheck.userErrors;
-              console.error("戦略4 userErrors - 全ての戦略が失敗");
+              console.log("戦略4: inventoryActivate成功 - 在庫調整を実行");
+              
+              // inventoryActivate成功後、在庫調整を実行
+              const bulkAdjustMutation = `
+                mutation($input: InventoryAdjustQuantitiesInput!) {
+                  inventoryAdjustQuantities(input: $input) {
+                    inventoryAdjustmentGroup {
+                      createdAt
+                      reason
+                      changes {
+                        name
+                        delta
+                      }
+                    }
+                    userErrors {
+                      field
+                      message
+                    }
+                  }
+                }
+              `;
+              
+              const bulkAdjustVariables = {
+                input: {
+                  reason: "correction",
+                  name: "available",
+                  changes: [
+                    {
+                      delta: item.quantity,
+                      inventoryItemId: inventoryItemId,
+                      locationId: locationId
+                    }
+                  ]
+                }
+              };
+              
+              console.log("戦略4 在庫調整変数:", JSON.stringify(bulkAdjustVariables, null, 2));
+              
+              const bulkResult = await admin.graphql(bulkAdjustMutation, {
+                variables: bulkAdjustVariables
+              });
+              
+              adjData = await bulkResult.json() as { data?: any; errors?: any };
+              logGraphQLResponse("戦略4: inventoryAdjustQuantities", adjData, bulkAdjustVariables);
+              
+              const strategy4ErrorCheck = hasErrors(adjData);
+              if (strategy4ErrorCheck.hasGraphQLErrors) {
+                adjGraphqlErrors = adjData.errors;
+                console.error("戦略4 GraphQLエラー - 全ての戦略が失敗");
+              } else if (!strategy4ErrorCheck.hasUserErrors) {
+                success = true;
+                usedStrategy = "inventoryAdjustQuantities";
+                console.log("戦略4 成功");
+              } else {
+                adjUserErrors = strategy4ErrorCheck.userErrors;
+                console.error("戦略4 userErrors - 全ての戦略が失敗");
+              }
             }
             
           } catch (strategy4Error) {
