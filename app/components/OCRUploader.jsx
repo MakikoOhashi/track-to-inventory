@@ -258,12 +258,12 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
             const quantity = parseInt(match[3] ? match[3].replace(/,/g, "") : "1") || 1;
             // 数量が1以上であることを確認
             if (quantity >= 1) {
-              items.push({
-                name: match[3] ? match[3].trim() : match[2] ? match[2].trim() : "",
+            items.push({
+              name: match[3] ? match[3].trim() : match[2] ? match[2].trim() : "",
                 quantity: quantity,
-                product_code: match[1] || match[2] || "",
-                unit_price: match[4] || ""
-              });
+              product_code: match[1] || match[2] || "",
+              unit_price: match[4] || ""
+            });
             }
             break;
           }

@@ -119,6 +119,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.log("Shop:", session.shop);
     console.log("Access Token:", session.accessToken ? "存在" : "なし");
     console.log("Scope:", session.scope);
+    console.log("API Version: 2024-10 (最新安定版)");
+    console.log("API Compatibility: 2024-07+ (inventoryAdjustQuantities, productVariantsBulkUpdate)");
     console.log("=====================");
     
     if (!items || items.length === 0) {
@@ -252,8 +254,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           console.log(`在庫追跡を有効化: ${item.variant_id}`);
           
           const enableTrackingMutation = `
-            mutation($input: InventoryItemInput!) {
-              inventoryItemUpdate(input: $input) {
+            mutation($id: ID!, $input: InventoryItemInput!) {
+              inventoryItemUpdate(id: $id, input: $input) {
                 inventoryItem {
                   id
                   tracked
@@ -267,8 +269,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           `;
           
           const trackingVariables = {
+            id: inventoryItemId,
             input: {
-              id: inventoryItemId,
               tracked: true
             }
           };
@@ -284,24 +286,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           
           const trackingErrorCheck = hasErrors(trackingData);
           if (trackingErrorCheck.hasGraphQLErrors) {
-            results.push({
-              variant_id: item.variant_id,
-              error: "在庫追跡有効化GraphQLエラー",
-              errorType: "graphql",
-              failedStep: step,
-              graphqlErrors: trackingData.errors,
-            });
-            continue;
-          }
-          if (trackingErrorCheck.hasUserErrors) {
-            results.push({
-              variant_id: item.variant_id,
-              error: "在庫追跡有効化userError",
-              errorType: "userError",
-              failedStep: step,
-              errors: trackingErrorCheck.userErrors,
-            });
-            continue;
+            console.error("在庫追跡有効化GraphQLエラー - 在庫調整は続行します");
+            console.error("GraphQL Errors:", trackingData.errors);
+            // 在庫追跡有効化が失敗しても在庫調整は続行
+          } else if (trackingErrorCheck.hasUserErrors) {
+            console.error("在庫追跡有効化userError - 在庫調整は続行します");
+            console.error("User Errors:", trackingErrorCheck.userErrors);
+            // 在庫追跡有効化が失敗しても在庫調整は続行
+          } else {
+            console.log("在庫追跡有効化成功");
           }
         }
 
@@ -310,9 +303,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           console.log(`在庫管理をShopifyに設定: ${item.variant_id}`);
           step = "productVariantUpdate";
           const variantUpdateMutation = `
-            mutation($input: ProductVariantInput!) {
-              productVariantUpdate(input: $input) {
-                productVariant {
+            mutation($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+              productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+                productVariants {
                   id
                   inventoryPolicy
                 }
@@ -325,10 +318,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           `;
           
           const variantUpdateVariables = {
-            input: {
-              id: item.variant_id,
-              inventoryPolicy: 'DENY' // 在庫切れ時は販売停止
-            }
+            productId: variant.product.id,
+            variants: [
+              {
+                id: item.variant_id,
+                inventoryPolicy: 'DENY' // 在庫切れ時は販売停止
+              }
+            ]
           };
           
           console.log("バリアント更新変数:", JSON.stringify(variantUpdateVariables, null, 2));
@@ -342,24 +338,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           
           const variantUpdateErrorCheck = hasErrors(variantUpdateData);
           if (variantUpdateErrorCheck.hasGraphQLErrors) {
-            results.push({
-              variant_id: item.variant_id,
-              error: "バリアント更新GraphQLエラー",
-              errorType: "graphql",
-              failedStep: step,
-              graphqlErrors: variantUpdateData.errors,
-            });
-            continue;
-          }
-          if (variantUpdateErrorCheck.hasUserErrors) {
-            results.push({
-              variant_id: item.variant_id,
-              error: "バリアント更新userError",
-              errorType: "userError",
-              failedStep: step,
-              errors: variantUpdateErrorCheck.userErrors,
-            });
-            continue;
+            console.error("バリアント更新GraphQLエラー - 在庫調整は続行します");
+            console.error("GraphQL Errors:", variantUpdateData.errors);
+            // バリアント更新が失敗しても在庫調整は続行
+          } else if (variantUpdateErrorCheck.hasUserErrors) {
+            console.error("バリアント更新userError - 在庫調整は続行します");
+            console.error("User Errors:", variantUpdateErrorCheck.userErrors);
+            // バリアント更新が失敗しても在庫調整は続行
+          } else {
+            console.log("バリアント更新成功");
           }
         }
 
@@ -378,10 +365,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           const adjMutation = `
             mutation($input: InventoryAdjustQuantitiesInput!) {
               inventoryAdjustQuantities(input: $input) {
-                inventoryLevels {
-                  available
-                  location {
+                inventoryAdjustmentGroup {
+                  createdAt
+                  reason
+                  changes {
                     name
+                    delta
                   }
                 }
                 userErrors {
@@ -394,13 +383,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           
           const mutationVariables = {
             input: {
-              inventoryItemAdjustments: [
+              reason: "correction",
+              name: "available",
+              changes: [
                 {
+                  delta: item.quantity,
                   inventoryItemId: inventoryItemId,
-                  availableDelta: item.quantity
+                  locationId: locationId
                 }
-              ],
-              locationId: locationId
+              ]
             }
           };
           
@@ -519,7 +510,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               console.log("inventoryActivateで作成したInventoryLevel ID:", inventoryLevelId);
             } else {
               inventoryLevelId = inventoryLevels[0].id;
-              console.log("取得したInventoryLevel ID:", inventoryLevelId);
+            console.log("取得したInventoryLevel ID:", inventoryLevelId);
               console.log("現在の在庫数:", inventoryLevels[0].available);
             }
             // adjustQuantityMutation以下の処理でinventoryLevelIdを使う
@@ -659,9 +650,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             const bulkAdjustMutation = `
               mutation($input: InventoryAdjustQuantitiesInput!) {
                 inventoryAdjustQuantities(input: $input) {
-                  inventoryLevels {
-                    id
-                    available
+                  inventoryAdjustmentGroup {
+                    createdAt
+                    reason
+                    changes {
+                      name
+                      delta
+                    }
                   }
                   userErrors {
                     field
@@ -673,13 +668,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             
             const bulkAdjustVariables = {
               input: {
-                inventoryItemAdjustments: [
+                reason: "correction",
+                name: "available",
+                changes: [
                   {
+                    delta: item.quantity,
                     inventoryItemId: inventoryItemId,
-                    availableDelta: item.quantity
+                    locationId: locationId
                   }
-                ],
-                locationId: locationId
+                ]
               }
             };
             
@@ -724,7 +721,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             response: adjData?.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup || 
                      adjData?.data?.inventoryAdjustQuantity?.inventoryLevel ||
                      adjData?.data?.inventorySetQuantities?.inventoryAdjustmentGroup ||
-                     adjData?.data?.inventoryBulkAdjustQuantityAtLocation?.inventoryLevels,
+                     adjData?.data?.inventoryBulkAdjustQuantityAtLocation?.inventoryAdjustmentGroup,
             errors: [],
             strategy_used: usedStrategy,
           });
