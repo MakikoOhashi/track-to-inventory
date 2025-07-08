@@ -427,37 +427,33 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           step = "inventoryAdjustQuantity";
           try {
             console.log("=== 戦略2: inventoryAdjustQuantity (単数形) ===");
-            
             // 正確なInventoryLevel IDを取得
             const inventoryLevelQuery = `
               query($inventoryItemIds: [ID!]!, $locationIds: [ID!]!) {
                 inventoryLevels(inventoryItemIds: $inventoryItemIds, locationIds: $locationIds) {
                   id
-                  available
+                  quantities(names: ["available"]) {
+                    name
+                    quantity
+                  }
                 }
               }
             `;
-            
             const levelQueryVariables = {
               inventoryItemIds: [inventoryItemId],
               locationIds: [locationId]
             };
-            
             console.log("InventoryLevel取得変数:", JSON.stringify(levelQueryVariables, null, 2));
-            
             const levelResult = await admin.graphql(inventoryLevelQuery, {
               variables: levelQueryVariables
             });
-            
             const levelData = await levelResult.json() as { data?: any; errors?: any };
             logGraphQLResponse("InventoryLevel取得", levelData, levelQueryVariables);
-            
             const levelErrorCheck = hasErrors(levelData);
             if (levelErrorCheck.hasGraphQLErrors || levelErrorCheck.hasUserErrors) {
               console.error("InventoryLevel取得エラー - 戦略2をスキップ");
               throw new Error("InventoryLevel取得に失敗");
             }
-            
             const inventoryLevels = levelData.data?.inventoryLevels;
             let inventoryLevelId: string | undefined;
             if (!inventoryLevels || inventoryLevels.length === 0) {
@@ -468,7 +464,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                   inventoryActivate(inventoryItemId: $inventoryItemId, locationId: $locationId) {
                     inventoryLevel {
                       id
-                      available
+                      quantities(names: ["available"]) {
+                        name
+                        quantity
+                      }
                     }
                     userErrors {
                       field
@@ -510,8 +509,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               console.log("inventoryActivateで作成したInventoryLevel ID:", inventoryLevelId);
             } else {
               inventoryLevelId = inventoryLevels[0].id;
-            console.log("取得したInventoryLevel ID:", inventoryLevelId);
-              console.log("現在の在庫数:", inventoryLevels[0].available);
+              // quantities配列からavailableを取得
+              const availableObj = inventoryLevels[0].quantities?.find((q: any) => q.name === "available");
+              console.log("取得したInventoryLevel ID:", inventoryLevelId);
+              console.log("現在の在庫数:", availableObj ? availableObj.quantity : "N/A");
             }
             // adjustQuantityMutation以下の処理でinventoryLevelIdを使う
             const adjustQuantityMutation = `
@@ -519,7 +520,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 inventoryAdjustQuantity(input: $input) {
                   inventoryLevel {
                     id
-                    available
+                    quantities(names: ["available"]) {
+                      name
+                      quantity
+                    }
                   }
                   userErrors {
                     field
