@@ -658,7 +658,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 inventoryActivate(inventoryItemId: $inventoryItemId, locationId: $locationId) {
                   inventoryLevel {
                     id
-                    available
+                    quantities(names: ["available"]) {
+                      name
+                      quantity
+                    }
                   }
                   userErrors {
                     field
