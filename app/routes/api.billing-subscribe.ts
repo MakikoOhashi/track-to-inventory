@@ -57,7 +57,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         appSubscriptionCreate(
           name: \"${planConfig.name}\",
           returnUrl: \"${process.env.SHOPIFY_APP_URL}/billing/callback?shop=${session.shop}\",
-          test: true,
+          test: null,
           lineItems: [{
             plan: {
               appRecurringPricingDetails: {
