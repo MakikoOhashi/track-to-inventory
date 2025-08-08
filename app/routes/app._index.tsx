@@ -53,38 +53,34 @@ type PopupPos = { x: number; y: number };
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     // Shopify認証を実行（認証失敗時は例外が発生）
-    const { session } = await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
     const shop = session.shop;
-    const locale = await i18n.getLocale(request);
+  const locale = await i18n.getLocale(request);
     
     // 認証済みshop情報の検証
     if (!shop) {
       throw new Response("Unauthorized", { status: 401 });
     }
     
-    // APIエンドポイントを使用してデータ取得（関心の分離）
+    // SSRでshipmentsデータを事前取得（認証済みshopのみ）
     let shipments = [];
     try {
-      // 内部APIコール（同じサーバー内）
-      const apiUrl = new URL('/api/shipments', request.url);
-      apiUrl.searchParams.set('shop_id', shop);
+      const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+      const { data, error } = await supabase
+        .from('shipments')
+        .select('*')
+        .eq('shop_id', shop); // 認証済みshop_idのみ使用
       
-      const response = await fetch(apiUrl.toString(), {
-        headers: {
-          'Cookie': request.headers.get('Cookie') || '',
-          'Authorization': request.headers.get('Authorization') || '',
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        shipments = data.shipments || [];
-      } else {
-        console.error('API response error:', response.status, response.statusText);
+      if (error) {
+        console.error('Supabase error:', error);
+        // エラー時は空配列を返す（データ漏洩を防ぐ）
         shipments = [];
+      } else if (data) {
+        shipments = data;
       }
     } catch (error) {
-      console.error('API call error:', error);
+      console.error('SSR shipments fetch error:', error);
+      // エラー時は空配列を返す（データ漏洩を防ぐ）
       shipments = [];
     }
     
