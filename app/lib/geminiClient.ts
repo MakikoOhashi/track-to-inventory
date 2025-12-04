@@ -16,7 +16,7 @@ const genAI = new GoogleGenAI({
 export async function generateGeminiContent(prompt: string): Promise<string> {
   const result = await genAI.models.generateContent({
     model: GEMINI_MODEL,
-    contents: prompt,
+    contents:  [{ text: prompt }],
     config: { responseMimeType: "application/json" },
 
   });
