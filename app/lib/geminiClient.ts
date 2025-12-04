@@ -1,8 +1,8 @@
 // @ts-ignore
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/genai";
 import { GEMINI_MODEL } from "../config/gemini";
 
-// APIキーの安全な取得
+// APIキーの安全性確認
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
   throw new Error("GEMINI_API_KEY is not set in environment variables.");
