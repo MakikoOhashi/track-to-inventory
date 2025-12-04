@@ -3,12 +3,12 @@
 client_id = "54d683ca896f499d837fee84e21f76a3"
 name = "TrackToInventory"
 handle = "tracktoinventory"
-application_url = "https://wage-collectible-distinct-plots.trycloudflare.com"
+application_url = "https://track-to-inventory.onrender.com"
 embedded = true
 
 [build]
 app_url = "https://track-to-inventory.onrender.com"
-automatically_update_urls_on_dev = true
+automatically_update_urls_on_dev = false
 
 [webhooks]
 api_version = "2024-10"
