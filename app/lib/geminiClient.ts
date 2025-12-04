@@ -8,7 +8,9 @@ if (!apiKey) {
   throw new Error("GEMINI_API_KEY is not set in environment variables.");
 }
 
-const genAI = new GoogleGenAI({ apiKey });
+const genAI = new GoogleGenAI({ 
+  apiKey: apiKey,
+  apiBaseUrl: "https://generativelanguage.googleapis.com/v1" }as any);
 
 // プロンプトからGeminiの応答テキストを取得
 export async function generateGeminiContent(prompt: string): Promise<string> {
@@ -21,6 +23,6 @@ export async function generateGeminiContent(prompt: string): Promise<string> {
   if (result.text === undefined) {
         throw new Error("Gemini APIからの応答テキストが空でした。");
     }
-    
+
   return result.text;
 }
