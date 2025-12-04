@@ -7,7 +7,6 @@ application_url = "https://wage-collectible-distinct-plots.trycloudflare.com"
 embedded = true
 
 [build]
-include_config_on_deploy = true
 app_url = "https://track-to-inventory.onrender.com"
 automatically_update_urls_on_dev = true
 
