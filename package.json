@@ -26,6 +26,7 @@
     "node": "^18.20 || ^20.10 || >=21.0.0"
   },
   "dependencies": {
+    "@google/genai": "^1.31.0",
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^6.2.1",
     "@remix-run/dev": "^2.16.1",
