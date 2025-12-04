@@ -1,5 +1,5 @@
 // @ts-ignore
-import GoogleAI from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { GEMINI_MODEL } from "../config/gemini";
 
 // APIキーの安全性確認
@@ -8,17 +8,19 @@ if (!apiKey) {
   throw new Error("GEMINI_API_KEY is not set in environment variables.");
 }
 
-const genAI = new GoogleAI({ apiKey });
+const genAI = new GoogleGenAI({ apiKey });
 
 // プロンプトからGeminiの応答テキストを取得
 export async function generateGeminiContent(prompt: string): Promise<string> {
-  const model = genAI.getGenerativeModel({
+  const result = await genAI.models.generateContent({
     model: GEMINI_MODEL,
-    generationConfig: { responseMimeType: "application/json" },
+    contents: prompt,
+    config: { responseMimeType: "application/json" },
 
   });
-  const result = await model.generateContent(prompt);
-
-  // 公式型ではresponse.text()は必ず存在
-  return result.response.text();
+  if (result.text === undefined) {
+        throw new Error("Gemini APIからの応答テキストが空でした。");
+    }
+    
+  return result.text;
 }
