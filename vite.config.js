@@ -42,7 +42,7 @@ export default defineConfig({
     allowedHosts: 
     [
       'localhost',
-      'questions-vc-browsing-latest.trycloudflare.com',
+     
       host],
     cors: {
       preflightContinue: true,
