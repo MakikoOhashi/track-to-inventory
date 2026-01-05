@@ -32,6 +32,127 @@ Track to Inventoryは、Shopifyストアの入荷管理を効率化するため�
 - **日本語・英語**: 完全な多言語サポート
 - **動的切り替え**: リアルタイム言語変更
 
+## 🗂️ ファイル構造と設計
+
+### 📁 アプリケーション構造
+
+```
+track-to-inventory/
+├── app/
+│   ├── components/          # UIコンポーネント
+│   ├── config/              # 設定ファイル
+│   ├── lib/                 # ユーティリティ関数
+│   ├── locales/             # 多言語リソース
+│   ├── routes/              # ルーティングとAPIエンドポイント
+│   ├── utils/               # ユーティリティ関数
+│   ├── db.server.ts         # データベース接続
+│   ├── shopify.server.ts    # Shopify認証設定
+│   ├── entry.client.tsx     # クライアントエントリポイント
+│   ├── entry.server.jsx     # サーバーエントリポイント
+│   ├── root.jsx             # ルートコンポーネント
+│   └── routes.js            # ルート定義
+├── prisma/                  # Prismaスキーマとマイグレーション
+├── public/                  # 静的アセット
+├── types/                   # TypeScript型定義
+└── extensions/              # Shopify拡張機能
+```
+
+### 🔧 主要コンポーネント
+
+#### 1. **認証システム**
+- `app/shopify.server.ts`: Shopify OAuth認証とセッション管理
+- `app/db.server.ts`: Prismaベースのデータベース接続
+- セキュアなHMAC検証とShopify API統合
+- セッションストレージ: Prisma + SQLite
+
+#### 2. **データモデル**
+- **Prismaスキーマ**: SQLiteベースのセッション管理
+- **Supabase統合**: クラウドデータベースとリアルタイム機能
+- **Redisキャッシュ**: Upstash Redisによる使用制限管理
+- **データフロー**: Shopify → アプリ → Supabase → Redis
+
+#### 3. **APIエンドポイント**
+- `api.shipments.ts`: 入荷情報のCRUD操作
+- `api.ai-parse.ts`: Google Gemini AIによるデータ解析
+- `api.sync-stock.ts`: Shopify在庫同期
+- `api.ocr-limit.js`: OCR使用制限管理
+- `api.uploadShipmentFile.ts`: ファイルアップロード処理
+- `api.pdf2image.ts`: PDFから画像変換
+
+#### 4. **UIコンポーネント**
+- **StatusCard**: 視覚的なステータスカード表示
+- **StatusTable**: テーブル形式のデータ表示
+- **OCRUploader**: 画像/PDFアップロードとOCR処理
+- **LanguageSwitcher**: 多言語切り替え
+- **Modal**: 詳細情報表示モーダル
+- **StartGuide**: 初期ガイド表示
+
+#### 5. **メインビュー**
+- `app/routes/app._index.tsx`: ダッシュボードとメインインターフェース
+- カード/テーブル表示切り替え
+- 商品別/ステータス別/検索別表示モード
+- リアルタイムデータ更新
+- ポップアップ詳細表示
+
+### 🏗️ アーキテクチャ設計
+
+#### 1. **セキュリティ設計**
+- Shopify OAuth 2.0認証
+- HMACリクエスト検証
+- セッションベースのアクセス制御
+- 環境変数による機密情報管理
+
+#### 2. **データフロー**
+```
+Shopify Store → Shopify API → Remixアプリ → Supabase → Redis
+          ↑                                      ↓
+     ユーザーインターフェース ← Shopify Polaris UI
+```
+
+#### 3. **ステータス管理**
+- 6段階の入荷ステータス:
+  1. SI発行済み
+  2. 船積スケジュール確定
+  3. 船積中
+  4. 輸入通関中
+  5. 倉庫着
+  6. 同期済み
+
+#### 4. **OCR処理フロー**
+```
+画像/PDFアップロード → Tesseract.js OCR → テキスト抽出 →
+Google Gemini AI → データ補完 → Supabase保存 → Shopify同期
+```
+
+#### 5. **多言語サポート**
+- 日本語/英語切り替え
+- react-i18nextによる動的翻訳
+- ローカルストレージによる言語設定保持
+
+### 🔄 データ同期プロセス
+
+1. **入荷情報登録**: OCRまたは手動入力
+2. **ステータス更新**: ドラッグ&ドロップまたは手動更新
+3. **在庫同期**: Shopify variant IDとのマッピング
+4. **リアルタイム更新**: Supabaseリアルタイム機能
+
+### 📊 表示モード
+
+- **カード表示**: 視覚的なステータス概要
+- **テーブル表示**: 詳細なデータ一覧
+- **商品別表示**: 商品ごとの集計情報
+- **ステータス別表示**: ステータスごとのグループ化
+- **検索表示**: SI番号による検索
+
+### 🔒 セキュリティ対策
+
+- 環境変数による機密情報管理
+- Shopifyセッション認証
+- HMACリクエスト検証
+- データアクセス制御
+- エラーハンドリングとログ記録
+
+
 ## 🛠️ 技術スタック
 
 - **フレームワーク**: [Remix](https://remix.run)
