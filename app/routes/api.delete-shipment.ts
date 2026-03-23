@@ -16,29 +16,16 @@ export const action = async ({ request }: any) => {
   }
 
   try {
-    // 1. Shopify認証を実行（fallback処理付き）
-    let shopId: string;
-    try {
-      console.log('Attempting Shopify authentication...');
-      const { session } = await authenticate.admin(request);
-      shopId = session.shop;
-      console.log('✅ Shopify authentication successful, shopId:', shopId);
-    } catch (authError) {
-      console.error('❌ Shopify authentication failed:', authError);
-      
-      // Fallback: URLパラメータからshop情報を取得
-      const url = new URL(request.url);
-      const shopParam = url.searchParams.get('shop');
-      
-      if (shopParam) {
-        shopId = shopParam;
-        console.log('✅ Using shop from URL parameter:', shopId);
-      } else {
-        console.error('❌ No shop information available');
-        return json({ 
-          error: "認証に失敗しました。アプリを再インストールしてください。" 
-        }, { status: 401 });
-      }
+    console.log('Attempting Shopify authentication...');
+    const { session } = await authenticate.admin(request);
+    const shopId = session.shop;
+    console.log('✅ Shopify authentication successful, shopId:', shopId);
+
+    if (!shopId) {
+      console.error('❌ No authenticated shop available');
+      return json({
+        error: "認証に失敗しました。アプリを再インストールしてください。"
+      }, { status: 401 });
     }
 
     const formData = await request.formData();

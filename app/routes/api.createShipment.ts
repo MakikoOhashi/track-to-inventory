@@ -2,6 +2,7 @@ import { json } from "@remix-run/node";
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { createClient } from "@supabase/supabase-js";
 import { checkSILimit } from "~/lib/redis.server";
+import { authenticate } from "~/shopify.server";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -41,9 +42,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   try {
+    const { session } = await authenticate.admin(request);
+    const authenticatedShopId = session.shop;
+
+    if (!authenticatedShopId) {
+      return json({ error: "認証に失敗しました" }, { status: 401 });
+    }
+
     const contentType = request.headers.get('content-type');
     let siNumber: string;
-    let shopId: string;
+    let requestedShopId: string | null = null;
     let supplierName: string;
     let transportType: string;
     let items: any[];
@@ -65,7 +73,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const { created_at, updated_at, ...cleanShipment } = shipment;
       
       siNumber = cleanShipment.si_number;
-      shopId = cleanShipment.shop_id;
+      requestedShopId = cleanShipment.shop_id ?? null;
       supplierName = cleanShipment.supplier_name;
       transportType = cleanShipment.transport_type;
       items = cleanShipment.items || [];
@@ -76,7 +84,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     } else if (contentType?.includes('multipart/form-data') || contentType?.includes('application/x-www-form-urlencoded')) {
     const formData = await request.formData();
       siNumber = formData.get("siNumber") as string;
-      shopId = formData.get("shopId") as string;
+      requestedShopId = (formData.get("shopId") as string) || null;
       supplierName = formData.get("supplierName") as string;
       transportType = formData.get("transportType") as string;
       const itemsStr = formData.get("items") as string;
@@ -89,9 +97,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ error: "Unsupported content type" }, { status: 400 });
     }
 
-    if (!siNumber || !shopId) {
+    if (!siNumber) {
       return json({ error: "必須フィールドが不足しています" }, { status: 400 });
     }
+
+    if (requestedShopId && requestedShopId !== authenticatedShopId) {
+      return json({ error: "認証済みストアとリクエストのshop_idが一致しません" }, { status: 403 });
+    }
+
+    const shopId = authenticatedShopId;
 
     // SI番号の重複チェック
     const { data: existingShipment, error: checkError } = await supabase

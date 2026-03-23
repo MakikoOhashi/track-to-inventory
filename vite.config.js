@@ -74,19 +74,8 @@ export default defineConfig({
   optimizeDeps: {
     include: [
       "react",
-    "react-dom",
-    "@shopify/polaris"
-  ],
+      "react-dom",
+      "@shopify/polaris",
+    ],
   },
-  // ===== TEST =====
-  test: {
-    environment: "jsdom",
-    globals: true,
-    setupFiles: "./vitest.setup.ts", // 任意、なければ消してOK
-    alias: {
-      "~": "/app",
-    },
-    // coverage, include, exclude など追加設定もここに書けます
-  }
-  // ===== ここまでTEST追記！ =====
 });

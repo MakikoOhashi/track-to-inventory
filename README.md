@@ -168,7 +168,7 @@ Google Gemini AI → データ補完 → Supabase保存 → Shopify同期
 
 開発を始める前に、以下が必要です：
 
-1. **Node.js**: v18.20以上またはv20.10以上
+1. **Node.js**: v20 LTS
 2. **Shopify Partner Account**: [アカウント作成](https://partners.shopify.com/signup)
 3. **テストストア**: [開発ストア](https://help.shopify.com/en/partners/dashboard/development-stores#create-a-development-store)または[Plus サンドボックス](https://help.shopify.com/en/partners/dashboard/managing-stores/plus-sandbox-store)
 4. **Supabase**: データベース用のSupabaseプロジェクト
@@ -182,8 +182,11 @@ Google Gemini AI → データ補完 → Supabase保存 → Shopify同期
 ```bash
 git clone <repository-url>
 cd track-to-inventory
+nvm use
 npm install
 ```
+
+`.nvmrc` で `Node 20` を前提にしています。`Node 24` では依存整理や一部ツール実行で警告や不安定さが出ることがあります。
 
 ### 2. 環境変数の設定
 
@@ -243,16 +246,6 @@ npm run dev
 
 ```bash
 npm run build
-```
-
-### テスト
-
-```bash
-# テストの実行
-npm run test
-
-# テストUIの起動
-npm run test:ui
 ```
 
 ## 📖 使用方法
