@@ -196,7 +196,7 @@
     "manualInputDescription": "OCRを使わずに直接入力する場合はこちら",
     "manualInputHeader": "手動でSI情報を入力",
     "closeButton": "閉じる",
-    "freePlanRestriction": "この機能はFreeプランでは利用できません"
+    "freePlanRestriction": "Freeプランでは月5回まで利用できます"
   },
   "tabs": {
     "search": "SI番号で検索",

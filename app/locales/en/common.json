@@ -197,7 +197,7 @@
     "manualInputDescription": "Use this to enter information directly without OCR",
     "manualInputHeader": "Enter SI information manually",
     "closeButton": "Close",
-    "freePlanRestriction": "This feature is not available on the Free plan"
+    "freePlanRestriction": "Available up to 5 times per month on the Free plan"
   },
   "tabs": {
     "search": "Search by SI Number",
