@@ -137,12 +137,10 @@ export default function Pricing() {
   ];
 
   return (
-    <Page title={t("pricing.title")}>
-      <Box paddingBlockEnd="200">
-        <div style={{ maxWidth: 200 }}>
-          <LanguageSwitcher value={i18n.language} onChange={i18n.changeLanguage} />
-        </div>
-      </Box>
+    <Page
+      title={t("pricing.title")}
+      primaryAction={<LanguageSwitcher value={i18n.language} onChange={i18n.changeLanguage} />}
+    >
       <Box paddingBlockStart="400" paddingBlockEnd="400">
         {/* プランカード - レスポンシブGrid */}
         <style>
