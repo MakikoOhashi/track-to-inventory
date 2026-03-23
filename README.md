@@ -1,8 +1,17 @@
 # Track to Inventory - Shopify入荷管理アプリ
 
-Shopifyストアの「入荷・在庫連携」を効率化するプロフェッショナル向け業務アプリです。
+Shopify App Store の審査を通過し、公開まで到達した Shopify Embedded App です。
 
 Track to Inventoryは、Shopifyストアの入荷管理を効率化するためのアプリです。船荷証券（SI）の追跡から在庫同期まで、輸入ビジネスに必要な機能を一つのアプリで提供します。
+
+このリポジトリのポートフォリオ上の価値は、機能量そのものよりも、実際に Shopify アプリとして設計し、認証・埋め込み表示・課金導線・運用を含めて公開審査を通した点にあります。
+
+## ⭐ ポートフォリオ観点のポイント
+
+- Shopify Embedded App として実装し、公開審査を通過した実績
+- Shopify OAuth、App Bridge、Webhook、課金ページ導線を含む実運用前提の構成
+- Tesseract.js OCR と Gemini API を組み合わせた業務入力補助
+- 小規模でも「作って終わり」ではなく、公開可能な形まで完走したプロジェクト
 
 ## 🚀 主な機能
 
