@@ -344,10 +344,6 @@ npm run dev
 # 本番環境でのログ確認（プラットフォーム依存）
 ```
 
-## 📝 ライセンス
-
-このプロジェクトはMITライセンスの下で公開されています。
-
 ## 🤝 コントリビューション
 
 1. このリポジトリをフォーク
@@ -385,7 +381,7 @@ It provides powerful features for tracking shipping instructions (SI), managing 
 - **SI Tracking**: Manage six detailed status stages from SI creation to warehouse arrival  
 - **Arrival Scheduling**: Plan inbound shipments using ETD/ETA dates  
 - **OCR + AI**: Extract data from invoices and packing lists with Tesseract.js and auto-fill missing values using the Gemini API  
-- **Shopify Sync**: Automatically update Shopify inventory based on shipment status  
+- **Shopify Sync**: Sync Shopify inventory from shipment data  
 - **File Management**: Upload and preview related files securely (e.g., invoices, SI, packing lists)  
 - **Multilingual UI**: Fully supports both Japanese and English with real-time language switching
 
