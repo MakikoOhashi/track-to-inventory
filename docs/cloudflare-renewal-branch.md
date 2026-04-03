@@ -165,6 +165,9 @@ Before merging major milestones from this branch, verify:
 - Transitional env vars:
   - `OCR_API_BASE_URL`
   - `OCR_API_SHARED_SECRET`
+- Cloudflare preview env split:
+  - Put plain-text values such as `SHOPIFY_APP_URL`, `SCOPES`, and `OCR_API_BASE_URL` in `apps/web/wrangler.jsonc`
+  - Put secrets such as `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `OCR_API_SHARED_SECRET`, and `DATABASE_URL` in Wrangler secrets
 - If `OCR_API_BASE_URL` is enabled, `OCR_API_SHARED_SECRET` should be treated as required
 - Current Cloudflare blockers after the React Router step:
   - OCR now routes through the backend boundary, but `apps/ocr-api` still depends on `tesseract.js`

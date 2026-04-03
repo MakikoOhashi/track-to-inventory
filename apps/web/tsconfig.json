@@ -16,7 +16,7 @@
     "moduleResolution": "Bundler",
     "target": "ES2022",
     "baseUrl": ".",
-    "types": ["node"],
+    "types": ["node", "wrangler"],
     "paths": {
       "~/*": ["app/*"],
       "@track-to-inventory/shared": ["../../packages/shared/src/index.ts"],

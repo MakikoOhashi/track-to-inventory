@@ -4,9 +4,11 @@
   "scripts": {
     "build": "react-router build",
     "dev": "shopify app dev",
+    "dev:cf": "wrangler dev",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
     "deploy": "shopify app deploy",
+    "deploy:cf": "wrangler deploy",
     "config:use": "shopify app config use",
     "env": "shopify app env",
     "start": "react-router-serve ./build/server/index.js",
@@ -33,8 +35,8 @@
     "@shopify/polaris": "^12.0.0",
     "@shopify/shopify-app-react-router": "^1.2.0",
     "@shopify/shopify-app-session-storage-prisma": "^9.0.0",
-    "@track-to-inventory/shared": "*",
     "@supabase/supabase-js": "^2.49.8",
+    "@track-to-inventory/shared": "*",
     "@upstash/redis": "^1.35.0",
     "i18next": "^23.16.8",
     "i18next-fs-backend": "^2.6.0",
@@ -50,8 +52,9 @@
     "vite-tsconfig-paths": "^5.0.1"
   },
   "devDependencies": {
-    "@remix-run/eslint-config": "^2.16.1",
+    "@cloudflare/vite-plugin": "^1.31.0",
     "@react-router/dev": "^7.14.0",
+    "@remix-run/eslint-config": "^2.16.1",
     "@shopify/api-codegen-preset": "^1.1.1",
     "@types/eslint": "^9.6.1",
     "@types/node": "^22.15.31",
@@ -61,7 +64,8 @@
     "eslint-config-prettier": "^10.0.1",
     "prettier": "^3.2.4",
     "typescript": "^5.2.2",
-    "vite": "^6.2.2"
+    "vite": "^6.2.2",
+    "wrangler": "^4.80.0"
   },
   "author": "mac"
 }

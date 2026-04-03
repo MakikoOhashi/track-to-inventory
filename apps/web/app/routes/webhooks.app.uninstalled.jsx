@@ -1,6 +1,6 @@
 import { authenticate } from "~/shopify.server";
 import { createClient } from "@supabase/supabase-js";
-import db from "../db.server";
+import sessionStorage from "../sessionStorage.server";
 
 // Supabaseクライアント初期化
 const supabase = createClient(
@@ -14,8 +14,11 @@ export const action = async ({ request }) => {
   console.log(`Received ${topic} webhook for ${shop}`);
 
   // Shopifyセッション削除
-  if (session) {
-    await db.session.deleteMany({ where: { shop } });
+  if (shop) {
+    const sessions = await sessionStorage.findSessionsByShop(shop);
+    if (sessions.length > 0) {
+      await sessionStorage.deleteSessions(sessions.map((storedSession) => storedSession.id));
+    }
   }
 
   // Supabase shipmentsテーブルからshop_idで削除

@@ -1,4 +1,4 @@
-import { renderToReadableStream } from "react-dom/server.browser";
+import { renderToReadableStream } from "react-dom/server";
 import { ServerRouter } from "react-router";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
@@ -10,6 +10,7 @@ export default async function handleRequest(
   responseStatusCode,
   responseHeaders,
   remixContext,
+  _loadContext,
 ) {
   addDocumentResponseHeaders(request, responseHeaders);
   if (request.method.toUpperCase() === "HEAD") {
