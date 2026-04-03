@@ -1,0 +1,336 @@
+{
+  "title": {
+    "shipmentsByOwner": "入荷予定一覧",
+    "arrivalStatus": "入荷ステータス一覧",
+    "upcomingArrivals": "近日入荷予定の出荷",
+    "detailDisplay": "詳細表示セクション（例：クリックで情報表示）",
+    "productArrivals": "商品別の入荷予定（全出荷分）",
+    "statusChart": "ステータスごとの入荷予定",
+    "siSearch": "SI番号で検索（前方一致・上位10件）"
+  },
+  "label": {
+    "shopId": "Shop ID（オーナーID）",
+    "siNumber": "SI番号",
+    "productName": "商品名",
+    "totalQuantity": "合計個数",
+    "quantity": "数量",
+    "eta": "ETA",
+    "supplier": "仕入れ先",
+    "status": "ステータス"
+  },
+  "button": {
+    "switch": "切り替え",
+    "cardView": "カード表示",
+    "tableView": "テーブル表示",
+    "searchBySi": "SI番号で検索",
+    "productArrivals": "商品別の入荷予定",
+    "statusChart": "ステータスごとのチャート",
+    "productNameOrder": "商品名順",
+    "productNameAsc": "▲ 商品名順",
+    "productNameDesc": "▼ 商品名順",
+    "showGuide": "ガイドを表示"
+  },
+  "placeholder": {
+    "shopId": "例: test-owner",
+    "siNumber": "SI番号を入力"
+  },
+  "message": {
+    "noData": "データがありません",
+    "upcomingArrivals": "近日入荷予定",
+    "noMatchingSi": "該当するSIがありません",
+    "clickForDetails": "クリックで詳細",
+    "siListWith": "「{{productName}}」積載SI一覧"
+  },
+  "status": {
+    "siIssued": "SI発行済",
+    "scheduleConfirmed": "船積スケジュール確定",
+    "shipping": "船積中",
+    "customsClearance": "輸入通関中",
+    "warehouseArrived": "倉庫着",
+    "synced": "同期済み",
+    "notSet": "未設定",
+    "productSync": "商品同期",
+    "noData": "このステータスにはデータがありません"
+  },
+  "sort": {
+    "ascending": "▲ {{field}}",
+    "descending": "▼ {{field}}"
+  },
+  "language": {
+    "switch": "言語",
+    "japanese": "日本語",
+    "english": "English"
+  },
+  "statusTable": {
+    "siNumber": "SI番号",
+    "status": "ステータス",
+    "eta": "ETA",
+    "showArchived": "アーカイブも表示"
+  },
+  "statusCard": {
+    "siLabel": "SI:",
+    "siNumber": "SI番号：",
+    "status": "ステータス：",
+    "eta": "到着予定日："
+  },
+  "modal": {
+    "title": "入荷詳細",
+    "fields": {
+      "status": "ステータス",
+      "transportType": "輸送手段",
+      "etd": "ETD",
+      "eta": "ETA",
+      "delayed": "遅延",
+      "clearanceDate": "通関日",
+      "arrivalDate": "倉庫着日",
+      "supplier": "仕入れ先",
+      "memo": "メモ",
+      "archive": "アーカイブ",
+      "itemName": "商品名",
+      "quantity": "数量"
+    },
+    "sections": {
+      "itemList": "積載商品リスト",
+      "relatedFiles": "関連ファイル"
+    },
+    "fileTypes": {
+      "invoice": "インボイス",
+      "pl": "パッキングリスト",
+      "si": "SI",
+      "other": "その他"
+    },
+    "status": {
+      "siIssued": "SI発行済",
+      "scheduleConfirmed": "船積スケジュール確定",
+      "shipping": "船積中",
+      "customsClearance": "輸入通関中",
+      "warehouseArrival": "倉庫着",
+      "synced": "同期済み"
+    },
+    "options": {
+      "yes": "はい",
+      "no": "いいえ"
+    },
+    "labels": {
+      "tbd": "未定",
+      "none": "なし",
+      "pieces": "個",
+      "loadingFile": "ファイル読み込み中..."
+    },
+    "buttons": {
+      "edit": "編集",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "close": "閉じる",
+      "delete": "削除",
+      "addItem": "商品を追加",
+      "deleteShipment": "入荷情報を削除",
+      "syncShopify": "Shopify在庫と同期",
+      "viewFile": "ファイルを表示",
+      "viewFileType": "{{fileType}}を表示"
+    },
+    "messages": {
+      "deleteShipmentConfirm": "本当に削除してよいですか？（削除後は戻せません）",
+      "deleteConfirm": "本当に削除しますか？",
+      "deleteSuccess": "削除しました",
+      "deleteFailed": "削除に失敗しました",
+      "saveSuccess": "保存しました",
+      "saveFailed": "保存に失敗しました",
+      "uploadSuccess": "のアップロード成功",
+      "uploadFailed": "アップロード失敗",
+      "fileTooLarge": "ファイルサイズは10MBまでです",
+      "syncSuccess": "Shopifyと同期しました",
+      "syncFailed": "同期に失敗しました",
+      "statusUpdateFailed": "ステータス更新に失敗しました",
+      "syncGeneralFailed": "同期処理でエラーが発生しました",
+      "fileUploadSuccess": "ファイルが正常にアップロードされました",
+      "fileUploadFailed": "ファイルアップロードに失敗しました",
+      "alreadySynced": "既に同期済みです",
+      "alreadySyncedDetail": "この入荷情報は既にShopifyと同期されています。再度同期する必要はありません。"
+    },
+    "syncNotice": {
+      "title": "在庫同期の注意事項",
+      "description": "在庫同期を実行する前に、Shopify側で以下の設定を確認してください：",
+      "checklist": {
+        "trackQuantity": "該当商品の「数量を追跡する」にチェックが入っていること",
+        "requiresShipping": "該当商品の「配送が必要な商品です」にチェックが入っていること",
+        "variantId": "商品にShopify variant IDが正しく設定されていること"
+      },
+      "warning": "これらの設定が正しくない場合、在庫同期が失敗する可能性があります。",
+      "important": "必ず全ての商品にバリアントを割り当てて保存してから同期ボタンを押してください。同期後、再同期することはできません。"
+    }
+  },
+  "ocrUploader": {
+    "title": "画像アップロード & OCR",
+    "dropzoneText": "ここに画像をドロップ、またはクリックして選択",
+    "ocrButton": "OCR実行",
+    "uploadedImage": "アップロード画像",
+    "ocrResultTitle": "OCR認識テキスト（編集可）",
+    "ocrResultPlaceholder": "ここにOCR認識結果が表示されます",
+    "siNumber": "SI番号",
+    "supplierName": "仕入先",
+    "transportType": "輸送手段",
+    "productList": "商品リスト",
+    "productName": "商品名",
+    "quantity": "数量",
+    "delete": "削除",
+    "noProductData": "商品データがありません",
+    "addProduct": "＋商品追加",
+    "aiButton": "AIで未入力項目を補完",
+    "saveButton": "この内容で登録",
+    "emptyOcrText": "OCRテキストが空です",
+    "ocrFail": "PDFの読み込みまたはOCRに失敗しました",
+    "unsupportedFileType": "対応していないファイル形式です（画像またはPDFのみ）",
+    "convertError": "画像変換に失敗しました",
+    "aiFail": "AI補完に失敗しました: {{message}}",
+    "aiParseFail": "AIの応答を解析できませんでした",
+    "noShopId": "店舗が選択されていません",
+    "siRequired": "SI番号は必須項目です",
+    "initialStatus": "SI発行済",
+    "apiFail": "APIリクエストが失敗しました",
+    "apiJsonFail": "APIレスポンスのJSON解析に失敗しました",
+    "apiLogicFail": "API処理エラー",
+    "saveSuccess": "データが正常に保存されました！",
+    "saveFail": "保存に失敗しました: {{message}}",
+    "manualInputButton": "手動でSI情報を入力",
+    "manualInputDescription": "OCRを使わずに直接入力する場合はこちら",
+    "manualInputHeader": "手動でSI情報を入力",
+    "closeButton": "閉じる",
+    "freePlanRestriction": "Freeプランでは月5回まで利用できます"
+  },
+  "tabs": {
+    "search": "SI番号で検索",
+    "product": "商品別の入荷予定",
+    "status": "ステータスごとのチャート"
+  },
+  "contact": {
+    "title": "お問い合わせ",
+    "formTitle": "お問い合わせフォーム",
+    "shopLabel": "ご利用ショップ",
+    "unknown": "不明",
+    "adminOnly": "Shopify管理者のみアクセスできます。",
+    "success": "送信が完了しました！",
+    "error": "送信に失敗しました。",
+    "name": "お名前",
+    "email": "メールアドレス",
+    "message": "お問い合わせ内容",
+    "fileUpload": "画像ファイルをここにドラッグ＆ドロップ、またはクリックで選択",
+    "submit": "送信"
+  },
+  "pricing": {
+    "title": "サブスクリプションプラン",
+    "perMonth": "/月",
+    "comparison": {
+      "title": "プランと機能を比較",
+      "feature": "機能",
+      "siCount": "SI登録件数（同時保有）",
+      "siDelete": "SI削除回数（月）",
+      "ocrCount": "OCR回数",
+      "aiCount": "AI利用回数",
+      "shopifySync": "Shopify在庫連携",
+      "support": "サポート",
+      "fileCapacity": "ファイル保存容量",
+      "unlimited": "無制限",
+      "times": "回",
+      "no": "×",
+      "yes": "○",
+      "none": "なし",
+      "normal": "通常",
+      "priority": "優先",
+      "fileCapacityValue": "1件あたり最大10MB×4枚",
+      "fileCapacityValuePro": "1件あたり最大10MB×4枚※使用状況に応じ制限の可能性あり"
+    },
+    "goToShopifyBilling": "Shopifyでプラン管理"
+  },
+  "plan": {
+    "free": {
+      "name": "無料プラン",
+      "price": "$0",
+      "description": "基本機能が無料！",
+      "feature1": "最大2件のSI登録（同時保有）",
+      "feature2": "月2回までのSI削除",
+      "feature3": "月5回のOCR利用",
+      "feature4": "各ファイル最大10MB・最大4枚（計40MB）",
+      "feature5": "Shopify在庫連携なし",
+      "feature6": "サポートなし",
+      "feature7": "AI利用：月5回まで",
+      "current": "現在のプラン"
+    },
+    "basic": {
+      "name": "ベーシックプラン",
+      "price": "$6.99",
+      "description": "追加機能とサポートがご利用いただけます。",
+      "feature1": "最大20件のSI登録（同時保有）",
+      "feature2": "SI削除：無制限",
+      "feature3": "月50回のOCR利用",
+      "feature4": "各ファイル最大10MB・最大4枚（計40MB）",
+      "feature5": "Shopify在庫連携あり",
+      "feature6": "通常サポート",
+      "feature7": "AI利用：月50回まで",
+      "select": "プランを選択",
+      "badge": "おすすめ"
+    },
+    "pro": {
+      "name": "プロプラン",
+      "price": "$19.99",
+      "description": "すべての機能と優先サポートがご利用いただけます。",
+      "feature1": "SI登録：無制限",
+      "feature2": "SI削除：無制限",
+      "feature3": "OCR利用：無制限",
+      "feature4": "各ファイル最大10MB・最大4枚（計40MB）※使用状況に応じ制限の可能性あり",
+      "feature5": "Shopify在庫連携あり",
+      "feature6": "優先サポート",
+      "feature7": "AI利用：無制限（※過剰使用時は制限の可能性あり）",
+      "select": "プランを選択",
+      "badge": "一番選ばれています"
+    }
+  },
+  "startGuide": {
+    "title": "輸入商品をかんたん入荷管理！",
+    "badge": "海外から届く商品が、いつ倉庫に届いて、いつ在庫になるのか？その流れを「見える化」して、自動でShopifyに反映します。",
+    "closeDetail": "詳細を閉じる",
+    "openDetail": "詳細を表示",
+    "mainDescription1": "📦 自動化で入荷チェックを効率化！",
+    "mainDescription2": "このアプリなら、海外出荷からShopify在庫反映までをまるごと自動管理。",
+    "mainDescription3": "書類をアップロードするだけで、在庫反映までの流れがスムーズになります。",
+    "step1": {
+      "title": "書類アップロード",
+      "desc1": "配送書類をアップロードするだけ",
+      "desc2": "納品書やインボイスの画像をアップすると、自動で内容を読み取って入荷情報を作成。",
+      "desc3": "面倒な手入力は不要です。",
+      "desc4": "🔍 対応書類例：パッキングリスト・インボイス・納品書など",
+      "button": "アップロードセクションへ"
+    },
+    "step2": {
+      "title": "配送状況を一覧でチェック",
+      "desc1": "どこから来てる？ 何が届く？ 一目でわかる",
+      "desc2": "アップロードされた情報は、配送リストに一覧表示されます。",
+      "desc3": "納品予定日・現在のステータス・到着状況などをまとめてチェック。",
+      "desc4": "✨ 商品名やSKU、入荷予定日もここで確認できます。",
+      "button": "配送リストを見る"
+    },
+    "step3": {
+      "title": "詳細を確認＆編集",
+      "desc1": "タップで詳細を確認・必要があれば修正も",
+      "desc2": "配送カード（各商品）をタップすれば、詳細情報を確認・編集できます。",
+      "desc3": "「到着済」にしたり、「数量修正」もカンタン。",
+      "button": "エディターを試す(該当カードをクリック)"
+    },
+    "tutorial": "チュートリアルを見る",
+    "footer": "これらの機能は必要に応じてご利用ください。いつでもここに戻ってこれます。",
+    "closeGuide": "ガイドを閉じる"
+  },
+  "shopifyVariantSelector": {
+    "title": "Shopify商品・バリアント選択",
+    "productSelectLabel": "商品を選択",
+    "variantSelectLabel": "バリアントを選択",
+    "pleaseSelect": "選択してください",
+    "clearSelection": "選択をクリア",
+    "selectedVariantId": "選択中バリアントID: {{variantId}}",
+    "loadingProducts": "商品リスト取得中",
+    "fetchError": "商品一覧の取得に失敗しました: {{message}}"
+  },
+  "ocr": {
+    "testImageLabel": "OCRテスト用画像"
+  }
+}

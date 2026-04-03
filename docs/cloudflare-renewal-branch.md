@@ -66,6 +66,7 @@ Render side:
 - PDF conversion
 - Any remaining Node-only workloads
 - Transitional backend endpoints used by Cloudflare app
+- Shared-secret-protected internal APIs for OCR/PDF work
 
 ## Important Constraint
 
@@ -109,6 +110,7 @@ These must either be removed, replaced, or isolated.
 - Isolate Node-only OCR/PDF code
 - Reduce direct dependencies between UI routes and heavy processing
 - Replace direct local heavy processing calls with backend API boundaries
+- Allow `apps/web` to switch between local OCR logic and external `apps/ocr-api` via env vars
 
 ### Stage 4: React Router migration
 
@@ -152,3 +154,7 @@ Before merging major milestones from this branch, verify:
 - If Shopify app URLs change, app configuration and app version release steps will be required later
 - Normal web app code changes do not require a Shopify app version release by themselves
 - Shopify-facing configuration should only be changed once Cloudflare app hosting is actually ready
+- Transitional env vars:
+  - `OCR_API_BASE_URL`
+  - `OCR_API_SHARED_SECRET`
+- If `OCR_API_BASE_URL` is enabled, `OCR_API_SHARED_SECRET` should be treated as required

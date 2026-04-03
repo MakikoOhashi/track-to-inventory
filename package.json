@@ -1,74 +1,34 @@
 {
-  "name": "track-to-inventory",
+  "name": "track-to-inventory-monorepo",
   "private": true,
-  "scripts": {
-    "build": "remix vite:build",
-    "dev": "shopify app dev",
-    "config:link": "shopify app config link",
-    "generate": "shopify app generate",
-    "deploy": "shopify app deploy",
-    "config:use": "shopify app config use",
-    "env": "shopify app env",
-    "start": "remix-serve ./build/server/index.js",
-    "docker-start": "npm run setup && npm run start",
-    "setup": "prisma generate && prisma migrate deploy",
-    "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
-    "shopify": "shopify",
-    "prisma": "prisma",
-    "graphql-codegen": "graphql-codegen",
-    "vite": "vite"
-  },
-  "type": "module",
   "engines": {
     "node": "20.x"
   },
-  "dependencies": {
-    "@google/genai": "latest",
-    "@prisma/client": "^6.2.1",
-    "@remix-run/dev": "^2.17.4",
-    "@remix-run/fs-routes": "^2.17.4",
-    "@remix-run/node": "^2.17.4",
-    "@remix-run/react": "^2.17.4",
-    "@remix-run/serve": "^2.17.4",
-    "@shopify/app-bridge-react": "^4.1.6",
-    "@shopify/polaris": "^12.0.0",
-    "@shopify/shopify-app-remix": "^3.7.0",
-    "@shopify/shopify-app-session-storage-prisma": "^6.0.0",
-    "@supabase/supabase-js": "^2.49.8",
-    "@upstash/redis": "^1.35.0",
-    "formidable": "^3.5.4",
-    "i18next": "^23.16.8",
-    "i18next-fs-backend": "^2.6.0",
-    "i18next-http-backend": "^3.0.2",
-    "isbot": "^5.1.0",
-    "pdf2pic": "^3.2.0",
-    "prisma": "^6.2.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-i18next": "^15.5.2",
-    "remix-i18next": "^6.4.0",
-    "resend": "^4.6.0",
-    "tesseract.js": "^6.0.1",
-    "vite-tsconfig-paths": "^5.0.1"
-  },
-  "devDependencies": {
-    "@remix-run/eslint-config": "^2.16.1",
-    "@remix-run/route-config": "^2.17.4",
-    "@shopify/api-codegen-preset": "^1.1.1",
-    "@types/eslint": "^9.6.1",
-    "@types/formidable": "^3.4.5",
-    "@types/node": "^22.15.31",
-    "@types/react": "^18.2.31",
-    "@types/react-dom": "^18.2.14",
-    "eslint": "^8.42.0",
-    "eslint-config-prettier": "^10.0.1",
-    "prettier": "^3.2.4",
-    "typescript": "^5.2.2",
-    "vite": "^6.2.2"
-  },
   "workspaces": [
-    "extensions/*"
+    "apps/*",
+    "apps/web/extensions/*",
+    "packages/*"
   ],
+  "scripts": {
+    "build": "npm run -w @track-to-inventory/web build",
+    "dev": "npm run -w @track-to-inventory/web dev",
+    "dev:ocr": "npm run -w @track-to-inventory/ocr-api dev",
+    "config:link": "npm run -w @track-to-inventory/web config:link",
+    "generate": "npm run -w @track-to-inventory/web generate",
+    "deploy": "npm run -w @track-to-inventory/web deploy",
+    "config:use": "npm run -w @track-to-inventory/web config:use",
+    "env": "npm run -w @track-to-inventory/web env",
+    "start": "npm run -w @track-to-inventory/web start",
+    "start:ocr": "npm run -w @track-to-inventory/ocr-api start",
+    "docker-start": "npm run -w @track-to-inventory/web docker-start",
+    "setup": "npm run -w @track-to-inventory/web setup",
+    "lint": "npm run -w @track-to-inventory/web lint",
+    "shopify": "npm run -w @track-to-inventory/web shopify",
+    "prisma": "npm run -w @track-to-inventory/web prisma",
+    "graphql-codegen": "npm run -w @track-to-inventory/web graphql-codegen",
+    "vite": "npm run -w @track-to-inventory/web vite",
+    "build:ocr": "npm run -w @track-to-inventory/ocr-api build"
+  },
   "trustedDependencies": [
     "@shopify/plugin-cloudflare"
   ],
@@ -83,6 +43,5 @@
     "@graphql-codegen/client-preset": "4.7.0",
     "@graphql-codegen/typescript-operations": "4.5.0",
     "minimatch": "9.0.5"
-  },
-  "author": "mac"
+  }
 }

@@ -1,0 +1,55 @@
+import { json } from "@remix-run/node";
+import type { ActionFunctionArgs } from "@remix-run/node";
+import { uploadShipmentFile } from "~/lib/ocrBackend.server";
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  console.log('uploadShipmentFile API called'); // Debug log
+  
+  if (request.method !== "POST") {
+    return new Response("Method Not Allowed", { status: 405 });
+  }
+
+  try {
+    // FormDataを使用してファイルを取得
+    const formData = await request.formData();
+    console.log('FormData parsed successfully'); // Debug log
+
+    const si_number = formData.get('si_number') as string;
+    const type = formData.get('type') as string;
+    const file = formData.get('file') as File;
+
+    console.log('Extracted fields:', { 
+      si_number, 
+      type, 
+      fileName: file?.name,
+      fileSize: file?.size 
+    }); // Debug log
+
+    if (!si_number || !type || !file) {
+      console.error('Missing required fields:', { 
+        si_number: !!si_number, 
+        type: !!type, 
+        file: !!file 
+      });
+      return json({ error: "必須フィールドが不足しています" }, { status: 400 });
+    }
+
+    const result = await uploadShipmentFile({
+      siNumber: si_number,
+      type,
+      file,
+    });
+
+    return json(result);
+
+  } catch (error) {
+    console.error('Unexpected error in uploadShipmentFile:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    return json({ 
+      error: message.includes("必須") || message.includes("空のファイル") || message.includes("最大10MB") || message.includes("許可されていない") || message.includes("不正なファイルパス")
+        ? message
+        : "ファイルアップロード中にエラーが発生しました",
+      details: message
+    }, { status: message.includes("必須") || message.includes("空のファイル") || message.includes("最大10MB") || message.includes("許可されていない") || message.includes("不正なファイルパス") ? 400 : 500 });
+  }
+};
