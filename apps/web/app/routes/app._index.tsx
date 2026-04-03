@@ -29,9 +29,7 @@ import StartGuide from '~/components/StartGuide';
 import type { Shipment,ShipmentItem } from '../../types/Shipment';
 
 
-import { json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
-import type { LoaderFunctionArgs } from "@remix-run/node";
+import { data as json, type LoaderFunctionArgs, useLoaderData } from "react-router";
 import { useTranslation } from "react-i18next";
 import { i18n } from "~/utils/i18n.server";
 
@@ -786,4 +784,3 @@ export default function Index() {
     </Page>
   );
 }
-

@@ -12,7 +12,6 @@ import {
   Link,
 } from "@shopify/polaris";
 import { useTranslation } from "react-i18next";
-import Tesseract from "tesseract.js";
 
 export default function OCRUploader({ shopId, onSaveSuccess }) {
   const { t, i18n } = useTranslation("common");
@@ -109,61 +108,44 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       }
     };
 
-  // PDFをCanvas画像化→OCR
-  const pdfToImageAndOcr = useCallback(
-  async (pdfFile) => {
+  const requestBackendOcr = useCallback(
+  async (uploadedFile) => {
     try {
-      // PDFをFormDataでAPIに送る
       const formData = new FormData();
-      formData.append("file", pdfFile);
-      const res = await fetch("/api/pdf2image", {
+      formData.append("file", uploadedFile);
+      const res = await fetch("/api/ocr-text", {
         method: "POST",
         body: formData,
       });
+
       if (!res.ok) {
-        let msg = t("ocrUploader.convertError");
+        let msg = t("ocrUploader.ocrFailed");
         try {
           const data = await res.json();
           msg = data.error ? `${msg}: ${data.error}` : msg;
-        } catch (e) {
+        } catch {
           // ignore
         }
         throw new Error(msg);
       }
+
       const data = await res.json();
-      if (!data.url) throw new Error(t("ocrUploader.convertError"));
-  
-      // 画像URLをプレビュー用にセット
-      setImageUrl(data.url);
-      if (typeof window === "undefined") return ""; // SSRでは実行しない
-  
-      // OCR
-      const { data: ocrResult } = await Tesseract.recognize(
-        window.location.origin + data.url,
-        "eng"
-      );
-      return ocrResult.text;
-    } catch (e) {
-      setOcrError(t("ocrUploader.convertError"));
+
+      if (data.previewUrl) {
+        setImageUrl(data.previewUrl);
+      } else if (uploadedFile.type.startsWith("image/")) {
+        setImageUrl(URL.createObjectURL(uploadedFile));
+      } else {
+        setImageUrl("");
+      }
+
+      return data.text || "";
+    } catch (error) {
+      setOcrError(error.message || t("ocrUploader.ocrFailed"));
       return "";
     }
   },
   [t]
-  );
-
-  // 画像ファイル→OCR
-  const imageToOcr = useCallback(
-  async (imgFile) => {
-    setImageUrl(URL.createObjectURL(imgFile));
-    try {
-      const { data } = await Tesseract.recognize(imgFile, "eng");
-      return data.text;
-    } catch (e) {
-      setOcrError(e.message || t("ocrUploader.ocrFailed"));
-      return "";
-    }
-  },
-  []
   );
 
   // 画像アップロードハンドラー
@@ -195,10 +177,13 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       await checkOCRLimit();
 
       let text = "";
-      if (file.type === "application/pdf" || file.name?.toLowerCase().endsWith(".pdf")) {
-        text = await pdfToImageAndOcr(file);
-      } else if (file.type.startsWith("image/")) {
-        text = await imageToOcr(file);
+      if (
+        file.type === "application/pdf" ||
+        file.name?.toLowerCase().endsWith(".pdf") ||
+        file.type.startsWith("image/") ||
+        file.type === "text/plain"
+      ) {
+        text = await requestBackendOcr(file);
       } else {
         setOcrError(t("ocrUploader.unsupportedFileType"));
         return;
@@ -213,7 +198,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     } finally {
       setLoading(false);
     }
-  }, [file, pdfToImageAndOcr, imageToOcr, t]);
+  }, [file, requestBackendOcr, t]);
 
    // ★ 手動入力フォームを開く関数
    const handleOpenManualForm = () => {

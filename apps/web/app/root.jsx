@@ -4,7 +4,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-} from "@remix-run/react";
+} from "react-router";
 
 export const headers = ({ loaderHeaders }) => {
   const shop = loaderHeaders.get("X-Shop-Domain");

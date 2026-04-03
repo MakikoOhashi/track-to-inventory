@@ -12,6 +12,7 @@ Planned responsibilities:
 Planned API boundary candidates:
 
 - `POST /pdf-to-image`
+- `POST /ocr-text`
 - `POST /shipment-files`
 - `POST /shipment-files/signed-urls`
 - `GET /health`
@@ -22,6 +23,7 @@ Expected request model during the transition:
 - `apps/web` must send `x-ocr-api-key` using `OCR_API_SHARED_SECRET`
 - Multipart routes keep the current form field names:
   - `/pdf-to-image`: `file`
+  - `/ocr-text`: `file`
   - `/shipment-files`: `si_number`, `type`, `file`
 - `/shipment-files/signed-urls` accepts JSON and includes `shopId` from the authenticated Shopify session
 
@@ -34,4 +36,5 @@ Current scaffold:
 
 - `src/server.js` runs a small Node 20 HTTP service
 - PDF preview currently returns a `data:image/png;base64,...` URL so the web app can keep the same `url` contract during the transition
+- OCR endpoint currently uses `tesseract.js` on the Render side for image/PDF/text input
 - `Dockerfile` is prepared for a dedicated Render service

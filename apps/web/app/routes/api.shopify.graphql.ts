@@ -1,4 +1,4 @@
-import { ActionFunctionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "~/shopify.server";
 
 // GraphQLレスポンスの詳細ログ出力関数

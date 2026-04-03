@@ -1,4 +1,4 @@
-import { createCookie } from "@remix-run/node";
+import { createCookie } from "react-router";
 import { RemixI18Next } from "remix-i18next/server";
 
 export const i18nCookie = createCookie("i18n", {

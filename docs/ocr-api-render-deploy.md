@@ -15,6 +15,7 @@ This note documents how `apps/ocr-api` is expected to be deployed during the Clo
 It is an internal backend for:
 
 - PDF to image conversion
+- OCR text extraction
 - Shipment file upload to Supabase Storage
 - Signed URL generation for shipment files
 
@@ -22,6 +23,7 @@ It is an internal backend for:
 
 - `GET /health`
 - `POST /pdf-to-image`
+- `POST /ocr-text`
 - `POST /shipment-files`
 - `POST /shipment-files/signed-urls`
 
@@ -56,7 +58,8 @@ Cloudflare / `apps/web` side:
 1. Deploy `apps/ocr-api` alone on Render
 2. Confirm `/health` returns `200`
 3. Set `OCR_API_BASE_URL` and `OCR_API_SHARED_SECRET` in `apps/web`
-4. Confirm PDF preview and shipment file upload still work
+4. Confirm `/ocr-text` returns OCR text for image or PDF input
+5. Confirm PDF preview and shipment file upload still work
 
 ## Important Notes
 

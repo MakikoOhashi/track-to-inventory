@@ -1,5 +1,4 @@
-import { json } from "@remix-run/node";
-import type { ActionFunctionArgs } from "@remix-run/node";
+import { data as json, type ActionFunctionArgs } from "react-router";
 import { createClient } from "@supabase/supabase-js";
 import { checkSILimit } from "~/lib/redis.server";
 import { authenticate } from "~/shopify.server";

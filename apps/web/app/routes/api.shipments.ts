@@ -1,27 +1,41 @@
 //app/routes/api.shipments.ts
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
+import { data as json, type LoaderFunctionArgs } from "react-router";
 import { createClient } from '@supabase/supabase-js';
-import type { ActionFunctionArgs } from "@remix-run/node"
+import type { ActionFunctionArgs } from "react-router"
 import { checkSILimit } from "~/lib/redis.server"
 import { authenticate } from "~/shopify.server";
-import crypto from "crypto";
+
+function toHex(buffer: ArrayBuffer) {
+  return Array.from(new Uint8Array(buffer))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 // HMAC検証関数
-export function verifyShopifyHmac(query: URLSearchParams, secret: string): boolean {
+export async function verifyShopifyHmac(query: URLSearchParams, secret: string): Promise<boolean> {
   const params: Record<string, string> = {};
   for (const [key, value] of query.entries()) {
     params[key] = value;
   }
   const { hmac, ...rest } = params;
   if (!hmac) return false;
+
   const message = Object.keys(rest)
     .sort()
     .map((key) => `${key}=${rest[key]}`)
     .join("&");
-  const generated = crypto
-    .createHmac("sha256", secret)
-    .update(message)
-    .digest("hex");
+
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(message));
+  const generated = toHex(signature);
+
   return generated === hmac;
 }
 
@@ -69,7 +83,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const url = new URL(request.url);
 
   // --- HMAC検証を最初に追加 ---
-  if (!verifyShopifyHmac(url.searchParams, SHOPIFY_API_SECRET)) {
+  if (!(await verifyShopifyHmac(url.searchParams, SHOPIFY_API_SECRET))) {
     return json({ error: "HMAC validation failed" }, { status: 401 });
   }
 

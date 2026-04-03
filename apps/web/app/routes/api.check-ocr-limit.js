@@ -1,5 +1,5 @@
 // app/routes/api.check-ocr-limit.js
-import { json } from "@remix-run/node";
+import { data as json } from "react-router";
 import { authenticate } from "~/shopify.server";
 import { checkAndIncrementOCR } from "~/lib/redis.server";
 

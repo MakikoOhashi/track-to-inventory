@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./Shipment": "./src/Shipment.ts"
+    "./Shipment": "./src/Shipment.ts",
+    "./ocr-runtime": "./src/ocr-runtime.js"
   }
 }

@@ -2,25 +2,22 @@ import { createClient } from "@supabase/supabase-js";
 import { formidable } from "formidable";
 import fs from "fs";
 import { fromBuffer } from "pdf2pic";
+import {
+  buildShipmentFilePath,
+  hasInvalidPathSegment,
+  isUnsafeStoragePath,
+  normalizeFilePaths,
+  validateUploadFile,
+} from "@track-to-inventory/shared/ocr-runtime";
 import type {
   GetFileUrlsInput,
   GetFileUrlsResult,
+  OcrTextResult,
   PdfToImageResult,
   UploadShipmentFileInput,
   UploadShipmentFileResult,
 } from "@track-to-inventory/shared";
 
-const ALLOWED_MIME_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-  "application/pdf",
-  "text/plain",
-];
-
-const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "pdf", "txt"];
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const OCR_API_BASE_URL = process.env.OCR_API_BASE_URL?.replace(/\/+$/, "");
 const OCR_API_SHARED_SECRET = process.env.OCR_API_SHARED_SECRET;
 
@@ -152,6 +149,21 @@ export async function convertPdfToImage(request: Request): Promise<PdfToImageRes
   return { url: result.path.replace(/^.*\/public/, "") };
 }
 
+export async function extractOcrText(file: File): Promise<OcrTextResult> {
+  if (!hasExternalOcrBackend()) {
+    throw new Error("OCR backend is not configured");
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return postMultipartToOcrApi<OcrTextResult>(
+    "/ocr-text",
+    formData,
+    "OCRに失敗しました",
+  );
+}
+
 export async function uploadShipmentFile(
   input: UploadShipmentFileInput,
 ): Promise<UploadShipmentFileResult> {
@@ -176,27 +188,14 @@ export async function uploadShipmentFile(
     throw new Error("必須フィールドが不足しています");
   }
 
-  if (file.size === 0) {
-    throw new Error("空のファイルはアップロードできません");
-  }
-
-  if (file.size > MAX_FILE_SIZE) {
-    throw new Error(
-      `ファイルサイズは最大10MBまでです（現在のサイズ: ${(file.size / (1024 * 1024)).toFixed(1)}MB）`,
-    );
-  }
-
-  const fileExt = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const fileExt = validateUploadFile(file);
   const mimeType = file.type;
-  if (!ALLOWED_EXTENSIONS.includes(fileExt) || !ALLOWED_MIME_TYPES.includes(mimeType)) {
-    throw new Error("許可されていないファイル形式です");
-  }
 
-  if (/[\\/:*?"<>|]/.test(siNumber) || /[\\/:*?"<>|]/.test(type)) {
+  if (hasInvalidPathSegment(siNumber) || hasInvalidPathSegment(type)) {
     throw new Error("不正なファイルパスです");
   }
 
-  const filePath = `${siNumber}/${type}.${fileExt}`;
+  const filePath = buildShipmentFilePath(siNumber, type, fileExt);
   const arrayBuffer = await file.arrayBuffer();
   const uint8Array = new Uint8Array(arrayBuffer);
   const supabase = getSupabaseAdminClient();
@@ -249,7 +248,7 @@ export async function createSignedFileUrls(
   ensureSupabaseConfig();
 
   const supabase = getSupabaseAdminClient();
-  const paths = Array.isArray(input.filePaths) ? input.filePaths : [input.filePaths];
+  const paths = normalizeFilePaths(input.filePaths);
   if (!paths.length || paths.every((path) => !path)) {
     throw new Error("ファイルパスが指定されていません");
   }
@@ -280,7 +279,7 @@ export async function createSignedFileUrls(
   for (const filePath of paths) {
     if (!filePath) continue;
 
-    if (/[\\:*?"<>|]/.test(filePath) || filePath.includes("..") || filePath.startsWith("/")) {
+    if (isUnsafeStoragePath(filePath)) {
       errors.push(`不正なファイルパス: ${filePath}`);
       continue;
     }

@@ -1,5 +1,5 @@
 // app/routes/api.usage.js
-import { json } from "@remix-run/node";
+import { data as json } from "react-router";
 import { authenticate } from "~/shopify.server";
 import { getUserUsage } from "~/lib/redis.server";
 

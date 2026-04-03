@@ -124,6 +124,14 @@ These must either be removed, replaced, or isolated.
 - Keep Shopify-facing app URL on Cloudflare
 - Keep OCR backend on Render until replacement is justified
 
+### Stage 5.5: Post-React-Router cleanup priorities
+
+- Remove client-side `Tesseract.js` dependence from `apps/web`
+- Keep PDF/image OCR behind `apps/ocr-api` or another backend boundary
+- Reduce Node-only SSR assumptions where possible
+- Revisit Prisma session storage strategy for longer-term Cloudflare compatibility
+- Audit any route code that still depends on Node-only APIs or server-only crypto assumptions
+
 ### Stage 6: Optional OCR redesign
 
 - Evaluate reducing or removing `Tesseract.js`
@@ -158,3 +166,8 @@ Before merging major milestones from this branch, verify:
   - `OCR_API_BASE_URL`
   - `OCR_API_SHARED_SECRET`
 - If `OCR_API_BASE_URL` is enabled, `OCR_API_SHARED_SECRET` should be treated as required
+- Current Cloudflare blockers after the React Router step:
+  - OCR now routes through the backend boundary, but `apps/ocr-api` still depends on `tesseract.js`
+  - `apps/web/app/db.server.ts` still uses `PrismaClient`
+  - `apps/web/app/entry.server.jsx` still uses Node stream SSR
+  - `apps/ocr-api/src/server.js` still uses Node-only OCR/PDF libraries

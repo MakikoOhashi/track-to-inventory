@@ -1,6 +1,6 @@
-import { json, redirect } from "@remix-run/node";
+import { data as json, redirect } from "react-router";
 import { authenticate } from "~/shopify.server";
-import type { ActionFunctionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs } from "react-router";
 
 const planConfigs = {
   basic: {

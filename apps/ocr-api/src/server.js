@@ -6,22 +6,19 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { createClient } from "@supabase/supabase-js";
 import { fromBuffer } from "pdf2pic";
+import Tesseract from "tesseract.js";
+import {
+  buildShipmentFilePath,
+  getFileExtension,
+  hasInvalidPathSegment,
+  isUnsafeStoragePath,
+  normalizeFilePaths,
+  validateUploadFile,
+} from "@track-to-inventory/shared/ocr-runtime";
 
 const host = process.env.HOST ?? "0.0.0.0";
 const port = Number(process.env.PORT ?? 4001);
 const sharedSecret = process.env.OCR_API_SHARED_SECRET;
-
-const ALLOWED_MIME_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-  "application/pdf",
-  "text/plain",
-];
-
-const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "pdf", "txt"];
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -92,15 +89,7 @@ async function sendNodeResponse(nodeResponse, response) {
   nodeResponse.end(Buffer.from(arrayBuffer));
 }
 
-async function handlePdfToImage(request) {
-  const formData = await request.formData();
-  const uploaded = formData.get("file");
-
-  if (!(uploaded instanceof File)) {
-    throw new HttpError(400, "PDFファイルがアップロードされていません");
-  }
-
-  const pdfBuffer = Buffer.from(await uploaded.arrayBuffer());
+async function convertPdfBufferToPng(pdfBuffer) {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "tti-pdf-"));
 
   try {
@@ -118,13 +107,70 @@ async function handlePdfToImage(request) {
       throw new HttpError(500, "画像パスが取得できませんでした");
     }
 
-    const imageBuffer = await fs.readFile(result.path);
-    return json({
-      url: `data:image/png;base64,${imageBuffer.toString("base64")}`,
-    });
+    return await fs.readFile(result.path);
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
+}
+
+function toDataUrl(buffer, mimeType) {
+  return `data:${mimeType};base64,${buffer.toString("base64")}`;
+}
+
+async function handlePdfToImage(request) {
+  const formData = await request.formData();
+  const uploaded = formData.get("file");
+
+  if (!(uploaded instanceof File)) {
+    throw new HttpError(400, "PDFファイルがアップロードされていません");
+  }
+
+  const pdfBuffer = Buffer.from(await uploaded.arrayBuffer());
+  const imageBuffer = await convertPdfBufferToPng(pdfBuffer);
+
+  return json({
+    url: toDataUrl(imageBuffer, "image/png"),
+  });
+}
+
+async function handleOcrText(request) {
+  const formData = await request.formData();
+  const uploaded = formData.get("file");
+
+  if (!(uploaded instanceof File)) {
+    throw new HttpError(400, "OCR対象ファイルがアップロードされていません");
+  }
+
+  let fileExt;
+  try {
+    fileExt = validateUploadFile(uploaded);
+  } catch (error) {
+    throw new HttpError(400, error instanceof Error ? error.message : "ファイル検証に失敗しました");
+  }
+
+  if (uploaded.type === "text/plain" || fileExt === "txt") {
+    return json({
+      text: await uploaded.text(),
+    });
+  }
+
+  let ocrSource = Buffer.from(await uploaded.arrayBuffer());
+  let previewUrl;
+
+  if (uploaded.type === "application/pdf" || fileExt === "pdf") {
+    ocrSource = await convertPdfBufferToPng(ocrSource);
+    previewUrl = toDataUrl(ocrSource, "image/png");
+  } else {
+    const mimeType = uploaded.type || `image/${getFileExtension(uploaded.name) || "png"}`;
+    previewUrl = toDataUrl(ocrSource, mimeType);
+  }
+
+  const result = await Tesseract.recognize(ocrSource, "eng");
+
+  return json({
+    text: result.data.text,
+    previewUrl,
+  });
 }
 
 async function handleShipmentFileUpload(request) {
@@ -137,29 +183,19 @@ async function handleShipmentFileUpload(request) {
     throw new HttpError(400, "必須フィールドが不足しています");
   }
 
-  if (file.size === 0) {
-    throw new HttpError(400, "空のファイルはアップロードできません");
+  let fileExt;
+  try {
+    fileExt = validateUploadFile(file);
+  } catch (error) {
+    throw new HttpError(400, error instanceof Error ? error.message : "ファイル検証に失敗しました");
   }
-
-  if (file.size > MAX_FILE_SIZE) {
-    throw new HttpError(
-      400,
-      `ファイルサイズは最大10MBまでです（現在のサイズ: ${(file.size / (1024 * 1024)).toFixed(1)}MB）`,
-    );
-  }
-
-  const fileExt = file.name.split(".").pop()?.toLowerCase() ?? "";
   const mimeType = file.type;
 
-  if (!ALLOWED_EXTENSIONS.includes(fileExt) || !ALLOWED_MIME_TYPES.includes(mimeType)) {
-    throw new HttpError(400, "許可されていないファイル形式です");
-  }
-
-  if (/[\\/:*?"<>|]/.test(siNumber) || /[\\/:*?"<>|]/.test(type)) {
+  if (hasInvalidPathSegment(siNumber) || hasInvalidPathSegment(type)) {
     throw new HttpError(400, "不正なファイルパスです");
   }
 
-  const filePath = `${siNumber}/${type}.${fileExt}`;
+  const filePath = buildShipmentFilePath(siNumber, type, fileExt);
   const fileBytes = new Uint8Array(await file.arrayBuffer());
   const supabase = getSupabaseAdminClient();
 
@@ -196,7 +232,7 @@ async function handleShipmentFileUpload(request) {
 
 async function handleSignedUrlRequest(request) {
   const body = await request.json();
-  const paths = Array.isArray(body.filePaths) ? body.filePaths : [body.filePaths];
+  const paths = normalizeFilePaths(body.filePaths);
   const shopId = body.shopId;
 
   if (typeof shopId !== "string" || !shopId) {
@@ -235,7 +271,7 @@ async function handleSignedUrlRequest(request) {
   for (const filePath of paths) {
     if (!filePath) continue;
 
-    if (/[\\:*?"<>|]/.test(filePath) || filePath.includes("..") || filePath.startsWith("/")) {
+    if (isUnsafeStoragePath(filePath)) {
       errors.push(`不正なファイルパス: ${filePath}`);
       continue;
     }
@@ -275,6 +311,10 @@ function getRouteHandler(method, pathname) {
 
   if (method === "POST" && pathname === "/pdf-to-image") {
     return handlePdfToImage;
+  }
+
+  if (method === "POST" && pathname === "/ocr-text") {
+    return handleOcrText;
   }
 
   if (method === "POST" && pathname === "/shipment-files") {

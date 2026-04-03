@@ -1,6 +1,4 @@
-import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
-import { json } from "@remix-run/node";
-import { useActionData, useLoaderData, useNavigation } from "@remix-run/react";
+import { data as json, type LoaderFunctionArgs, type ActionFunctionArgs, useActionData, useLoaderData, useNavigation } from "react-router";
 import { Page, Card, Layout, Text, TextField, Button, DropZone, Banner, Box } from "@shopify/polaris";
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
