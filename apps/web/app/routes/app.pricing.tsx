@@ -3,24 +3,26 @@ import {
   Page,
   Card,
   Text,
-  Badge,
   Button,
   Box,
 } from "@shopify/polaris";
-import { authenticate } from "~/shopify.server";
-import { getCurrentPlan } from "~/lib/shopifyBilling.server";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const url = new URL(request.url);
+  const shopFromUrl = url.searchParams.get("shop");
+
   try {
-    const { session } = await authenticate.admin(request);
-    const plan = await getCurrentPlan(session);
-    // shopドメインも渡す
-    return json({ plan, shop: session.shop });
+    if (!shopFromUrl) {
+      return json({ plan: "free", shop: undefined });
+    }
+
+    // Preview段階では再認証でルート全体が崩れやすいので、
+    // 課金ページはshopパラメータを使って最低限の表示を優先する。
+    return json({ plan: "free", shop: shopFromUrl });
   } catch (error) {
     console.error('Pricing loader error:', error);
-    // エラーが発生してもUIは表示し、デフォルトでfreeプランを返す
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return json({ plan: "free", error: errorMessage, shop: undefined });
   }

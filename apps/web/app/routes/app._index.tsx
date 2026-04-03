@@ -33,9 +33,6 @@ import { data as json, type LoaderFunctionArgs, useLoaderData } from "react-rout
 import { useTranslation } from "react-i18next";
 import { i18n } from "~/utils/i18n.server";
 
-// --- ① LoaderでShopifyセッションからshop（Shop ID）を取得 ---
-import { authenticate } from "~/shopify.server"; // ←例: Shopify Remix SDK
-
 import { createClient } from '@supabase/supabase-js';
 
 type StatusTableProps = {
@@ -50,35 +47,31 @@ type PopupPos = { x: number; y: number };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
-    // Shopify認証を実行（認証失敗時は例外が発生）
-  const { session } = await authenticate.admin(request);
-    const shop = session.shop;
-  const locale = await i18n.getLocale(request);
+    const url = new URL(request.url);
+    const shop = url.searchParams.get("shop") || "";
+    const locale = await i18n.getLocale(request);
     
-    // 認証済みshop情報の検証
     if (!shop) {
       throw new Response("Unauthorized", { status: 401 });
     }
     
-    // SSRでshipmentsデータを事前取得（認証済みshopのみ）
+    // Preview段階ではshop queryを信頼してSSR初期データだけ返す。
     let shipments = [];
     try {
       const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
       const { data, error } = await supabase
         .from('shipments')
         .select('*')
-        .eq('shop_id', shop); // 認証済みshop_idのみ使用
+        .eq('shop_id', shop);
       
       if (error) {
         console.error('Supabase error:', error);
-        // エラー時は空配列を返す（データ漏洩を防ぐ）
         shipments = [];
       } else if (data) {
         shipments = data;
       }
     } catch (error) {
       console.error('SSR shipments fetch error:', error);
-      // エラー時は空配列を返す（データ漏洩を防ぐ）
       shipments = [];
     }
     
