@@ -171,3 +171,4 @@ Before merging major milestones from this branch, verify:
   - `apps/web/app/db.server.ts` still uses `PrismaClient`
   - `apps/web/app/entry.server.jsx` still uses Node stream SSR
   - `apps/ocr-api/src/server.js` still uses Node-only OCR/PDF libraries
+  - `apps/web` now expects OCR/PDF/file operations to be available via `OCR_API_BASE_URL`
