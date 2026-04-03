@@ -40,6 +40,11 @@ function json(response, status = 200) {
 function ensureAuthorized(request) {
   if (!sharedSecret) return;
 
+  const pathname = new URL(request.url).pathname;
+  if (pathname === "/health") {
+    return;
+  }
+
   const provided = request.headers.get("x-ocr-api-key");
   if (!provided || provided !== sharedSecret) {
     throw new HttpError(401, "OCR API authentication failed");
