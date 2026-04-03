@@ -1,119 +1,54 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Select, Spinner, Button, Text } from '@shopify/polaris';
 import { useTranslation } from 'react-i18next';
+import { fetchProductsWithVariants, getShopifyProductsCache } from "~/lib/shopifyProducts.client";
 
-// GraphQLで商品とバリアントを取得するAPI呼び出し
-async function fetchProductsWithVariants() {
-  try {
-    const query = `
-      query ProductsWithVariants($first: Int!) {
-        products(first: $first) {
-          edges {
-            node {
-              id
-              title
-              variants(first: 100) {
-                edges {
-                  node {
-                    id
-                    title
-                    sku
-                    selectedOptions {
-                      name
-                      value
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    `;
-
-    const variables = { first: 50 };
-    
-    console.log("🔄 ShopifyVariantSelector: Sending GraphQL request...");
-    
-    const res = await fetch("/api/shopify/graphql", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, variables }),
-    });
-
-    console.log("📊 ShopifyVariantSelector: Response status:", res.status);
-    
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error("❌ ShopifyVariantSelector: HTTP Error:", res.status, errorText);
-      throw new Error(`HTTP ${res.status}: ${errorText}`);
-    }
-
-    const json = await res.json();
-    console.log("📦 ShopifyVariantSelector: GraphQL Response received");
-
-    // エラー処理
-    if (json.errors) {
-      console.error("❌ ShopifyVariantSelector: GraphQL Errors:", json.errors);
-      throw new Error(json.errors.map(e => e.message).join(', '));
-    }
-
-    // データ存在チェック
-    if (!json.data) {
-      console.error("❌ ShopifyVariantSelector: No data in response:", json);
-      throw new Error("No data received from GraphQL");
-    }
-
-    if (!json.data.products) {
-      console.error("❌ ShopifyVariantSelector: No products in data:", json.data);
-      throw new Error("No products found in response");
-    }
-
-    // 整形して返す
-    const products = (json.data.products.edges || []).map(({ node }) => ({
-      id: node.id,
-      title: node.title,
-      variants: (node.variants.edges || []).map(({ node: v }) => ({
-        id: v.id,
-        title: v.title,
-        sku: v.sku,
-        selectedOptions: v.selectedOptions || [],
-      })),
-    }));
-
-    console.log("✅ ShopifyVariantSelector: Processed", products.length, "products");
-    return products;
-    
-  } catch (error) {
-    console.error("❌ ShopifyVariantSelector: Error fetching products:", error);
-    throw error;
-  }
-}
-
-const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
+const ShopifyVariantSelector = ({ value, onChange, initialProductId = "", products: productsProp = null, loading: loadingProp = false, error: errorProp = "" }) => {
   console.log('🚀 ShopifyVariantSelector: Component initialized!', { value, initialProductId });
   console.log('🔍 ShopifyVariantSelector: Props received:', { value, onChange: typeof onChange, initialProductId });
   
   const { t } = useTranslation();
 
   // 状態管理
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [products, setProducts] = useState(productsProp || []);
+  const [loading, setLoading] = useState(Boolean(loadingProp));
+  const [error, setError] = useState(errorProp || "");
   const [selectedProductId, setSelectedProductId] = useState(initialProductId);
   const [selectedVariantId, setSelectedVariantId] = useState(value || "");
+  const debugState = error ? "error" : loading ? "loading" : products.length > 0 ? "ready" : "idle";
 
   // 商品データを取得
   useEffect(() => {
+    if (productsProp) {
+      setProducts(productsProp);
+      setLoading(Boolean(loadingProp));
+      setError(errorProp || "");
+      return;
+    }
+
     console.log('🔄 ShopifyVariantSelector: useEffect triggered');
+    let isActive = true;
     const loadProducts = async () => {
       try {
+        const cached = getShopifyProductsCache();
+        if (cached) {
+          console.log("📦 ShopifyVariantSelector: Using cached products");
+          if (isActive) {
+            setProducts(cached);
+            setError("");
+            setLoading(false);
+          }
+          return;
+        }
+
         setLoading(true);
         setError("");
         console.log('🔄 ShopifyVariantSelector: Loading products...');
         const productsData = await fetchProductsWithVariants();
         console.log('📦 ShopifyVariantSelector: Products loaded:', productsData);
-        setProducts(productsData);
+        if (isActive) {
+          setProducts(productsData);
+        }
       } catch (err) {
         console.error('❌ ShopifyVariantSelector: Failed to load products:', err);
         console.error('❌ ShopifyVariantSelector: Error details:', {
@@ -121,15 +56,22 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
           message: err.message,
           stack: err.stack
         });
-        setProducts([]);
-        setError(t('shopifyVariantSelector.fetchError', { message: err.message }));
+        if (isActive) {
+          setProducts([]);
+          setError(t('shopifyVariantSelector.fetchError', { message: err.message }));
+        }
       } finally {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
       }
     };
 
     loadProducts();
-  }, [t]);
+    return () => {
+      isActive = false;
+    };
+  }, [t, productsProp, loadingProp, errorProp]);
 
   // デバッグログ
   console.log('🔍 ShopifyVariantSelector Debug:', {
@@ -137,7 +79,8 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
     error: error,
     loading: loading,
     selectedProductId: selectedProductId,
-    selectedVariantId: selectedVariantId
+    selectedVariantId: selectedVariantId,
+    debugState
   });
 
   // 選択された商品のバリアントオプションをメモ化
@@ -234,6 +177,9 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "" }) => {
   return (
     <div>
       <Text variant="headingSm">{t('shopifyVariantSelector.title')}</Text>
+      <Text variant="bodySm" tone="subdued">
+        {`debug: ${debugState}`}
+      </Text>
           <Select
             label={t('shopifyVariantSelector.productSelectLabel')}
             options={[

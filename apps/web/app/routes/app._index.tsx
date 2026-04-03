@@ -34,6 +34,7 @@ import { useTranslation } from "react-i18next";
 import { i18n } from "~/utils/i18n.server";
 
 import { createClient } from '@supabase/supabase-js';
+import { unauthenticated } from "~/shopify.server";
 
 type StatusTableProps = {
   shipments: Shipment[];
@@ -43,6 +44,51 @@ type StatusTableProps = {
 type StatusStats = Record<string, Shipment[]>;
 
 type PopupPos = { x: number; y: number };
+
+async function loadShopifyProductsForShop(shop: string) {
+  const query = `
+    query ProductsWithVariants($first: Int!) {
+      products(first: $first) {
+        edges {
+          node {
+            id
+            title
+            variants(first: 100) {
+              edges {
+                node {
+                  id
+                  title
+                  sku
+                  selectedOptions {
+                    name
+                    value
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const { admin } = await unauthenticated.admin(shop);
+  const response = await admin.graphql(query, { variables: { first: 50 } });
+  const jsonResponse = await response.json() as any;
+
+  const products = (jsonResponse.data?.products?.edges || []).map(({ node }: any) => ({
+    id: node.id,
+    title: node.title,
+    variants: (node.variants?.edges || []).map(({ node: v }: any) => ({
+      id: v.id,
+      title: v.title,
+      sku: v.sku,
+      selectedOptions: v.selectedOptions || [],
+    })),
+  }));
+
+  return products;
+}
 
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -57,6 +103,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     
     // Preview段階ではshop queryを信頼してSSR初期データだけ返す。
     let shipments = [];
+    let shopifyProducts: any[] = [];
     try {
       const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
       const { data, error } = await supabase
@@ -74,8 +121,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       console.error('SSR shipments fetch error:', error);
       shipments = [];
     }
+
+    try {
+      shopifyProducts = await loadShopifyProductsForShop(shop);
+    } catch (error) {
+      console.error('SSR Shopify products fetch error:', error);
+      shopifyProducts = [];
+    }
     
-    return json({ shop, locale, shipments });
+    return json({ shop, locale, shipments, shopifyProducts });
   } catch (error) {
     // 認証失敗時は401エラー
     if (error instanceof Response) {
@@ -88,7 +142,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 
 export default function Index() {
-  const { shop, shipments: initialShipments, locale: initialLocale } = useLoaderData<typeof loader>();
+  const { shop, shipments: initialShipments, locale: initialLocale, shopifyProducts: initialShopifyProducts } = useLoaderData<typeof loader>();
   const { t, i18n: i18nInstance } = useTranslation();
   const [hasMounted, setHasMounted] = useState(false);
 
@@ -99,6 +153,9 @@ export default function Index() {
   const [shopIdInput, setShopIdInput] = useState<string>(shop || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shopifyProducts, setShopifyProducts] = useState<any[]>(initialShopifyProducts || []);
+  const [shopifyProductsLoading, setShopifyProductsLoading] = useState(false);
+  const [shopifyProductsError, setShopifyProductsError] = useState("");
   const [showStartGuide, setShowStartGuide] = useState(false);
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   const [detailViewMode, setDetailViewMode] = useState<'product' | 'status' | 'search'>('product');
@@ -117,6 +174,13 @@ export default function Index() {
   useEffect(() => {
     setHasMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (shopifyProducts.length > 0) {
+      setShopifyProductsLoading(false);
+      setShopifyProductsError("");
+    }
+  }, [shopifyProducts.length]);
 
   useEffect(() => {
     if (shopId && shopId !== shop) {
@@ -804,6 +868,9 @@ export default function Index() {
           shipment={selectedShipment}
           onClose={handleModalClose}
           onUpdated={() => fetchShipments(shop)}
+          shopifyProducts={shopifyProducts}
+          shopifyProductsLoading={shopifyProductsLoading}
+          shopifyProductsError={shopifyProductsError}
         />
       )}
     </Page>

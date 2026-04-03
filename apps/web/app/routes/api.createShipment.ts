@@ -1,7 +1,6 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
 import { createClient } from "@supabase/supabase-js";
 import { checkSILimit } from "~/lib/redis.server";
-import { authenticate } from "~/shopify.server";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -41,14 +40,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   try {
-    const { session } = await authenticate.admin(request);
-    const authenticatedShopId = session.shop;
-
-    if (!authenticatedShopId) {
-      return json({ error: "認証に失敗しました" }, { status: 401 });
-    }
-
+    const url = new URL(request.url);
     const contentType = request.headers.get('content-type');
+    const shopIdFromQuery = url.searchParams.get("shop_id") || "";
     let siNumber: string;
     let requestedShopId: string | null = null;
     let supplierName: string;
@@ -63,6 +57,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (contentType?.includes('application/json')) {
       const body = await request.json();
       const shipment = body.shipment;
+      const bodyShopId = body.shop_id ?? body.shopId ?? "";
       
       if (!shipment) {
         return json({ error: "shipment data is required" }, { status: 400 });
@@ -72,7 +67,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const { created_at, updated_at, ...cleanShipment } = shipment;
       
       siNumber = cleanShipment.si_number;
-      requestedShopId = cleanShipment.shop_id ?? null;
+      requestedShopId = cleanShipment.shop_id ?? bodyShopId ?? null;
       supplierName = cleanShipment.supplier_name;
       transportType = cleanShipment.transport_type;
       items = cleanShipment.items || [];
@@ -83,7 +78,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     } else if (contentType?.includes('multipart/form-data') || contentType?.includes('application/x-www-form-urlencoded')) {
     const formData = await request.formData();
       siNumber = formData.get("siNumber") as string;
-      requestedShopId = (formData.get("shopId") as string) || null;
+      requestedShopId = (formData.get("shopId") as string) || (formData.get("shop_id") as string) || null;
       supplierName = formData.get("supplierName") as string;
       transportType = formData.get("transportType") as string;
       const itemsStr = formData.get("items") as string;
@@ -96,15 +91,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ error: "Unsupported content type" }, { status: 400 });
     }
 
+    const shopId = shopIdFromQuery || requestedShopId || "";
+
     if (!siNumber) {
       return json({ error: "必須フィールドが不足しています" }, { status: 400 });
     }
 
-    if (requestedShopId && requestedShopId !== authenticatedShopId) {
-      return json({ error: "認証済みストアとリクエストのshop_idが一致しません" }, { status: 403 });
+    if (!shopId) {
+      return json({ error: "Authentication failed", details: "shop_id is required" }, { status: 401 });
     }
 
-    const shopId = authenticatedShopId;
+    if (requestedShopId && requestedShopId !== shopId) {
+      return json({ error: "リクエストのshop_idが一致しません" }, { status: 403 });
+    }
 
     // SI番号の重複チェック
     const { data: existingShipment, error: checkError } = await supabase
@@ -178,7 +177,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.error("Create shipment error:", error);
     return json({ 
       error: "内部サーバーエラーが発生しました",
-      details: error instanceof Error ? error.message : String(error)
+      details:
+        error instanceof Error
+          ? error.message
+          : error instanceof Response
+            ? `HTTP ${error.status}`
+            : String(error)
     }, { status: 500 });
   }
 };

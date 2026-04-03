@@ -1,6 +1,5 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
 import { createClient } from '@supabase/supabase-js';
-import { authenticate } from "~/shopify.server";
 
 // Supabaseクライアントの初期化を改善
 let supabase: any = null;
@@ -27,17 +26,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
-  // Shopify認証
-  let shopId: string;
-  try {
-    const { session } = await authenticate.admin(request);
-    shopId = session.shop;
-    console.log('Shopify session shop:', shopId);
-  } catch (authError) {
-    console.error('Shopify authentication failed:', authError);
-    return json({ error: 'Authentication failed' }, { status: 401 });
-  }
-
   let body: any;
   try {
     body = await request.json();
@@ -52,6 +40,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.error('Missing shipment data');
     return json({ error: 'missing shipment' }, { status: 400 });
   }
+
+  const url = new URL(request.url);
+  const shopIdFromQuery = url.searchParams.get("shop_id") || url.searchParams.get("shopId") || "";
+  const bodyShopId =
+    typeof body.shop_id === 'string'
+      ? body.shop_id
+      : typeof body.shopId === 'string'
+        ? body.shopId
+        : typeof shipment.shop_id === 'string'
+          ? shipment.shop_id
+          : "";
+  const shopId = shopIdFromQuery || bodyShopId;
+
+  if (!shopId) {
+    console.error('Missing shop_id in request');
+    return json({ error: 'Authentication failed', details: 'shop_id is required' }, { status: 401 });
+  }
+
+  console.log('Using shop_id for update:', shopId);
 
   // shop_idの検証と設定
   if (shipment.shop_id && shipment.shop_id !== shopId) {

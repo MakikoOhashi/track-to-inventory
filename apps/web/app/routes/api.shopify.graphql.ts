@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs } from "react-router";
-import { authenticate } from "~/shopify.server";
+import { authenticate, unauthenticated } from "~/shopify.server";
 
 // GraphQLレスポンスの詳細ログ出力関数
 function logGraphQLResponse(step: string, data: any, variables?: any) {
@@ -58,17 +58,33 @@ function logGraphQLResponse(step: string, data: any, variables?: any) {
 }
 
 export const action = async ({ request }: ActionFunctionArgs) => {
+  let admin: Awaited<ReturnType<typeof authenticate.admin>>["admin"] | undefined;
   try {
-    const { admin } = await authenticate.admin(request);
-    
     if (request.method !== "POST") {
       return new Response("Method not allowed", { status: 405 });
     }
 
-    // JSON形式のリクエストボディを解析
+    const url = new URL(request.url);
     const requestBody = await request.json();
     const { query, variables } = requestBody;
-    
+    const shopIdFromQuery = url.searchParams.get("shop_id") || "";
+    const shopIdFromBody =
+      typeof requestBody?.shop_id === "string" ? requestBody.shop_id : "";
+    const shopId = shopIdFromQuery || shopIdFromBody;
+
+    if (shopId) {
+      const unauthenticatedAdmin = await unauthenticated.admin(shopId);
+      admin = unauthenticatedAdmin.admin;
+      console.log("GraphQL route using unauthenticated admin:", {
+        shopId,
+        hasAdmin: Boolean(admin),
+      });
+    } else {
+      ({ admin } = await authenticate.admin(request));
+      console.log("GraphQL route using authenticated admin context");
+    }
+
+    // JSON形式のリクエストボディを解析
     console.log("GraphQL Query:", query);
     console.log("GraphQL Variables:", variables);
     
@@ -140,9 +156,55 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
   } catch (error) {
     console.error("GraphQL Error:", error);
+    console.error("GraphQL Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      name: error instanceof Error ? error.name : undefined,
+      stack: error instanceof Error ? error.stack : undefined,
+      adminAvailable: Boolean(admin),
+    });
+
+    if (error instanceof Response) {
+      const responseText = await error.clone().text().catch(() => "");
+      console.error("GraphQL thrown Response:", {
+        status: error.status,
+        statusText: error.statusText,
+        body: responseText,
+      });
+
+      if (error.status >= 300 && error.status < 400) {
+        return new Response(JSON.stringify({
+          error: "Authentication failed",
+          details: responseText || error.statusText || "Redirect returned from Shopify auth",
+        }), {
+          status: 401,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
+      return new Response(responseText || responseText, {
+        status: error.status,
+        headers: {
+          "Content-Type": error.headers.get("Content-Type") || "text/plain; charset=utf-8",
+        },
+      });
+    }
     
     // 認証エラーの特別な処理
     if (error instanceof Error) {
+      if (error.name === "SessionNotFoundError" || error.message.includes("Could not find a session")) {
+        return new Response(JSON.stringify({
+          error: "Authentication failed",
+          details: error.message,
+        }), {
+          status: 401,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      }
+
       if (error.message.includes('authentication') || error.message.includes('session')) {
         return new Response(JSON.stringify({ 
           error: "Authentication failed",

@@ -1,5 +1,6 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
 import { authenticate } from "~/shopify.server";
+import { unauthenticated } from "~/shopify.server";
 
 type UserError = {
   field?: string[] | null;
@@ -111,14 +112,33 @@ function hasErrors(data: any): { hasGraphQLErrors: boolean; hasUserErrors: boole
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
-    const { admin, session } = await authenticate.admin(request);
-    const { items } = await request.json();
+    const url = new URL(request.url);
+    const body = await request.json();
+    const { items } = body;
+    const shopIdFromQuery = url.searchParams.get("shop_id") || "";
+    const shopIdFromBody = typeof body?.shop_id === "string" ? body.shop_id : "";
+    const shopId = shopIdFromQuery || shopIdFromBody;
+
+    let admin: Awaited<ReturnType<typeof authenticate.admin>>["admin"] | undefined;
+    let session: Awaited<ReturnType<typeof authenticate.admin>>["session"] | undefined;
+
+    if (shopId) {
+      const unauthenticatedAdmin = await unauthenticated.admin(shopId);
+      admin = unauthenticatedAdmin.admin;
+      console.log("Sync-stock using unauthenticated admin:", {
+        shopId,
+        hasAdmin: Boolean(admin),
+      });
+    } else {
+      ({ admin, session } = await authenticate.admin(request));
+      console.log("Sync-stock using authenticated admin context");
+    }
     
     // アプリの権限情報をログ出力
     console.log("=== アプリ権限情報 ===");
-    console.log("Shop:", session.shop);
-    console.log("Access Token:", session.accessToken ? "存在" : "なし");
-    console.log("Scope:", session.scope);
+    console.log("Shop:", session?.shop || shopId);
+    console.log("Access Token:", session?.accessToken ? "存在" : "なし");
+    console.log("Scope:", session?.scope);
     console.log("API Version: 2024-10 (最新安定版)");
     console.log("API Compatibility: 2024-07+ (inventoryAdjustQuantities, productVariantsBulkUpdate)");
     console.log("=====================");

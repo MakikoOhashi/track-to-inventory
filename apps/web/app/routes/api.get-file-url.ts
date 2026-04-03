@@ -1,5 +1,4 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
-import { authenticate } from "~/shopify.server";
 import { createSignedFileUrls } from "~/lib/ocrBackend.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -8,23 +7,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   try {
-    // Shopifyセッション認証（ページルートからの呼び出しの場合）
-    let shopId: string;
-    let body: any | null = null;
-    try {
-      const { session } = await authenticate.admin(request);
-      shopId = session.shop;
-    } catch (authError) {
-      // 認証に失敗した場合は、リクエストボディからshop_idを取得
-      body = await request.json();
-      shopId = body.shopId;
-      
-      if (!shopId) {
-        return json({ error: "shop_idが必要です" }, { status: 401 });
-      }
+    const url = new URL(request.url);
+    const body = await request.json();
+    const shopId =
+      url.searchParams.get("shop_id") ||
+      body.shop_id ||
+      body.shopId ||
+      "";
+
+    if (!shopId) {
+      return json({ error: "shop_idが必要です" }, { status: 401 });
     }
 
-    const requestBody = body ?? await request.json();
+    const requestBody = body;
     const result = await createSignedFileUrls(requestBody, shopId);
     return json(result);
 

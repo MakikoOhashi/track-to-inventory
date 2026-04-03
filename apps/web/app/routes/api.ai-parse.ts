@@ -33,15 +33,28 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   
   // 🔥 AI使用制限チェック（ここで回数制限＆カウント増加）
   try {
-    // Shopify認証を実行
-    const { session } = await authenticate.admin(request);
-    const shopId = session.shop;
-    console.log('✅ Shopify authentication successful, shopId:', shopId);
+    const url = new URL(request.url);
+    const shopIdFromQuery = url.searchParams.get("shop_id") || "";
+    let shopId = shopIdFromQuery;
+
+    if (!shopId) {
+      // query がない場合だけ Shopify 認証にフォールバック
+      const { session } = await authenticate.admin(request);
+      shopId = session.shop;
+      console.log("✅ Shopify authentication successful, shopId:", shopId);
+    } else {
+      console.log("✅ Using shop_id from query:", shopId);
+    }
 
     await checkAndIncrementAI(shopId);
   } catch (error) {
     // 認証エラーの場合は401を返す
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : error instanceof Response
+          ? `HTTP ${error.status}`
+          : String(error);
     if (errorMessage.includes("認証に失敗しました") || errorMessage.includes("shop_id parameter is required")) {
       return json({ 
         error: "認証に失敗しました。アプリを再インストールしてください。",

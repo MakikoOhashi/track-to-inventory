@@ -1,5 +1,5 @@
 //app/components/OCRUploader.jsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Card,
   DropZone,
@@ -36,12 +36,31 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   const [usageInfo, setUsageInfo] = useState(null); // 使用状況情報を保存
   const [showManualForm, setShowManualForm] = useState(false);
   const demoImageUrl = "https://track-to-inventory.onrender.com/instruction_demo.png";
+  const ocrWarmUpStartedRef = useRef(false);
 
    // クライアント判定（SSR対策）
-   useEffect(() => {
+  useEffect(() => {
     setIsClient(true);
     // コンポーネント初期化時に使用状況を取得
     fetchUsageInfo();
+  }, []);
+
+  const warmOcrBackendOnce = useCallback(async () => {
+    if (ocrWarmUpStartedRef.current) return;
+    ocrWarmUpStartedRef.current = true;
+
+    try {
+      const res = await fetch("/api/ocr-health", {
+        method: "GET",
+      });
+
+      if (!res.ok) {
+        console.warn("OCR backend warm-up returned non-OK:", res.status);
+      }
+    } catch (error) {
+      console.error("OCR backend warm-up failed:", error);
+      ocrWarmUpStartedRef.current = false;
+    }
   }, []);
 
     // 使用状況を取得する関数
@@ -68,7 +87,8 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     // OCR使用制限をチェックする関数
     const checkOCRLimit = async () => {
       try {
-        const res = await fetch("/api/check-ocr-limit", {
+        const query = shopId ? `?shop_id=${encodeURIComponent(shopId)}` : "";
+        const res = await fetch(`/api/check-ocr-limit${query}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
         });
@@ -322,7 +342,8 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     try {
       console.log("Sending to AI:", { text: ocrTextEdited, fields }); // デバッグ用
       
-      const res = await fetch("/api/ai-parse", {
+      const query = shopId ? `?shop_id=${encodeURIComponent(shopId)}` : "";
+      const res = await fetch(`/api/ai-parse${query}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -447,10 +468,14 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       console.log('📤 送信データ:', shipmentData);
 
       // API呼び出し
-      const res = await fetch('/api/createShipment', {
+      const saveQuery = shopId ? `?shop_id=${encodeURIComponent(shopId)}` : "";
+      const res = await fetch(`/api/createShipment${saveQuery}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shipment: shipmentData }),
+        body: JSON.stringify({
+          shipment: shipmentData,
+          shop_id: shopId,
+        }),
       });
       
       // デバッグ：レスポンスステータスを確認
@@ -574,6 +599,9 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       {/* public/instruction_demo.png へのリンク。public/はURLに含めず、/instruction_demo.png でOK */}
       <a
         href={demoImageUrl}
+        onPointerEnter={warmOcrBackendOnce}
+        onFocus={warmOcrBackendOnce}
+        onClick={warmOcrBackendOnce}
         target="_blank"
         rel="noopener noreferrer"
         style={{
@@ -589,7 +617,10 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       {file && (
         <div style={{ marginTop: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button onClick={handleOcr} 
+          <button
+          onPointerEnter={warmOcrBackendOnce}
+          onFocus={warmOcrBackendOnce}
+          onClick={handleOcr} 
           disabled={
             loading || 
             (usageInfo?.ocr && usageInfo.ocr.remaining <= 0 && usageInfo.ocr.limit !== Infinity)}>
@@ -725,6 +756,8 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
               <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Button
+                onPointerEnter={warmOcrBackendOnce}
+                onFocus={warmOcrBackendOnce}
                 onClick={handleAiAssist}
                 disabled={aiLoading}
               >
@@ -748,7 +781,13 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
               {/* 保存ボタンセクション */}
               <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Button primary onClick={handleSaveToSupabase} disabled={!fields.si_number}>
+                <Button
+                  primary
+                  onPointerEnter={warmOcrBackendOnce}
+                  onFocus={warmOcrBackendOnce}
+                  onClick={handleSaveToSupabase}
+                  disabled={!fields.si_number}
+                >
                   {t("ocrUploader.saveButton")}
                 </Button>
                 {loading && <Spinner size="small" />}

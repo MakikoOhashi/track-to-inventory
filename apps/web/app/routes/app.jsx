@@ -32,6 +32,7 @@ export default function App() {
   const location = useLocation();
   const [hasMounted, setHasMounted] = useState(false);
   const search = location.search || "";
+  const isPreview = typeof window !== "undefined" && window.location.hostname.endsWith(".workers.dev");
 
   const linkWithSearch = (path) => `${path}${search}`;
 
@@ -43,6 +44,12 @@ export default function App() {
 
   useEffect(() => {
     setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/ocr-health").catch((error) => {
+      console.error("OCR warm-up failed:", error);
+    });
   }, []);
 
   if (!hasMounted) {
@@ -57,17 +64,32 @@ export default function App() {
     <I18nextProvider i18n={i18n}>
       <PolarisAppProvider i18n={polarisTranslations}>
         <ShopifyAppProvider embedded apiKey={apiKey}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid #e1e3e5", display: "flex", gap: "16px" }}>
-            <Link to={linkWithSearch("/app")} rel="home">
-              Home
-            </Link>
-            <Link to={linkWithSearch("/app/pricing")}>
-              Pricing
-            </Link>
-            <Link to={linkWithSearch("/app/contact")}>
-              Contact
-            </Link>
-          </div>
+          {isPreview ? (
+            <div
+              style={{
+                padding: "12px 16px",
+                borderBottom: "1px solid #e1e3e5",
+                background: "#f6f6f7",
+                display: "flex",
+                gap: "12px",
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#616161" }}>
+                Preview navigation
+              </span>
+              <Link to={linkWithSearch("/app")} rel="home">
+                Home
+              </Link>
+              <Link to={linkWithSearch("/app/pricing")}>
+                Pricing
+              </Link>
+              <Link to={linkWithSearch("/app/contact")}>
+                Contact
+              </Link>
+            </div>
+          ) : null}
           <Outlet />
         </ShopifyAppProvider>
       </PolarisAppProvider>

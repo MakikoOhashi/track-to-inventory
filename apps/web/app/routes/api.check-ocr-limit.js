@@ -9,10 +9,18 @@ export async function action({ request }) {
   }
 
   try {
-    // Shopify認証を実行
-    const { session } = await authenticate.admin(request);
-    const shopId = session.shop;
-    console.log('✅ Shopify authentication successful, shopId:', shopId);
+    const url = new URL(request.url);
+    const shopIdFromQuery = url.searchParams.get("shop_id") || "";
+    let shopId = shopIdFromQuery;
+
+    if (!shopId) {
+      // query がない場合だけ Shopify 認証にフォールバック
+      const { session } = await authenticate.admin(request);
+      shopId = session.shop;
+      console.log("✅ Shopify authentication successful, shopId:", shopId);
+    } else {
+      console.log("✅ Using shop_id from query:", shopId);
+    }
 
     // OCR使用制限をチェック＆インクリメント
     await checkAndIncrementOCR(shopId);

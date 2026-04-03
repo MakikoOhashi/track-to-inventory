@@ -38,6 +38,20 @@ async function parseOcrApiError(response: Response, fallbackMessage: string) {
   return fallbackMessage;
 }
 
+export async function warmOcrBackend() {
+  ensureExternalOcrConfig();
+
+  const response = await fetch(`${OCR_API_BASE_URL}/health`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseOcrApiError(response, "OCR API health check failed"));
+  }
+
+  return response.json();
+}
+
 async function postMultipartToOcrApi<T>(path: string, formData: FormData, fallbackMessage: string) {
   ensureExternalOcrConfig();
 

@@ -1,6 +1,5 @@
 import { data as json } from "react-router";
 import { createClient } from "@supabase/supabase-js";
-import { authenticate } from "~/shopify.server";
 
 const supabase = createClient(
   process.env.SUPABASE_URL as string,
@@ -13,28 +12,29 @@ export const action = async ({ request }: any) => {
   }
 
   try {
-    // Shopify認証を実行（fallback処理付き）
-    let shopId: string;
-  try {
-      const { session } = await authenticate.admin(request);
-      shopId = session.shop;
-    } catch (authError) {
-      // Fallback: URLパラメータからshop情報を取得
-      const url = new URL(request.url);
-      const shopParam = url.searchParams.get('shop');
-      
-      if (shopParam) {
-        shopId = shopParam;
-      } else {
-        return json({ 
-          error: "認証に失敗しました。アプリを再インストールしてください。" 
-        }, { status: 401 });
-  }
+    const url = new URL(request.url);
+    const body = await request.formData().catch(async () => {
+      const jsonBody = await request.json().catch(() => ({}));
+      return jsonBody;
+    });
+
+    const shopId =
+      url.searchParams.get("shop_id") ||
+      url.searchParams.get("shop") ||
+      body.get?.("shop_id") ||
+      body.get?.("shopId") ||
+      body.shop_id ||
+      body.shopId ||
+      "";
+
+    if (!shopId) {
+      return json({
+        error: "shop_idが必要です"
+      }, { status: 401 });
     }
 
-    const formData = await request.formData();
-    const siNumber = formData.get("siNumber") as string;
-    const fileType = formData.get("fileType") as string;
+    const siNumber = body.get?.("siNumber") as string || body.siNumber;
+    const fileType = body.get?.("fileType") as string || body.fileType;
 
     if (!siNumber || !fileType) {
       return json({ error: "SI番号とファイルタイプが必須です" }, { status: 400 });

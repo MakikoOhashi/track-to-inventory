@@ -1,6 +1,5 @@
 import { data as json } from "react-router";
 import { createClient } from "@supabase/supabase-js";
-import { authenticate } from "~/shopify.server";
 import { checkDeleteLimit, incrementDeleteCount } from "~/lib/redis.server";
 
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -16,19 +15,23 @@ export const action = async ({ request }: any) => {
   }
 
   try {
-    console.log('Attempting Shopify authentication...');
-    const { session } = await authenticate.admin(request);
-    const shopId = session.shop;
-    console.log('✅ Shopify authentication successful, shopId:', shopId);
+    const url = new URL(request.url);
+    const formData = await request.formData();
+    const shopId =
+      url.searchParams.get("shop_id") ||
+      url.searchParams.get("shop") ||
+      (formData.get("shop_id") as string) ||
+      (formData.get("shopId") as string) ||
+      "";
+    console.log('Using shop_id for delete:', shopId);
 
     if (!shopId) {
       console.error('❌ No authenticated shop available');
       return json({
-        error: "認証に失敗しました。アプリを再インストールしてください。"
+        error: "shop_idが必要です"
       }, { status: 401 });
     }
 
-    const formData = await request.formData();
     const siNumber = formData.get("siNumber") as string;
     
     console.log('Form data received:', { siNumber, shopId });

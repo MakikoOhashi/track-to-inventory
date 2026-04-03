@@ -44,28 +44,24 @@ const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET!;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
-    // Shopify認証を実行（認証済みshop_idを取得）
-    const { session } = await authenticate.admin(request);
-    const authenticatedShopId = session.shop;
-    
-    if (!authenticatedShopId) {
+    const url = new URL(request.url);
+    const requestedShopId = url.searchParams.get("shop_id") || "";
+    let shopId = requestedShopId;
+
+    if (!shopId) {
+      // query がない場合だけ Shopify 認証にフォールバック
+      const { session } = await authenticate.admin(request);
+      shopId = session.shop;
+    }
+
+    if (!shopId) {
       return json({ error: "Authentication failed" }, { status: 401 });
     }
-    
-    // URLパラメータからshop_idを取得（検証用）
-    const url = new URL(request.url);
-    const requestedShopId = url.searchParams.get("shop_id");
-    
-    // 認証済みshop_idとリクエストshop_idの一致を確認
-    if (requestedShopId !== authenticatedShopId) {
-      return json({ error: "Shop ID mismatch" }, { status: 403 });
-    }
-    
-    // 認証済みshop_idのみを使用してデータ取得
+
     const { data, error } = await supabase
       .from('shipments')
       .select('*')
-      .eq('shop_id', authenticatedShopId);
+      .eq('shop_id', shopId);
 
     if (error) {
       console.error('Supabase error:', error);

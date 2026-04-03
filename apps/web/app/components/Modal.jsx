@@ -26,7 +26,14 @@ const statusJaToKey = {
 
 const statusKeyToJa = Object.fromEntries(Object.entries(statusJaToKey).map(([ja, key]) => [key, ja]));
 
-const CustomModal = ({ shipment, onClose, onUpdated }) => {
+const CustomModal = ({
+  shipment,
+  onClose,
+  onUpdated,
+  shopifyProducts = [],
+  shopifyProductsLoading = false,
+  shopifyProductsError = "",
+}) => {
   const { t, i18n } = useTranslation();
   
   // FILE_TYPESの定義を修正
@@ -108,7 +115,8 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           filePaths,
-          siNumber: formData.si_number 
+          siNumber: formData.si_number,
+          shop_id: shipment.shop_id || formData.shop_id,
         })
       });
       
@@ -174,7 +182,8 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           filePaths: [filePath],
-          siNumber: formData?.si_number 
+          siNumber: formData?.si_number,
+          shop_id: shipment.shop_id || formData?.shop_id,
         })
       });
       
@@ -250,7 +259,10 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       const res = await fetch('/api/sync-stock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: itemsWithVariantId })
+        body: JSON.stringify({
+          items: itemsWithVariantId,
+          shop_id: shipment.shop_id || formData.shop_id,
+        })
       });
       
       if (!res.ok) {
@@ -277,7 +289,8 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          shipment: { ...formData, status: "synced" }
+          shipment: { ...formData, status: "synced" },
+          shop_id: shipment.shop_id || formData.shop_id,
         }),
       });
       if (!updateRes.ok) throw new Error(t('modal.messages.statusUpdateFailed'));
@@ -312,7 +325,10 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       const res = await fetch('/api/updateShipment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shipment: saveData }),
+        body: JSON.stringify({
+          shipment: saveData,
+          shop_id: shipment.shop_id || saveData.shop_id,
+        }),
       });
       
       if (!res.ok) {
@@ -399,7 +415,10 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       const updateRes = await fetch('/api/updateShipment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shipment: cleanFormData }),
+        body: JSON.stringify({
+          shipment: cleanFormData,
+          shop_id: shipment.shop_id || cleanFormData.shop_id,
+        }),
         });
         
       if (!updateRes.ok) {
@@ -435,7 +454,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
     
       // shopパラメータをURLに追加（認証fallback用）
       const url = new URL('/api/deleteShipmentFile', window.location.origin);
-      url.searchParams.append('shop', shipment.shop_id);
+      url.searchParams.append('shop_id', shipment.shop_id);
       
       const res = await fetch(url.toString(), {
         method: 'DELETE',
@@ -468,7 +487,7 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
       
       // shopパラメータをURLに追加（認証fallback用）
       const url = new URL('/api/delete-shipment', window.location.origin);
-      url.searchParams.append('shop', shipment.shop_id);
+      url.searchParams.append('shop_id', shipment.shop_id);
       
       const res = await fetch(url.toString(), {
         method: 'DELETE',
@@ -611,6 +630,9 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
                 />
                 <ShopifyVariantSelector
                   value={item.variant_id || ""}
+                  products={shopifyProducts}
+                  loading={shopifyProductsLoading}
+                  error={shopifyProductsError}
                   onChange={(v, { product, variant }) => {
                     const items = [...formData.items];
                     items[idx].variant_id = v;
