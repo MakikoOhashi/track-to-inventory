@@ -1,6 +1,8 @@
 import { Session } from "@shopify/shopify-api";
 import type { SessionStorage } from "@shopify/shopify-app-session-storage";
+import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import { Redis } from "@upstash/redis";
+import prisma from "./db.server";
 
 type StoredSessionPayload = {
   entries: [string, string | number | boolean][];
@@ -115,6 +117,18 @@ class UpstashSessionStorage implements SessionStorage {
   }
 }
 
-const sessionStorage = new UpstashSessionStorage();
+function getSessionStorageDriver() {
+  return (process.env.SHOPIFY_SESSION_STORAGE ?? "prisma").toLowerCase();
+}
+
+function createSessionStorage() {
+  if (getSessionStorageDriver() === "upstash") {
+    return new UpstashSessionStorage();
+  }
+
+  return new PrismaSessionStorage(prisma);
+}
+
+const sessionStorage = createSessionStorage();
 
 export default sessionStorage;

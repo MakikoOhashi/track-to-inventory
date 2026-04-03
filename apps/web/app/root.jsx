@@ -19,10 +19,6 @@ export function links() {
   return [
     { rel: "preconnect", href: "https://cdn.shopify.com/" },
     { rel: "stylesheet", href: "https://cdn.shopify.com/static/fonts/inter/v4/styles.css" },
-    {
-      rel: "stylesheet",
-      href: "https://unpkg.com/@shopify/polaris@12.27.0/build/esm/styles.css"
-    },
   ];
 }
 

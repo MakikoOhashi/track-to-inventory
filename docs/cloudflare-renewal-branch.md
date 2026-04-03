@@ -165,13 +165,14 @@ Before merging major milestones from this branch, verify:
 - Transitional env vars:
   - `OCR_API_BASE_URL`
   - `OCR_API_SHARED_SECRET`
+  - `SHOPIFY_SESSION_STORAGE` (`prisma` default, `upstash` fallback)
 - Cloudflare preview env split:
   - Put plain-text values such as `SHOPIFY_APP_URL`, `SCOPES`, and `OCR_API_BASE_URL` in `apps/web/wrangler.jsonc`
   - Put secrets such as `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `OCR_API_SHARED_SECRET`, and `DATABASE_URL` in Wrangler secrets
 - If `OCR_API_BASE_URL` is enabled, `OCR_API_SHARED_SECRET` should be treated as required
 - Current Cloudflare blockers after the React Router step:
   - OCR now routes through the backend boundary, but `apps/ocr-api` still depends on `tesseract.js`
-  - `apps/web` still uses Prisma-backed Shopify session storage, even though it is now isolated behind `app/sessionStorage.server.ts`
+  - `apps/web` now supports both Prisma-backed and Upstash-backed Shopify session storage; Cloudflare runtime verification is still needed before dropping the fallback
   - `apps/web/app/entry.server.jsx` now uses Web Streams SSR, but the app still needs a Cloudflare runtime pass before switching hosting
   - `apps/ocr-api/src/server.js` still uses Node-only OCR/PDF libraries
   - `apps/web` now expects OCR/PDF/file operations to be available via `OCR_API_BASE_URL`

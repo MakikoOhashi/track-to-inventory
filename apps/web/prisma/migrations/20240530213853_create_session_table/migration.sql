@@ -1,11 +1,11 @@
 -- CreateTable
-CREATE TABLE "Session" (
+CREATE TABLE "TrackToInventorySession" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "shop" TEXT NOT NULL,
     "state" TEXT NOT NULL,
     "isOnline" BOOLEAN NOT NULL DEFAULT false,
     "scope" TEXT,
-    "expires" DATETIME,
+    "expires" TIMESTAMPTZ,
     "accessToken" TEXT NOT NULL,
     "userId" BIGINT,
     "firstName" TEXT,
@@ -14,5 +14,10 @@ CREATE TABLE "Session" (
     "accountOwner" BOOLEAN NOT NULL DEFAULT false,
     "locale" TEXT,
     "collaborator" BOOLEAN DEFAULT false,
-    "emailVerified" BOOLEAN DEFAULT false
+    "emailVerified" BOOLEAN DEFAULT false,
+    "refreshToken" TEXT,
+    "refreshTokenExpires" TIMESTAMPTZ
 );
+
+CREATE INDEX "TrackToInventorySession_shop_idx"
+ON "TrackToInventorySession"("shop");

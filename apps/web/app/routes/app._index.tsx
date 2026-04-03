@@ -97,6 +97,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function Index() {
   const { shop, shipments: initialShipments, locale: initialLocale } = useLoaderData<typeof loader>();
   const { t, i18n: i18nInstance } = useTranslation();
+  const [hasMounted, setHasMounted] = useState(false);
 
   // 状態管理
   const [shipments, setShipments] = useState<Shipment[]>(initialShipments);
@@ -120,10 +121,14 @@ export default function Index() {
   const POPUP_HEIGHT = 300;
 
   // 初期化時にデータを取得（shopIdが変更された時のみ）
-    useEffect(() => {
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (shopId && shopId !== shop) {
       fetchShipments(shopId);
-      }
+    }
   }, [shopId, shop]);
   
   // ガイド関連
@@ -409,6 +414,28 @@ export default function Index() {
     
 
   // --- JSX ---
+  if (!hasMounted) {
+    return (
+      <Page
+        title={t('title.shipmentsByOwner')}
+        primaryAction={<LanguageSwitcher value={locale || 'ja'} onChange={handleLanguageChange} />}
+      >
+        <Layout>
+          <Layout.Section>
+            <BlockStack gap="400">
+              <Card>
+                <BlockStack gap="300">
+                  <Text as="h2" variant="headingLg">{t('title.upcomingArrivals')}</Text>
+                  <Text as="p" variant="bodyMd">{t('message.loading') || 'Loading...'}</Text>
+                </BlockStack>
+              </Card>
+            </BlockStack>
+          </Layout.Section>
+        </Layout>
+      </Page>
+    );
+  }
+
   return (
   
       <Page
@@ -724,12 +751,15 @@ export default function Index() {
 
 
        {/* ここにOCRアップローダーを追加 - shopIdを渡す */}
-       <div id="ocr-section" />
-        <OCRUploader 
-          shopId={shop} 
-          onSaveSuccess={handleOcrSaveSuccess}
-          
-        />
+       {hasMounted && (
+        <>
+          <div id="ocr-section" />
+          <OCRUploader 
+            shopId={shop} 
+            onSaveSuccess={handleOcrSaveSuccess}
+          />
+        </>
+       )}
           </BlockStack>
         </Layout.Section>
         </Layout>
@@ -776,11 +806,13 @@ export default function Index() {
   <Box paddingBlockEnd="1200" />
 
       {/* モーダル表示 */}
-      <CustomModal
-        shipment={selectedShipment}
-        onClose={handleModalClose}
-        onUpdated={() => fetchShipments(shop)}
-      />
+      {hasMounted && selectedShipment && (
+        <CustomModal
+          shipment={selectedShipment}
+          onClose={handleModalClose}
+          onUpdated={() => fetchShipments(shop)}
+        />
+      )}
     </Page>
   );
 }

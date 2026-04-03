@@ -6,8 +6,12 @@ import styles from "./styles.module.css";
 
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
+  const isEmbeddedEntry =
+    url.searchParams.get("embedded") === "1" ||
+    url.searchParams.has("host") ||
+    url.searchParams.has("id_token");
 
-  if (url.searchParams.get("shop")) {
+  if (isEmbeddedEntry || url.searchParams.get("shop")) {
     throw redirect(`/app?${url.searchParams.toString()}`);
   }
 

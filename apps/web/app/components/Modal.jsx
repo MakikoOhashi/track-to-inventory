@@ -47,10 +47,6 @@ const CustomModal = ({ shipment, onClose, onUpdated }) => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
 
-  // デバッグログ: editModeの状態を監視
-  console.log('🔍 Modal: editMode state:', editMode);
-  console.log('🔍 Modal: formData state:', formData);
-
   // ステータスオプションを英語キーで統一
   const STATUS_OPTIONS = [
     { label: t('modal.status.siIssued'), value: "siIssued" },

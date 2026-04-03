@@ -52,6 +52,30 @@ Cloudflare / `apps/web` side:
 - Root directory: repository root
 - Dockerfile path: `apps/ocr-api/Dockerfile`
 - Branch: `codex/cloudflare-renewal` during migration, later `main`
+- You can also create it from the repository blueprint in [`render.yaml`](/Users/makiko/Documents/Documents%20-%20makiko%E2%80%99s%20MacBook%20Air/dev/track-to-inventory/render.yaml)
+
+## Render Dashboard Values
+
+- Name: `track-to-inventory-ocr-api`
+- Environment: `Docker`
+- Branch: `codex/cloudflare-renewal`
+- Dockerfile path: `apps/ocr-api/Dockerfile`
+- Docker context: `.`
+- Health check path: `/health`
+- Auto deploy: off during migration, on later if you want
+
+## Required Render Env Values
+
+- `OCR_API_SHARED_SECRET`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+## After Deploy
+
+Set these on the `apps/web` side once the Render URL exists:
+
+- `OCR_API_BASE_URL=https://<your-render-service>.onrender.com`
+- `OCR_API_SHARED_SECRET=<same secret as Render>`
 
 ## Suggested First Validation
 
@@ -66,3 +90,4 @@ Cloudflare / `apps/web` side:
 - `apps/ocr-api` still uses Node-only libraries such as `pdf2pic`
 - This service is intentionally Render-friendly rather than Cloudflare-friendly
 - The long-term goal may still be reducing or replacing this service if OCR moves closer to Gemini-only processing
+- This sandbox could not open a local port for `/health` verification, so first live verification should happen on Render

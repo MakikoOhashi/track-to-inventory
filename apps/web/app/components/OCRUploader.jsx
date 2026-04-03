@@ -47,7 +47,8 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     // 使用状況を取得する関数
     const fetchUsageInfo = async () => {
       try {
-        const res = await fetch("/api/usage", {
+        const query = shopId ? `?shop_id=${encodeURIComponent(shopId)}` : "";
+        const res = await fetch(`/api/usage${query}`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
