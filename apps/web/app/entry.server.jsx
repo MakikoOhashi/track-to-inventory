@@ -1,7 +1,5 @@
-import { PassThrough } from "stream";
-import { renderToPipeableStream } from "react-dom/server";
+import { renderToReadableStream } from "react-dom/server.browser";
 import { ServerRouter } from "react-router";
-import { createReadableStreamFromReadable } from "@react-router/node";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
 
@@ -14,54 +12,44 @@ export default async function handleRequest(
   remixContext,
 ) {
   addDocumentResponseHeaders(request, responseHeaders);
+  if (request.method.toUpperCase() === "HEAD") {
+    return new Response(null, {
+      status: responseStatusCode,
+      headers: responseHeaders,
+    });
+  }
+
   const userAgent = request.headers.get("user-agent");
-  const callbackName = isbot(userAgent ?? "") ? "onAllReady" : "onShellReady";
+  const waitForAllReady = isbot(userAgent ?? "") || remixContext.isSpaMode;
+  let didError = false;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), streamTimeout + 1000);
 
-  return new Promise((resolve, reject) => {
-    let didTimeout = false;
-    const timeout = setTimeout(() => {
-      didTimeout = true;
-      abort();
-      // SSR失敗時、より速いクライアントレンダ fallback
-      resolve(
-        new Response("<!doctype html><html><head><title>Timeout</title></head><body><h1>Server render timed out</h1></body></html>", {
-          status: 503,
-          headers: { "Content-Type": "text/html" },
-        }),
-      );
-    }, streamTimeout);
-
-    const { pipe, abort } = renderToPipeableStream(
+  try {
+    const body = await renderToReadableStream(
       <ServerRouter context={remixContext} url={request.url} />,
       {
-        [callbackName]: () => {
-          if (didTimeout) return;
-          clearTimeout(timeout);
-
-          const body = new PassThrough();
-          const stream = createReadableStreamFromReadable(body);
-
-          responseHeaders.set("Content-Type", "text/html");
-          resolve(
-            new Response(stream, {
-              headers: responseHeaders,
-              status: responseStatusCode,
-            }),
-          );
-          pipe(body);
-        },
-        onShellError(error) {
-          reject(error);
-        },
+        signal: controller.signal,
         onError(error) {
-          responseStatusCode = 500;
+          didError = true;
           console.error(error);
         },
       },
     );
 
-    // Automatically timeout the React renderer after 6 seconds, which ensures
-    // React has enough time to flush down the rejected boundary contents
-    //setTimeout(abort, streamTimeout + 1000);
-  });
+    if (waitForAllReady && body.allReady) {
+      await body.allReady;
+    }
+
+    clearTimeout(timeout);
+    responseHeaders.set("Content-Type", "text/html");
+
+    return new Response(body, {
+      headers: responseHeaders,
+      status: didError ? 500 : responseStatusCode,
+    });
+  } catch (error) {
+    clearTimeout(timeout);
+    throw error;
+  }
 }

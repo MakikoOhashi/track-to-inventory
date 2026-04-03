@@ -32,3 +32,4 @@ database.sqlite
 .shopify.lock
 /apps/web/.shopify/*
 /apps/web/.shopify.lock
+/apps/web/.react-router/

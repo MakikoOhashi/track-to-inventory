@@ -168,7 +168,7 @@ Before merging major milestones from this branch, verify:
 - If `OCR_API_BASE_URL` is enabled, `OCR_API_SHARED_SECRET` should be treated as required
 - Current Cloudflare blockers after the React Router step:
   - OCR now routes through the backend boundary, but `apps/ocr-api` still depends on `tesseract.js`
-  - `apps/web/app/db.server.ts` still uses `PrismaClient`
-  - `apps/web/app/entry.server.jsx` still uses Node stream SSR
+  - `apps/web` still uses Prisma-backed Shopify session storage, even though it is now isolated behind `app/sessionStorage.server.ts`
+  - `apps/web/app/entry.server.jsx` now uses Web Streams SSR, but the app still needs a Cloudflare runtime pass before switching hosting
   - `apps/ocr-api/src/server.js` still uses Node-only OCR/PDF libraries
   - `apps/web` now expects OCR/PDF/file operations to be available via `OCR_API_BASE_URL`
