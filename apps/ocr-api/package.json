@@ -1,0 +1,20 @@
+{
+  "name": "@track-to-inventory/ocr-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch ./src/server.js",
+    "start": "node ./src/server.js",
+    "build": "node --check ./src/server.js"
+  },
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "pg": "^8.16.3",
+    "@track-to-inventory/shared": "*",
+    "@supabase/supabase-js": "^2.49.8",
+    "pdf2pic": "^3.2.0",
+    "tesseract.js": "^6.0.1"
+  }
+}

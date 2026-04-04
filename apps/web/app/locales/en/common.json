@@ -1,0 +1,341 @@
+{
+  "title": {
+    "shipmentsByOwner": "Shipment List",
+    "arrivalStatus": "Arrival Status List",
+    "upcomingArrivals": "Upcoming Arrivals",
+    "detailDisplay": "Detail Display Section (Click for Information)",
+    "productArrivals": "Product-wise Arrival Schedule (All Shipments)",
+    "statusChart": "Arrival Schedule by Status",
+    "siSearch": "Search by SI Number (Forward Match, Top 10)"
+  },
+  "label": {
+    "shopId": "Shop ID (Owner ID)",
+    "siNumber": "SI Number",
+    "productName": "Product Name",
+    "totalQuantity": "Total Quantity",
+    "quantity": "Quantity",
+    "eta": "ETA",
+    "supplier": "Supplier",
+    "status": "Status"
+  },
+  "button": {
+    "switch": "Switch",
+    "cardView": "Card View",
+    "tableView": "Table View",
+    "searchBySi": "Search by SI Number",
+    "productArrivals": "Product-wise Arrivals",
+    "statusChart": "Status Chart",
+    "productNameOrder": "Product Name Order",
+    "productNameAsc": "▲ Product Name Asc",
+    "productNameDesc": "▼ Product Name Desc",
+    "showGuide": "Show Guide"
+  },
+  "placeholder": {
+    "shopId": "e.g.: test-owner",
+    "siNumber": "Enter SI Number"
+  },
+  "message": {
+    "noData": "No data available",
+    "upcomingArrivals": "Upcoming Arrivals",
+    "noMatchingSi": "No matching SI found",
+    "clickForDetails": "Click for details",
+    "siListWith": "SI List containing \"{{productName}}\""
+  },
+  "status": {
+    "siIssued": "SI Issued",
+    "scheduleConfirmed": "Shipping Schedule Confirmed",
+    "shipping": "Shipping",
+    "customsClearance": "Import Customs Clearance",
+    "warehouseArrived": "Warehouse Arrived",
+    "synced": "Synced",
+    "notSet": "Not Set",
+    "productSync": "Product Sync",
+    "noData": "No data for this status"
+  },
+  "sort": {
+    "ascending": "▲ {{field}}",
+    "descending": "▼ {{field}}"
+  },
+  "language": {
+    "switch": "Language",
+    "japanese": "日本語",
+    "english": "English"
+  },
+  "statusTable": {
+    "siNumber": "SI Number",
+    "status": "Status", 
+    "eta": "ETA",
+    "showArchived": "Show archived"
+  },
+  "statusCard": {
+    "siLabel": "SI:",
+    "siNumber": "SI Number: ",
+    "status": "Status: ",
+    "eta": "ETA: "
+  },
+  "modal": {
+    "title": "Shipment Details",
+    "fields": {
+      "status": "Status",
+      "transportType": "Transport Type",
+      "etd": "ETD",
+      "eta": "ETA",
+      "delayed": "Delayed",
+      "clearanceDate": "Clearance Date",
+      "arrivalDate": "Warehouse Arrival Date",
+      "supplier": "Supplier",
+      "memo": "Memo",
+      "archive": "Archive",
+      "itemName": "Item Name",
+      "quantity": "Quantity"
+    },
+    "sections": {
+      "itemList": "Item List",
+      "relatedFiles": "Related Files"
+    },
+    "fileTypes": {
+      "invoice": "Invoice",
+      "pl": "Packing List",
+      "si": "SI",
+      "other": "Other"
+    },
+    "status": {
+      "siIssued": "SI Issued",
+      "scheduleConfirmed": "Schedule Confirmed",
+      "shipping": "Shipping",
+      "customsClearance": "Customs Clearance",
+      "warehouseArrival": "Warehouse Arrival",
+      "synced": "Synced"
+    },
+    "options": {
+      "yes": "Yes",
+      "no": "No"
+    },
+    "labels": {
+      "tbd": "TBD",
+      "none": "None",
+      "pieces": "pcs",
+      "loadingFile": "Loading file..."
+    },
+    "buttons": {
+      "edit": "Edit",
+      "save": "Save",
+      "cancel": "Cancel",
+      "close": "Close",
+      "delete": "Delete",
+      "addItem": "Add Item",
+      "deleteShipment": "Delete Shipment",
+      "syncShopify": "Sync with Shopify",
+      "viewFile": "View File",
+      "viewFileType": "View {{fileType}}"
+    },
+    "messages": {
+      "deleteShipmentConfirm": "Are you sure you want to delete? (This cannot be undone)",
+      "deleteConfirm": "Are you sure you want to delete?",
+      "deleteSuccess": "Deleted successfully",
+      "deleteFailed": "Failed to delete",
+      "freePlanRestriction": "You have exceeded the deletion limit on the Free plan. Please upgrade your plan.",
+      "saveSuccess": "Saved successfully",
+      "saveFailed": "Failed to save",
+      "uploadSuccess": " uploaded successfully",
+      "uploadFailed": "Upload failed",
+      "fileTooLarge": "File size must be up to 10MB",
+      "syncSuccess": "Synced with Shopify",
+      "syncFailed": "Sync failed",
+      "statusUpdateFailed": "Status update failed",
+      "syncGeneralFailed": "Sync operation failed",
+      "deleteGeneralFailed": "Delete failed",
+      "fileUploadSuccess": "File uploaded successfully",
+      "fileUploadFailed": "File upload failed",
+      "alreadySynced": "Already synced",
+      "alreadySyncedDetail": "This shipment is already synced with Shopify. No need to sync again"
+    },
+    "syncNotice": {
+      "title": "Inventory Sync Requirements",
+      "description": "Before running inventory sync, please verify the following settings in Shopify:",
+      "checklist": {
+        "trackQuantity": "Check \"Track quantity\" for the target product",
+        "requiresShipping": "Check \"This product requires shipping\" for the target product",
+        "variantId": "Ensure Shopify variant ID is correctly set for the product"
+      },
+      "warning": "If these settings are not correct, inventory sync may fail.",
+      "important": "Please make sure to assign a variant to every item and save before pressing the sync button. You cannot re-sync after synchronization."
+    }
+  },
+  "ocrUploader": {
+    "title": "Image Upload & OCR",
+    "dropzoneText": "Drop an image here or click to select",
+    "ocrButton": "Run OCR",
+    "uploadedImage": "Uploaded Image",
+    "ocrResultTitle": "OCR Recognized Text (editable)",
+    "ocrResultPlaceholder": "OCR result will be displayed here",
+    "siNumber": "SI Number",
+    "supplierName": "Supplier",
+    "transportType": "Transport Type",
+    "productList": "Product List",
+    "productName": "Product Name",
+    "quantity": "Quantity",
+    "delete": "Delete",
+    "noProductData": "No product data available",
+    "addProduct": "+ Add Product",
+    "aiButton": "Auto-fill missing fields with AI",
+    "saveButton": "Register this information",
+    "emptyOcrText": "OCR text is empty",
+    "ocrFail": "Failed to load PDF or run OCR",
+    "unsupportedFileType": "Unsupported file type (only images or PDFs allowed)",
+    "convertError": "Failed to convert image",
+    "aiFail": "AI auto-fill failed: {{message}}",
+    "aiParseFail": "Could not parse AI response",
+    "noShopId": "No shop selected",
+    "siRequired": "SI Number is required",
+    "initialStatus": "SI Issued",
+    "apiFail": "API request failed",
+    "apiJsonFail": "Failed to parse API response as JSON",
+    "apiLogicFail": "API processing error",
+    "authFailed": "Authentication failed. Please reinstall the app.",
+    "aiLimitRestriction": "You have exceeded the monthly AI usage limit. Please upgrade your plan.",
+    "siLimitRestriction": "You have exceeded the SI registration limit. Please upgrade your plan.",
+    "saveSuccess": "Data was saved successfully!",
+    "saveFail": "Failed to save: {{message}}",
+    "manualInputButton": "Enter SI information manually",
+    "manualInputDescription": "Use this to enter information directly without OCR",
+    "manualInputHeader": "Enter SI information manually",
+    "closeButton": "Close",
+    "freePlanRestriction": "Available up to 5 times per month on the Free plan"
+  },
+  "tabs": {
+    "search": "Search by SI Number",
+    "product": "Planned arrivals by product",
+    "status": "Status-wise chart"
+  },
+  "contact": {
+    "title": "Contact",
+    "formTitle": "Contact Form",
+    "shopLabel": "Shop",
+    "unknown": "Unknown",
+    "adminOnly": "Only Shopify admin can access.",
+    "success": "Submission completed!",
+    "error": "Failed to submit.",
+    "name": "Name",
+    "email": "Email address",
+    "message": "Message",
+    "fileUpload": "Drag & drop an image file here, or click to select",
+    "submit": "Submit"
+  },
+  "pricing": {
+    "title": "Subscription Plans",
+    "perMonth": "/month",
+    "comparison": {
+      "title": "Plan & Feature Comparison",
+      "feature": "Feature",
+      "siCount": "Max SI registrations (simultaneous)",
+      "siDelete": "SI deletions (per month)",
+      "ocrCount": "OCR usage",
+      "aiCount": "AI usage",
+      "shopifySync": "Shopify inventory sync",
+      "support": "Support",
+      "fileCapacity": "File storage capacity",
+      "unlimited": "Unlimited",
+      "times": " times",
+      "no": "No",
+      "yes": "Yes",
+      "none": "None",
+      "normal": "Standard",
+      "priority": "Priority",
+      "fileCapacityValue": "Up to 10MB × 4 files per record",
+      "fileCapacityValuePro": "Up to 10MB × 4 files per record (may be limited depending on usage)"
+    },
+    "goToShopifyBilling": "Manage plan in Shopify"
+  },
+  "plan": {
+    "free": {
+      "name": "Free Plan",
+      "price": "$0",
+      "description": "Basic features for free!",
+      "feature1": "Up to 2 SI registrations (concurrent)",
+      "feature2": "Up to 2 SI deletions per month",
+      "feature3": "5 OCR uses per month",
+      "feature4": "Max 10MB per file, up to 4 files (40MB total)",
+      "feature5": "No Shopify inventory sync",
+      "feature6": "No support",
+      "feature7": "AI usage: up to 5 times per month",
+      "current": "Current Plan"
+    },
+    "basic": {
+      "name": "Basic Plan",
+      "price": "$6.99",
+      "description": "Additional features and support available.",
+      "feature1": "Up to 20 SI registrations (concurrent)",
+      "feature2": "Unlimited SI deletions",
+      "feature3": "50 OCR uses per month",
+      "feature4": "Max 10MB per file, up to 4 files (40MB total)",
+      "feature5": "Shopify inventory sync available",
+      "feature6": "Standard support",
+      "feature7": "AI usage: up to 50 times per month",
+      "select": "Select Plan",
+      "badge": "Recommended"
+    },
+    "pro": {
+      "name": "Pro Plan",
+      "price": "$19.99",
+      "description": "All features and priority support available.",
+      "feature1": "Unlimited SI registrations",
+      "feature2": "Unlimited SI deletions",
+      "feature3": "Unlimited OCR usage",
+      "feature4": "Max 10MB per file, up to 4 files (40MB total) *Limits may apply based on usage",
+      "feature5": "Shopify inventory sync available",
+      "feature6": "Priority support",
+      "feature7": "Unlimited AI usage (*Limits may apply for excessive use)",
+      "select": "Select Plan",
+      "badge": "Most Popular"
+    }
+  },
+  "startGuide": {
+    "title": "Easily Manage Imported Goods!",
+    "badge": "See at a glance when your overseas goods arrive at the warehouse and when they become inventory. The whole process is visualized and automatically synced to Shopify.",
+    "closeDetail": "Close Details",
+    "openDetail": "Show Details",
+    "mainDescription1": "📦 Streamline your receiving checks with automation!",
+    "mainDescription2": "With this app, you can fully automate the process from overseas shipment to Shopify inventory update.",
+    "mainDescription3": "Just upload your documents and the flow to inventory update is smooth.",
+    "step1": {
+      "title": "Upload Documents",
+      "desc1": "Just upload your shipping documents",
+      "desc2": "Upload images of invoices or delivery notes and the app will automatically extract the information and create a receiving record.",
+      "desc3": "No more tedious manual entry.",
+      "desc4": "🔍 Supported documents: Packing List, Invoice, Delivery Note, etc.",
+      "button": "Go to Upload Section"
+    },
+    "step2": {
+      "title": "Check Shipping Status at a Glance",
+      "desc1": "Where is it coming from? What's arriving? Instantly visible.",
+      "desc2": "Uploaded information is listed in the shipping list.",
+      "desc3": "Check expected delivery date, current status, and arrival status all in one place.",
+      "desc4": "✨ You can also check product names, SKUs, and expected arrival dates here.",
+      "button": "View Shipping List"
+    },
+    "step3": {
+      "title": "View & Edit Details",
+      "desc1": "Tap to view details and edit if needed.",
+      "desc2": "Tap a shipping card (each product) to view and edit detailed information.",
+      "desc3": "Easily mark as 'Arrived' or adjust quantities.",
+      "button": "Try the Editor (Click the relevant card)"
+    },
+    "tutorial": "View Tutorial",
+    "footer": "Use these features as needed. You can always return here.",
+    "closeGuide": "Close Guide"
+  },
+  "shopifyVariantSelector": {
+    "title": "Shopify Product & Variant Selection",
+    "productSelectLabel": "Select Product",
+    "variantSelectLabel": "Select Variant",
+    "pleaseSelect": "Please select",
+    "clearSelection": "Clear Selection",
+    "selectedVariantId": "Selected Variant ID: {{variantId}}",
+    "loadingProducts": "Loading product list",
+    "fetchError": "Failed to fetch product list: {{message}}"
+  },
+  "ocr": {
+    "testImageLabel": "Sample image for OCR test"
+  }
+}

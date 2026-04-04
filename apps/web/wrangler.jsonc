@@ -1,0 +1,20 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "track-to-inventory-web",
+  "main": "./workers/app.ts",
+  "compatibility_date": "2026-04-03",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./build/client",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "SHOPIFY_APP_URL": "https://track-to-inventory-web.makiron19831014.workers.dev",
+    "SCOPES": "read_locations,read_products,write_inventory,write_products",
+    "OCR_API_BASE_URL": "https://track-to-inventory-1.onrender.com",
+    "SYNC_API_BASE_URL": "https://track-to-inventory-1.onrender.com",
+  },
+  "observability": {
+    "enabled": true
+  }
+}
