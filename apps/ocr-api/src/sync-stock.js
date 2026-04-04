@@ -1,4 +1,7 @@
 import { Pool } from "pg";
+import dns from "node:dns";
+
+dns.setDefaultResultOrder("ipv4first");
 
 class SyncHttpError extends Error {
   constructor(status, message) {
@@ -77,6 +80,8 @@ function getPool() {
   pool ??= new Pool({
     connectionString: process.env.DATABASE_URL,
     max: 3,
+    family: 4,
+    connectionTimeoutMillis: 10000,
   });
 
   return pool;
@@ -117,6 +122,10 @@ async function shopifyGraphQL(shopId, accessToken, query, variables) {
 }
 
 export async function handleSyncStock(request) {
+  console.log("sync-stock handler started", {
+    method: request.method,
+    url: request.url,
+  });
   const url = new URL(request.url);
   const body = await withTimeout(request.json(), "sync-stock request.json", 10000);
   const items = body?.items;
@@ -131,6 +140,10 @@ export async function handleSyncStock(request) {
   }
 
   const accessToken = await getOfflineAccessToken(shopId);
+  console.log("sync-stock offline token loaded", {
+    shopId,
+    tokenPresent: Boolean(accessToken),
+  });
 
   const locationsQuery = `
     query {
