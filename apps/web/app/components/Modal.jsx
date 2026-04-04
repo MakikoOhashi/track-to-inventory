@@ -36,6 +36,7 @@ const CustomModal = ({
   locale = "ja",
 }) => {
   const { t, i18n } = useTranslation();
+  const effectiveLocale = (locale || i18n.language || "ja").toLowerCase();
   
   // FILE_TYPESの定義を修正
   const FILE_TYPES = [
@@ -263,7 +264,7 @@ const CustomModal = ({
         body: JSON.stringify({
           items: itemsWithVariantId,
           shop_id: shipment.shop_id || formData.shop_id,
-          locale,
+          locale: effectiveLocale,
         })
       });
       
@@ -330,7 +331,7 @@ const CustomModal = ({
         body: JSON.stringify({
           shipment: saveData,
           shop_id: shipment.shop_id || saveData.shop_id,
-          locale,
+          locale: effectiveLocale,
         }),
       });
       
@@ -378,7 +379,7 @@ const CustomModal = ({
       uploadFormData.append('file', file);
       uploadFormData.append('si_number', formData.si_number);
       uploadFormData.append('type', fileType);
-      uploadFormData.append('locale', locale);
+      uploadFormData.append('locale', effectiveLocale);
 
       console.log('Uploading file:', {
         fileName: file.name,
@@ -422,7 +423,7 @@ const CustomModal = ({
         body: JSON.stringify({
           shipment: cleanFormData,
           shop_id: shipment.shop_id || cleanFormData.shop_id,
-          locale,
+          locale: effectiveLocale,
         }),
         });
         
@@ -456,12 +457,12 @@ const CustomModal = ({
       const formData = new FormData();
       formData.append('siNumber', shipment.si_number);
       formData.append('fileType', type);
-      formData.append('locale', locale);
+      formData.append('locale', effectiveLocale);
     
       // shopパラメータをURLに追加（認証fallback用）
       const url = new URL('/api/deleteShipmentFile', window.location.origin);
       url.searchParams.append('shop_id', shipment.shop_id);
-      url.searchParams.append('locale', locale);
+      url.searchParams.append('locale', effectiveLocale);
       
       const res = await fetch(url.toString(), {
         method: 'DELETE',
@@ -491,12 +492,12 @@ const CustomModal = ({
     try {
       const formData = new FormData();
       formData.append('siNumber', shipment.si_number);
-      formData.append('locale', locale);
+      formData.append('locale', effectiveLocale);
       
       // shopパラメータをURLに追加（認証fallback用）
       const url = new URL('/api/delete-shipment', window.location.origin);
       url.searchParams.append('shop_id', shipment.shop_id);
-      url.searchParams.append('locale', locale);
+      url.searchParams.append('locale', effectiveLocale);
       
       const res = await fetch(url.toString(), {
         method: 'DELETE',
