@@ -44,6 +44,26 @@ export const action = async ({ request }: any) => {
   try {
     const url = new URL(request.url);
     const formData = await request.formData();
+    const formLocale = (formData.get("locale") as string | null)?.toLowerCase() || "";
+    const messages = (() => {
+      const requestLocale = (url.searchParams.get("locale") || request.headers.get("x-app-locale") || formLocale || "").toLowerCase();
+      const ja = requestLocale.startsWith("ja") || (!requestLocale && isJapaneseRequest(request));
+      return {
+        shopIdRequired: ja ? "shop_idが必要です" : "shop_id is required",
+        siNumberRequired: ja ? "SI番号が必須です" : "SI number is required",
+        shipmentNotFound: ja ? "指定されたSI番号のデータが見つかりません" : "No shipment found for the specified SI number",
+        databaseError: ja ? "データベースエラーが発生しました" : "A database error occurred",
+        freePlanLimit: ja
+          ? "Freeプランの削除可能回数を超えました。プランをアップグレードしてください。"
+          : "You have exceeded the number of deletions allowed on the Free plan. Please upgrade your plan.",
+        deleteFailed: ja ? "データの削除に失敗しました" : "Failed to delete data",
+        serverError:
+          ja
+            ? "サーバーエラーが発生しました。しばらく時間をおいて再度お試しください。"
+            : "A server error occurred. Please try again later.",
+        success: ja ? "データを正常に削除しました" : "Data deleted successfully",
+      };
+    })();
     const shopId =
       url.searchParams.get("shop_id") ||
       url.searchParams.get("shop") ||

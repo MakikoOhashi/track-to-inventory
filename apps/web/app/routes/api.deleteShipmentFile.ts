@@ -41,6 +41,21 @@ export const action = async ({ request }: any) => {
       const jsonBody = await request.json().catch(() => ({}));
       return jsonBody;
     });
+    const formLocale = (body.get?.("locale") as string | null)?.toLowerCase() || (body.locale as string | undefined)?.toLowerCase() || "";
+    const requestLocale = (url.searchParams.get("locale") || request.headers.get("x-app-locale") || formLocale || "").toLowerCase();
+    const ja = requestLocale.startsWith("ja") || (!requestLocale && isJapaneseRequest(request));
+    const messages = {
+      methodNotAllowed: ja ? "Method not allowed" : "Method not allowed",
+      shopIdRequired: ja ? "shop_idが必要です" : "shop_id is required",
+      invalidParams: ja ? "SI番号とファイルタイプが必須です" : "SI number and file type are required",
+      fileDeleteFailed: ja ? "ファイルの削除に失敗しました" : "Failed to delete file",
+      invalidFileType: ja ? "無効なファイルタイプです" : "Invalid file type",
+      dbUpdateFailed: ja ? "データベースの更新に失敗しました" : "Failed to update database",
+      serverError: ja
+        ? "サーバーエラーが発生しました。しばらく時間をおいて再度お試しください。"
+        : "A server error occurred. Please try again later.",
+      success: ja ? "ファイルを正常に削除しました" : "File deleted successfully",
+    };
 
     const shopId =
       url.searchParams.get("shop_id") ||
