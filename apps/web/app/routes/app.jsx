@@ -1,4 +1,4 @@
-import { Link, Outlet, useLoaderData, useLocation, useRouteError } from "react-router";
+import { Outlet, useLoaderData, useLocation, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider as ShopifyAppProvider } from "@shopify/shopify-app-react-router/react";
 import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
@@ -83,15 +83,15 @@ export default function App() {
               <span style={{ fontSize: 13, fontWeight: 600, color: "#616161" }}>
                 Preview navigation
               </span>
-              <Link to={linkWithSearch("/app")} rel="home" onClick={scrollToTop}>
+              <a href={linkWithSearch("/app")} rel="home" onClick={scrollToTop}>
                 Home
-              </Link>
-              <Link to={linkWithSearch("/app/pricing")} onClick={scrollToTop}>
+              </a>
+              <a href={linkWithSearch("/app/pricing")} onClick={scrollToTop}>
                 Pricing
-              </Link>
-              <Link to={linkWithSearch("/app/contact")} onClick={scrollToTop}>
+              </a>
+              <a href={linkWithSearch("/app/contact")} onClick={scrollToTop}>
                 Contact
-              </Link>
+              </a>
             </div>
           ) : null}
           <Outlet />
