@@ -35,6 +35,11 @@ export default function App() {
   const isPreview = typeof window !== "undefined" && window.location.hostname.endsWith(".workers.dev");
 
   const linkWithSearch = (path) => `${path}${search}`;
+  const scrollToTop = () => {
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+  };
 
   useEffect(() => {
     if (locale && i18n.language !== locale) {
@@ -78,13 +83,13 @@ export default function App() {
               <span style={{ fontSize: 13, fontWeight: 600, color: "#616161" }}>
                 Preview navigation
               </span>
-              <Link to={linkWithSearch("/app")} rel="home">
+              <Link to={linkWithSearch("/app")} rel="home" onClick={scrollToTop}>
                 Home
               </Link>
-              <Link to={linkWithSearch("/app/pricing")}>
+              <Link to={linkWithSearch("/app/pricing")} onClick={scrollToTop}>
                 Pricing
               </Link>
-              <Link to={linkWithSearch("/app/contact")}>
+              <Link to={linkWithSearch("/app/contact")} onClick={scrollToTop}>
                 Contact
               </Link>
             </div>
