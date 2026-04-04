@@ -8,6 +8,14 @@
     "directory": "./build/client",
     "binding": "ASSETS"
   },
+  "vars": {
+    "SHOPIFY_APP_URL": "https://track-to-inventory-web.makiron19831014.workers.dev",
+    "SCOPES": "read_locations,read_products,write_inventory,write_products",
+    "OCR_API_BASE_URL": "https://track-to-inventory-1.onrender.com",
+    "OCR_API_SHARED_SECRET": "6027579ba1ac1111a914be59615d7e26bbf3f47b94da7c0ef761ecf8d923acc4",
+    "SYNC_API_BASE_URL": "https://track-to-inventory-1.onrender.com",
+    "SYNC_API_SHARED_SECRET": "e289b2a093145ed85521a967d8f0013a56cf669cf320e04a7dc1783f7709b5cf"
+  },
   "observability": {
     "enabled": true
   }

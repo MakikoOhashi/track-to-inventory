@@ -56,7 +56,7 @@ Cloudflare / `apps/web` side:
 
 ## Render Dashboard Values
 
-- Name: `track-to-inventory-ocr-api`
+- Name: `track-to-inventory-1`
 - Environment: `Docker`
 - Branch: `codex/cloudflare-renewal`
 - Dockerfile path: `apps/ocr-api/Dockerfile`
@@ -74,7 +74,7 @@ Cloudflare / `apps/web` side:
 
 Set these on the `apps/web` side once the Render URL exists:
 
-- `OCR_API_BASE_URL=https://<your-render-service>.onrender.com`
+- `OCR_API_BASE_URL=https://track-to-inventory-1.onrender.com`
 - `OCR_API_SHARED_SECRET=<same secret as Render>`
 
 ## Suggested First Validation

@@ -68,6 +68,9 @@ type Pages = {
   "/billing/callback": {
     params: {};
   };
+  "/api/ocr-health": {
+    params: {};
+  };
   "/api/sync-stock": {
     params: {};
   };
@@ -111,7 +114,7 @@ type Pages = {
 type RouteFiles = {
   "root.jsx": {
     id: "root";
-    page: "/" | "/webhooks/app/customers-data-request" | "/webhooks/app/customers-redact" | "/webhooks/app/scopes_update" | "/webhooks/app/shop-redact" | "/webhooks/app/uninstalled" | "/api/deleteShipmentFile" | "/api/uploadShipmentFile" | "/api/billing-subscribe" | "/api/shopify/products" | "/api/check-ocr-limit" | "/api/delete-shipment" | "/api/shopify/graphql" | "/api/test-connection" | "/api/createShipment" | "/api/updateShipment" | "/api/get-file-url" | "/api/test-storage" | "/billing/callback" | "/api/sync-stock" | "/api/pdf2image" | "/api/shipments" | "/api/ai-parse" | "/api/ocr-text" | "/auth/login" | "/api/usage" | "/auth/*" | "/app" | "/app/additional" | "/app/contact" | "/app/pricing";
+    page: "/" | "/webhooks/app/customers-data-request" | "/webhooks/app/customers-redact" | "/webhooks/app/scopes_update" | "/webhooks/app/shop-redact" | "/webhooks/app/uninstalled" | "/api/deleteShipmentFile" | "/api/uploadShipmentFile" | "/api/billing-subscribe" | "/api/shopify/products" | "/api/check-ocr-limit" | "/api/delete-shipment" | "/api/shopify/graphql" | "/api/test-connection" | "/api/createShipment" | "/api/updateShipment" | "/api/get-file-url" | "/api/test-storage" | "/billing/callback" | "/api/ocr-health" | "/api/sync-stock" | "/api/pdf2image" | "/api/shipments" | "/api/ai-parse" | "/api/ocr-text" | "/auth/login" | "/api/usage" | "/auth/*" | "/app" | "/app/additional" | "/app/contact" | "/app/pricing";
   };
   "routes/webhooks.app.customers-data-request.jsx": {
     id: "routes/webhooks.app.customers-data-request";
@@ -184,6 +187,10 @@ type RouteFiles = {
   "routes/billing.callback.tsx": {
     id: "routes/billing.callback";
     page: "/billing/callback";
+  };
+  "routes/api.ocr-health.ts": {
+    id: "routes/api.ocr-health";
+    page: "/api/ocr-health";
   };
   "routes/api.sync-stock.ts": {
     id: "routes/api.sync-stock";
@@ -263,6 +270,7 @@ type RouteModules = {
   "routes/api.get-file-url": typeof import("./app/routes/api.get-file-url.ts");
   "routes/api.test-storage": typeof import("./app/routes/api.test-storage.ts");
   "routes/billing.callback": typeof import("./app/routes/billing.callback.tsx");
+  "routes/api.ocr-health": typeof import("./app/routes/api.ocr-health.ts");
   "routes/api.sync-stock": typeof import("./app/routes/api.sync-stock.ts");
   "routes/api.pdf2image": typeof import("./app/routes/api.pdf2image.ts");
   "routes/api.shipments": typeof import("./app/routes/api.shipments.ts");

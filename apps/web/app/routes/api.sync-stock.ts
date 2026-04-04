@@ -1,4 +1,5 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
+import { isExternalSyncConfigured, proxySyncStockRequest } from "~/lib/syncBackend.server";
 import { authenticate } from "~/shopify.server";
 import { unauthenticated } from "~/shopify.server";
 
@@ -110,25 +111,69 @@ function hasErrors(data: any): { hasGraphQLErrors: boolean; hasUserErrors: boole
   return { hasGraphQLErrors, hasUserErrors, userErrors };
 }
 
+async function withTimeout<T>(promise: Promise<T>, label: string, timeoutMs = 10000): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
+    if (isExternalSyncConfigured()) {
+      return await proxySyncStockRequest(request);
+    }
+
+    console.log("sync-stock action started", {
+      method: request.method,
+      url: request.url,
+    });
     const url = new URL(request.url);
-    const body = await request.json();
+    console.log("sync-stock parsing request body");
+    const body = await withTimeout(request.json(), "sync-stock request.json", 10000);
+    console.log("sync-stock body parsed", {
+      itemCount: Array.isArray(body?.items) ? body.items.length : 0,
+      hasShopIdInBody: typeof body?.shop_id === "string" && body.shop_id.length > 0,
+    });
     const { items } = body;
     const shopIdFromQuery = url.searchParams.get("shop_id") || "";
     const shopIdFromBody = typeof body?.shop_id === "string" ? body.shop_id : "";
     const shopId = shopIdFromQuery || shopIdFromBody;
+    console.log("sync-stock resolved shopId", {
+      shopId,
+      shopIdFromQuery,
+      hasShopIdFromBody: Boolean(shopIdFromBody),
+    });
 
     let admin: Awaited<ReturnType<typeof authenticate.admin>>["admin"] | undefined;
     let session: Awaited<ReturnType<typeof authenticate.admin>>["session"] | undefined;
 
     if (shopId) {
-      const unauthenticatedAdmin = await unauthenticated.admin(shopId);
-      admin = unauthenticatedAdmin.admin;
-      console.log("Sync-stock using unauthenticated admin:", {
-        shopId,
-        hasAdmin: Boolean(admin),
-      });
+      try {
+        console.log("sync-stock resolving unauthenticated admin", { shopId });
+        const unauthenticatedAdmin = await withTimeout(
+          unauthenticated.admin(shopId),
+          "sync-stock unauthenticated.admin",
+          10000,
+        );
+        admin = unauthenticatedAdmin.admin;
+        console.log("Sync-stock using unauthenticated admin:", {
+          shopId,
+          hasAdmin: Boolean(admin),
+        });
+      } catch (error) {
+        console.error("sync-stock unauthenticated admin failed, falling back to authenticated admin", error);
+        ({ admin, session } = await authenticate.admin(request));
+        console.log("Sync-stock using authenticated admin context");
+      }
     } else {
       ({ admin, session } = await authenticate.admin(request));
       console.log("Sync-stock using authenticated admin context");

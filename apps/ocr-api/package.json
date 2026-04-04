@@ -11,6 +11,7 @@
     "node": "20.x"
   },
   "dependencies": {
+    "pg": "^8.16.3",
     "@track-to-inventory/shared": "*",
     "@supabase/supabase-js": "^2.49.8",
     "pdf2pic": "^3.2.0",

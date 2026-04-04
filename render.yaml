@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: track-to-inventory-1
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./apps/ocr-api/Dockerfile
+    dockerContext: .
+    branch: codex/cloudflare-renewal
+    autoDeploy: false
+    healthCheckPath: /health
+    envVars:
+      - key: OCR_API_SHARED_SECRET
+        sync: false
+      - key: SYNC_API_SHARED_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

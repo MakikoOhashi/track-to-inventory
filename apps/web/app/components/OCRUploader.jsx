@@ -523,7 +523,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       
       // 成功時の処理
       console.log('✅ 保存成功');
-      alert('データが正常に保存されました！');
+      alert(t("ocrUploader.saveSuccess"));
       
       // フォームリセット
       setFields({ si_number: "", supplier_name: "", transport_type: "", items: [] });

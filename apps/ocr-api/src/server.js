@@ -15,6 +15,7 @@ import {
   normalizeFilePaths,
   validateUploadFile,
 } from "@track-to-inventory/shared/ocr-runtime";
+import { handleSyncStock } from "./sync-stock.js";
 
 const host = process.env.HOST ?? "0.0.0.0";
 const port = Number(process.env.PORT ?? 4001);
@@ -38,16 +39,23 @@ function json(response, status = 200) {
 }
 
 function ensureAuthorized(request) {
-  if (!sharedSecret) return;
+  const syncSharedSecret = process.env.SYNC_API_SHARED_SECRET;
+  if (!sharedSecret && !syncSharedSecret) return;
 
   const pathname = new URL(request.url).pathname;
   if (pathname === "/health") {
     return;
   }
 
-  const provided = request.headers.get("x-ocr-api-key");
-  if (!provided || provided !== sharedSecret) {
-    throw new HttpError(401, "OCR API authentication failed");
+  const providedOcr = request.headers.get("x-ocr-api-key");
+  const providedSync = request.headers.get("x-sync-api-key");
+
+  const authorized =
+    (sharedSecret && providedOcr === sharedSecret) ||
+    (syncSharedSecret && providedSync === syncSharedSecret);
+
+  if (!authorized) {
+    throw new HttpError(401, "Backend API authentication failed");
   }
 }
 
@@ -328,6 +336,10 @@ function getRouteHandler(method, pathname) {
 
   if (method === "POST" && pathname === "/shipment-files/signed-urls") {
     return handleSignedUrlRequest;
+  }
+
+  if (method === "POST" && pathname === "/api/sync-stock") {
+    return async (request) => json(await handleSyncStock(request));
   }
 
   return null;
