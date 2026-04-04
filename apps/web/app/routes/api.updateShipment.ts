@@ -1,23 +1,6 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
-import { createClient } from '@supabase/supabase-js';
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
-
-// Supabaseクライアントの初期化を改善
-let supabase: any = null;
-
-function initializeSupabase() {
-  if (supabase) return supabase;
-  
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables');
-  }
-  
-  supabase = createClient(supabaseUrl, supabaseKey);
-  return supabase;
-}
+import { createSupabaseAdminClient } from "~/lib/supabase.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const locale = resolveRequestLocale(request);
@@ -69,17 +52,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   // Supabaseクライアントの初期化を確認
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    return json({ error: ja ? 'サーバー設定エラーです' : 'Server configuration error' }, { status: 500 });
-  }
-
-  // Supabaseクライアントの初期化
   let supabaseClient;
   try {
-    supabaseClient = initializeSupabase();
+    supabaseClient = createSupabaseAdminClient();
   } catch (error) {
     return json({ error: ja ? 'データベース接続に失敗しました' : 'Database connection failed' }, { status: 500 });
   }

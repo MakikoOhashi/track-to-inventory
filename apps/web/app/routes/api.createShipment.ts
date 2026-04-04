@@ -1,16 +1,9 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
-import { createClient } from "@supabase/supabase-js";
 import { checkSILimit } from "~/lib/redis.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
+import { createSupabaseAdminClient } from "~/lib/supabase.server";
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Supabase environment variables are not configured");
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createSupabaseAdminClient();
 
 type ShipmentItem = {
   name: string;

@@ -1,10 +1,10 @@
 //app/routes/api.shipments.ts
 import { data as json, type LoaderFunctionArgs } from "react-router";
-import { createClient } from '@supabase/supabase-js';
 import type { ActionFunctionArgs } from "react-router"
 import { checkSILimit } from "~/lib/redis.server"
 import { authenticate } from "~/shopify.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
+import { createSupabaseAdminClient } from "~/lib/supabase.server";
 
 function toHex(buffer: ArrayBuffer) {
   return Array.from(new Uint8Array(buffer))
@@ -40,7 +40,6 @@ export async function verifyShopifyHmac(query: URLSearchParams, secret: string):
   return generated === hmac;
 }
 
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET!;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -61,6 +60,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       return json({ error: ja ? "認証に失敗しました" : "Authentication failed" }, { status: 401 });
     }
 
+    const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase
       .from('shipments')
       .select('*')

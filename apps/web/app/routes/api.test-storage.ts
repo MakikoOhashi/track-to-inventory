@@ -1,23 +1,10 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseAdminClient } from "~/lib/supabase.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   
   try {
-    // 環境変数の確認
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      return json({ 
-        error: 'Supabase環境変数が設定されていません',
-        url: !!supabaseUrl,
-        key: !!supabaseKey
-      }, { status: 500 });
-    }
-    
-    // Supabaseクライアントの初期化
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createSupabaseAdminClient();
     
     // バケット一覧を取得
     const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();

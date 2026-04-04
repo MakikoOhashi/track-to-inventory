@@ -1,14 +1,9 @@
 import { authenticate } from "~/shopify.server";
-import { createClient } from "@supabase/supabase-js";
 import sessionStorage from "../sessionStorage.server";
-
-// Supabaseクライアント初期化
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY // Service Role Keyを必ず使う
-);
+import { createSupabaseAdminClient } from "~/lib/supabase.server";
 
 export const action = async ({ request }) => {
+  const supabase = createSupabaseAdminClient();
   const { shop, session, topic } = await authenticate.webhook(request);
 
   // Shopifyセッション削除

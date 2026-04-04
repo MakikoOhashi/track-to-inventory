@@ -33,8 +33,8 @@ import { data as json, type LoaderFunctionArgs, useLoaderData } from "react-rout
 import { useTranslation } from "react-i18next";
 import { i18n } from "~/utils/i18n.server";
 
-import { createClient } from '@supabase/supabase-js';
 import { unauthenticated } from "~/shopify.server";
+import { createSupabaseAdminClient } from "~/lib/supabase.server";
 
 type StatusTableProps = {
   shipments: Shipment[];
@@ -105,7 +105,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     let shipments = [];
     let shopifyProducts: any[] = [];
     try {
-      const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+      const supabase = createSupabaseAdminClient();
       const { data, error } = await supabase
         .from('shipments')
         .select('*')

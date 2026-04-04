@@ -1,8 +1,8 @@
 import { data as json } from "react-router";
-import { createClient } from "@supabase/supabase-js";
 import { checkDeleteLimit, incrementDeleteCount } from "~/lib/redis.server";
+import { createSupabaseAdminClient } from "~/lib/supabase.server";
 
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+const supabase = createSupabaseAdminClient();
 
 function isJapaneseRequest(request: Request) {
   const acceptLanguage = request.headers.get("accept-language") || "";
