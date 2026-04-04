@@ -1,5 +1,6 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
 import { createSignedFileUrls } from "~/lib/ocrBackend.server";
+import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   if (request.method !== "POST") {
@@ -8,6 +9,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   try {
     const url = new URL(request.url);
+    const locale = resolveRequestLocale(request);
+    const ja = isJapaneseRequest(request, locale);
     const body = await request.json();
     const shopId =
       url.searchParams.get("shop_id") ||
@@ -16,7 +19,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       "";
 
     if (!shopId) {
-      return json({ error: "shop_idが必要です" }, { status: 401 });
+      return json({ error: ja ? "shop_idが必要です" : "shop_id is required" }, { status: 401 });
     }
 
     const requestBody = body;
@@ -29,6 +32,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ 
       error: message,
       details: message
-    }, { status: message === "ファイルパスが指定されていません" ? 400 : message === "アクセス権限がありません" ? 403 : message === "ファイルが見つかりません" ? 404 : 500 });
+    }, { status: message === "ファイルパスが指定されていません" || message === "File path is required" ? 400 : message === "アクセス権限がありません" || message === "Access denied" ? 403 : message === "ファイルが見つかりません" || message === "File not found" ? 404 : 500 });
   }
 };

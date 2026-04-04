@@ -48,7 +48,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
     return json({ ok: true });
   } catch (e: any) {
-    return json({ error: "メール送信に失敗しました。" }, { status: 500 });
+    return json({ error: "Failed to send email." }, { status: 500 });
   }
 };
 

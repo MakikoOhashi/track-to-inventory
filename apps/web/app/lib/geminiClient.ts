@@ -21,7 +21,7 @@ export async function generateGeminiContent(prompt: string): Promise<string> {
 
   });
   if (result.text === undefined) {
-        throw new Error("Gemini APIからの応答テキストが空でした。");
+        throw new Error("Gemini API returned an empty response text.");
     }
 
   return result.text;

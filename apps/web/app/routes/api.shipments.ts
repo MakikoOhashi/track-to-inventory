@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { ActionFunctionArgs } from "react-router"
 import { checkSILimit } from "~/lib/redis.server"
 import { authenticate } from "~/shopify.server";
+import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
 
 function toHex(buffer: ArrayBuffer) {
   return Array.from(new Uint8Array(buffer))
@@ -45,6 +46,8 @@ const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET!;
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     const url = new URL(request.url);
+    const locale = resolveRequestLocale(request);
+    const ja = isJapaneseRequest(request, locale);
     const requestedShopId = url.searchParams.get("shop_id") || "";
     let shopId = requestedShopId;
 
@@ -55,7 +58,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
 
     if (!shopId) {
-      return json({ error: "Authentication failed" }, { status: 401 });
+      return json({ error: ja ? "認証に失敗しました" : "Authentication failed" }, { status: 401 });
     }
 
     const { data, error } = await supabase
@@ -65,13 +68,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     if (error) {
       console.error('Supabase error:', error);
-      return json({ error: "Database error" }, { status: 500 });
+      return json({ error: ja ? "データベースエラーが発生しました" : "Database error" }, { status: 500 });
     }
     
     return json({ shipments: data || [] });
   } catch (error) {
     console.error('Authentication error:', error);
-    return json({ error: "Authentication failed" }, { status: 401 });
+    return json({ error: isJapaneseRequest(request, resolveRequestLocale(request)) ? "認証に失敗しました" : "Authentication failed" }, { status: 401 });
   }
 };
 
@@ -87,14 +90,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     try {
       const shop_id = url.searchParams.get("shop_id");
       if (!shop_id) {
-        return json({ error: "shop_id is required" }, { status: 400 });
+        return json({ error: isJapaneseRequest(request, resolveRequestLocale(request)) ? "shop_idが必要です" : "shop_id is required" }, { status: 400 });
       }
       await checkSILimit(shop_id);
     } catch (error) {
       return json(
         {
           success: false,
-          error: error instanceof Error ? error.message : 'SI登録制限チェックでエラーが発生しました'
+          error: error instanceof Error ? error.message : (isJapaneseRequest(request, resolveRequestLocale(request)) ? 'SI登録制限チェックでエラーが発生しました' : 'Failed to check SI usage limit')
         },
         { status: 403 }
       )

@@ -1,8 +1,10 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
 import { uploadShipmentFile } from "~/lib/ocrBackend.server";
+import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   console.log('uploadShipmentFile API called'); // Debug log
+  const ja = isJapaneseRequest(request, resolveRequestLocale(request));
   
   if (request.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
@@ -30,7 +32,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         type: !!type, 
         file: !!file 
       });
-      return json({ error: "必須フィールドが不足しています" }, { status: 400 });
+      return json({ error: ja ? "必須フィールドが不足しています" : "Required fields are missing" }, { status: 400 });
     }
 
     const result = await uploadShipmentFile({
@@ -47,7 +49,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ 
       error: message.includes("必須") || message.includes("空のファイル") || message.includes("最大10MB") || message.includes("許可されていない") || message.includes("不正なファイルパス")
         ? message
-        : "ファイルアップロード中にエラーが発生しました",
+        : (ja ? "ファイルアップロード中にエラーが発生しました" : "An error occurred while uploading the file"),
       details: message
     }, { status: message.includes("必須") || message.includes("空のファイル") || message.includes("最大10MB") || message.includes("許可されていない") || message.includes("不正なファイルパス") ? 400 : 500 });
   }

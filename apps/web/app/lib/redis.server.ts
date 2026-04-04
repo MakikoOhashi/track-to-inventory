@@ -94,7 +94,7 @@ export async function checkAndIncrementAI(userId: string): Promise<void> {
   const currentCount = await redis.get<number>(`ai:${userId}:${month}`) ?? 0
   
   if (currentCount >= limit) {
-    throw new Error(`AI使用回数の上限（${limit}回）に達しました。プランをアップグレードしてください。`)
+    throw new Error("AI_LIMIT_EXCEEDED")
   }
   
   await redis.incr(`ai:${userId}:${month}`)
@@ -117,7 +117,7 @@ export async function checkAndIncrementOCR(userId: string): Promise<void> {
   const currentCount = await redis.get<number>(`ocr:${userId}:${month}`) ?? 0
   
   if (currentCount >= limit) {
-    throw new Error(`OCR使用回数の上限（${limit}回）に達しました。プランをアップグレードしてください。`)
+    throw new Error("OCR_LIMIT_EXCEEDED")
   }
   
   await redis.incr(`ocr:${userId}:${month}`)
@@ -225,13 +225,13 @@ export async function checkSILimit(userId: string): Promise<void> {
     currentCount = count || 0
     
     if (currentCount >= limit) {
-      throw new Error(`SI登録件数の上限（${limit}件）に達しました。プランをアップグレードしてください。`)
+      throw new Error("SI_LIMIT_EXCEEDED")
     }
   } catch (error) {
-    if (getErrorMessage(error).includes('SI登録件数の上限')) {
+    if (getErrorMessage(error).includes('SI_LIMIT_EXCEEDED')) {
       throw error
     }
-    throw new Error(`SI登録件数の確認中にエラーが発生しました。詳細: ${getErrorMessage(error)}`)
+    throw new Error(`SI_LIMIT_CHECK_FAILED: ${getErrorMessage(error)}`)
   }
 }
 

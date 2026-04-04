@@ -56,6 +56,25 @@ const CustomModal = ({
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
 
+  const getLocalizedApiError = useCallback((value) => {
+    if (!value) return "";
+    const code = String(value);
+    switch (code) {
+      case "DELETE_LIMIT_EXCEEDED":
+        return t("modal.messages.freePlanRestriction");
+      case "SI_LIMIT_EXCEEDED":
+        return t("ocrUploader.siLimitRestriction");
+      case "AI_LIMIT_EXCEEDED":
+        return t("ocrUploader.aiLimitRestriction");
+      case "OCR_LIMIT_EXCEEDED":
+        return t("ocrUploader.freePlanRestriction");
+      case "AUTH_FAILED":
+        return t("ocrUploader.authFailed");
+      default:
+        return code;
+    }
+  }, [t]);
+
   // ステータスオプションを英語キーで統一
   const STATUS_OPTIONS = [
     { label: t('modal.status.siIssued'), value: "siIssued" },
@@ -254,7 +273,7 @@ const CustomModal = ({
       const itemsWithVariantId = (shipment.items || []).filter(item => item.variant_id);
       
       if (itemsWithVariantId.length === 0) {
-        throw new Error('同期する商品にShopify variant IDが設定されていません。商品を選択してください。');
+        throw new Error(t('modal.messages.syncGeneralFailed'));
       }
 
       // 1. Shopify同期API呼び出し
@@ -270,7 +289,14 @@ const CustomModal = ({
       
       if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(`同期に失敗しました: HTTP ${res.status} - ${errorText}`);
+        let errorMessage = errorText;
+        try {
+          const parsed = JSON.parse(errorText);
+          errorMessage = getLocalizedApiError(parsed.error || parsed.details || errorText);
+        } catch {
+          errorMessage = getLocalizedApiError(errorText);
+        }
+        throw new Error(`同期に失敗しました: HTTP ${res.status} - ${errorMessage}`);
       }
       
       const json = await res.json();
@@ -281,7 +307,7 @@ const CustomModal = ({
         const failedItems = json.results.filter(result => result.error);
         if (failedItems.length > 0) {
           const errorMessages = failedItems.map(item => 
-            `${item.variant_id}: ${item.error}`
+            `${item.variant_id}: ${getLocalizedApiError(item.error)}`
           ).join('\n');
           throw new Error(`一部の商品の同期に失敗しました:\n${errorMessages}`);
         }
@@ -305,7 +331,7 @@ const CustomModal = ({
       onClose();
     } catch (e) {
       setSyncing(false);
-      alert(e.message || t('modal.messages.syncGeneralFailed'));
+      alert(getLocalizedApiError(e.message) || t('modal.messages.syncGeneralFailed'));
     }
   };
 
@@ -338,7 +364,14 @@ const CustomModal = ({
       if (!res.ok) {
         const errorText = await res.text();
         console.error('Save failed with status:', res.status, 'Response:', errorText);
-        alert(`保存に失敗しました: HTTP ${res.status} - ${errorText}`);
+        let localizedError = errorText;
+        try {
+          const parsed = JSON.parse(errorText);
+          localizedError = getLocalizedApiError(parsed.error || parsed.details || errorText);
+        } catch {
+          localizedError = getLocalizedApiError(errorText);
+        }
+        alert(`保存に失敗しました: HTTP ${res.status} - ${localizedError}`);
         return;
       }
       
@@ -347,7 +380,7 @@ const CustomModal = ({
       
       if (json.error) {
         console.error('Save failed with error:', json.error);
-        alert(`保存に失敗しました: ${json.error}`);
+        alert(`保存に失敗しました: ${getLocalizedApiError(json.error)}`);
         return;
       }
       
@@ -357,7 +390,7 @@ const CustomModal = ({
       if (onUpdated) onUpdated();
     } catch (error) {
       console.error('Save error:', error);
-      alert(`保存に失敗しました: ${error.message}`);
+      alert(`保存に失敗しました: ${getLocalizedApiError(error.message)}`);
     } finally {
       setSaving(false);
     }
@@ -366,11 +399,11 @@ const CustomModal = ({
    // ファイルアップロード処理
    const handleFileUpload = async (e, fileType) => {
     const file = e.target.files[0];
-    if (!file) return;
+      if (!file) return;
 
     // SI番号の確認
     if (!formData?.si_number) {
-      alert('SI番号が設定されていません。先にSI番号を入力してください。');
+      alert(t('ocrUploader.siRequired'));
       return;
     }
 
@@ -395,7 +428,7 @@ const CustomModal = ({
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || 'ファイルアップロードに失敗しました');
+        throw new Error(getLocalizedApiError(errorData.error) || t('modal.messages.fileUploadFailed'));
       }
       
       const data = await res.json();
@@ -429,7 +462,7 @@ const CustomModal = ({
         
       if (!updateRes.ok) {
         const updateErrorData = await updateRes.json().catch(() => ({}));
-        throw new Error(updateErrorData.error || 'データベースの更新に失敗しました');
+        throw new Error(getLocalizedApiError(updateErrorData.error) || t('modal.messages.saveFailed'));
       }
 
       // フォームデータを更新
@@ -445,7 +478,7 @@ const CustomModal = ({
 
     } catch (error) {
       console.error('File upload error:', error);
-      alert(error.message || t('modal.messages.fileUploadFailed'));
+      alert(getLocalizedApiError(error.message) || t('modal.messages.fileUploadFailed'));
     }
   };
 
@@ -469,14 +502,14 @@ const CustomModal = ({
         body: formData,
       });
       
-      const json = await res.json();
-      if (json.error) throw new Error(json.error);
+      const json = await res.json().catch(() => ({}));
+      if (json.error) throw new Error(getLocalizedApiError(json.error));
       
       alert(t('modal.messages.deleteFileSuccess'));
       if (onUpdated) onUpdated();
     } catch (e) {
       console.error('File delete error:', e);
-      alert(e.message || t('modal.messages.deleteFileFailed'));
+      alert(getLocalizedApiError(e.message) || t('modal.messages.deleteFileFailed'));
     } finally {
       setDeleting(false);
     }
@@ -509,16 +542,16 @@ const CustomModal = ({
         if (json.error === "DELETE_LIMIT_EXCEEDED" || res.status === 403) {
           throw new Error(t("modal.messages.freePlanRestriction"));
         }
-        throw new Error(json.error || `HTTP ${res.status}`);
+        throw new Error(getLocalizedApiError(json.error) || `HTTP ${res.status}`);
       }
-      if (json.error) throw new Error(json.error);
+      if (json.error) throw new Error(getLocalizedApiError(json.error));
       
       alert(t('modal.messages.deleteSuccess'));
       if (onUpdated) onUpdated();
       onClose();
     } catch (e) {
       console.error('Delete error:', e);
-      alert(e.message || t('modal.messages.deleteGeneralFailed'));
+      alert(getLocalizedApiError(e.message) || t('modal.messages.deleteGeneralFailed'));
     } finally {
       setDeleting(false);
     }

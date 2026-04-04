@@ -2,23 +2,26 @@ import { data as json, type ActionFunctionArgs } from "react-router";
 import { generateGeminiContent } from "~/lib/geminiClient";
 import { checkAndIncrementAI } from "~/lib/redis.server";
 import { authenticate } from "~/shopify.server";
+import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
 
 type Fields = { [key: string]: string | string[] };
 type RequestBody = { text: string; fields: Fields };
 
 // POST専用API
 export const action = async ({ request }: ActionFunctionArgs) => {
+  const locale = resolveRequestLocale(request);
+  const ja = isJapaneseRequest(request, locale);
 
   let body: RequestBody;
   try {
     body = await request.json();
   } catch {
-    return json({ error: "Invalid JSON" }, { status: 400 });
+    return json({ error: ja ? "JSONが不正です" : "Invalid JSON" }, { status: 400 });
   }
 
   const { text, fields } = body || {};
   if (!text) {
-    return json({ error: "Missing text" }, { status: 400 });
+    return json({ error: ja ? "テキストがありません" : "Missing text" }, { status: 400 });
   }
 
   // 未入力項目だけリストアップ
@@ -57,7 +60,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           : String(error);
     if (errorMessage.includes("認証に失敗しました") || errorMessage.includes("shop_id parameter is required")) {
       return json({ 
-        error: "認証に失敗しました。アプリを再インストールしてください。",
+        error: ja ? "認証に失敗しました。アプリを再インストールしてください。" : "Authentication failed. Please reinstall the app.",
         type: "auth_error"
       }, { status: 401 });
     }

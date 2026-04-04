@@ -1,5 +1,6 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
 import { createClient } from '@supabase/supabase-js';
+import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
 
 // Supabaseクライアントの初期化を改善
 let supabase: any = null;
@@ -20,6 +21,8 @@ function initializeSupabase() {
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   console.log('updateShipment API called'); // Debug log
+  const locale = resolveRequestLocale(request);
+  const ja = isJapaneseRequest(request, locale);
   
   if (request.method !== 'POST') {
     console.log('Method not allowed:', request.method);
@@ -32,13 +35,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.log('Request body received:', body); // Debug log
   } catch (error) {
     console.error('JSON parse error:', error);
-    return json({ error: 'Invalid JSON' }, { status: 400 });
+    return json({ error: ja ? 'JSONが不正です' : 'Invalid JSON' }, { status: 400 });
   }
   
   const { shipment } = body;
   if (!shipment) {
     console.error('Missing shipment data');
-    return json({ error: 'missing shipment' }, { status: 400 });
+    return json({ error: ja ? '配送データがありません' : 'Missing shipment data' }, { status: 400 });
   }
 
   const url = new URL(request.url);
@@ -55,7 +58,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (!shopId) {
     console.error('Missing shop_id in request');
-    return json({ error: 'Authentication failed', details: 'shop_id is required' }, { status: 401 });
+    return json({ error: ja ? '認証に失敗しました' : 'Authentication failed', details: 'shop_id is required' }, { status: 401 });
   }
 
   console.log('Using shop_id for update:', shopId);
@@ -63,7 +66,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // shop_idの検証と設定
   if (shipment.shop_id && shipment.shop_id !== shopId) {
     console.error('Shop ID mismatch:', { requestShopId: shopId, shipmentShopId: shipment.shop_id });
-    return json({ error: 'Shop ID mismatch' }, { status: 403 });
+    return json({ error: ja ? 'shop_idが一致しません' : 'Shop ID mismatch' }, { status: 403 });
   }
 
   // shop_idを確実に設定
@@ -72,7 +75,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // 必須フィールドの検証
   if (!shipment.si_number) {
     console.error('Missing si_number in shipment data');
-    return json({ error: 'si_number is required' }, { status: 400 });
+    return json({ error: ja ? 'si_numberが必要です' : 'si_number is required' }, { status: 400 });
   }
 
   console.log('Shipment data to save:', shipment); // Debug log
@@ -88,7 +91,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (!supabaseUrl || !supabaseKey) {
     console.error('Missing Supabase environment variables');
-    return json({ error: 'Server configuration error' }, { status: 500 });
+    return json({ error: ja ? 'サーバー設定エラーです' : 'Server configuration error' }, { status: 500 });
   }
 
   console.log('Supabase URL:', supabaseUrl); // Debug log (URLのみ)
@@ -101,7 +104,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.log('Supabase client initialized successfully');
   } catch (error) {
     console.error('Supabase initialization error:', error);
-    return json({ error: 'Database connection failed' }, { status: 500 });
+    return json({ error: ja ? 'データベース接続に失敗しました' : 'Database connection failed' }, { status: 500 });
   }
 
   // ファイルURLフィールドは含める（Supabaseのupsertに渡す）
@@ -156,6 +159,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ data });
   } catch (error) {
     console.error('Unexpected error in upsert:', error);
-    return json({ error: 'Database operation failed' }, { status: 500 });
+    return json({ error: ja ? 'データベース操作に失敗しました' : 'Database operation failed' }, { status: 500 });
   }
 };

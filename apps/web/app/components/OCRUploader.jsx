@@ -38,6 +38,25 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   const demoImageUrl = "https://track-to-inventory.onrender.com/instruction_demo.png";
   const ocrWarmUpStartedRef = useRef(false);
 
+  const getLocalizedError = useCallback((value) => {
+    if (!value) return "";
+    const code = String(value);
+    switch (code) {
+      case "OCR_LIMIT_EXCEEDED":
+        return t("ocrUploader.freePlanRestriction");
+      case "AI_LIMIT_EXCEEDED":
+        return t("ocrUploader.aiLimitRestriction");
+      case "SI_LIMIT_EXCEEDED":
+        return t("ocrUploader.siLimitRestriction");
+      case "DELETE_LIMIT_EXCEEDED":
+        return t("modal.messages.freePlanRestriction");
+      case "AUTH_FAILED":
+        return t("ocrUploader.authFailed");
+      default:
+        return code;
+    }
+  }, [t]);
+
    // クライアント判定（SSR対策）
   useEffect(() => {
     setIsClient(true);
@@ -100,7 +119,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
           } catch {
             data = {};
           }
-          throw new Error(data.error || "認証に失敗しました。アプリを再インストールしてください。");
+          throw new Error(getLocalizedError(data.error) || t("ocrUploader.authFailed"));
         }
         
         if (res.status === 429) {
@@ -110,7 +129,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
           } catch {
             data = {};
           }
-          throw new Error(data.error || "OCR使用回数の月間上限に達しました。プランをアップグレードしてください。");
+          throw new Error(getLocalizedError(data.error) || t("ocrUploader.freePlanRestriction"));
         }
         
         if (!res.ok) {
@@ -120,7 +139,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         } catch {
           data = {};
         }
-        throw new Error(data.error || "OCR制限チェックに失敗しました");
+        throw new Error(getLocalizedError(data.error) || t("ocrUploader.apiLogicFail"));
       }
         
         return true;
@@ -143,7 +162,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         let msg = t("ocrUploader.ocrFailed");
         try {
           const data = await res.json();
-          msg = data.error ? `${msg}: ${data.error}` : msg;
+          msg = data.error ? `${msg}: ${getLocalizedError(data.error)}` : msg;
         } catch {
           // ignore
         }
@@ -360,7 +379,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         } catch {
           data = {};
         }
-        setAiError(data.error || "認証に失敗しました。アプリを再インストールしてください。");
+        setAiError(getLocalizedError(data.error) || t("ocrUploader.authFailed"));
         return;
       }
       
@@ -368,7 +387,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       let data;
       if (res.status === 429) {
         data = await res.json(); // ← 必ずここでawait！
-        setAiError(data.error || "AI使用回数の月間上限に達しました。プランをアップグレードしてください。");
+        setAiError(getLocalizedError(data.error) || t("ocrUploader.aiLimitRestriction"));
         return;
       }
       
@@ -376,7 +395,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         let msg = `HTTP error! status: ${res.status}`;
         try {
           data = await res.json();
-          msg = data.error ? `${msg}: ${data.error}` : msg;
+          msg = data.error ? `${msg}: ${getLocalizedError(data.error)}` : msg;
         } catch (e) {
           // ignore
         }
@@ -387,7 +406,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       console.log("AI Response:", data); // デバッグ用
       
       if (data.error) {
-        throw new Error(data.error);
+        throw new Error(getLocalizedError(data.error));
       }
       
       let aiFields = {};
@@ -495,10 +514,10 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
           json = JSON.parse(responseText);
         } catch (parseError) {
           // JSON解析に失敗した場合はデフォルトメッセージ
-          setSaveError('SI登録件数の制限に達しました');
+          setSaveError(t("ocrUploader.siLimitRestriction"));
           return;
         }
-        setSaveError(json.error || 'SI登録件数の制限に達しました');
+        setSaveError(getLocalizedError(json.error) || t("ocrUploader.siLimitRestriction"));
         return;
       }
       throw new Error(`APIリクエストが失敗しました (ステータス: ${res.status})\nレスポンス: ${responseText}`);
@@ -518,7 +537,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       // APIからのエラーメッセージをチェック
       if (json.error) {
         console.error('❌ APIエラー:', json.error);
-        throw new Error(`API処理エラー: ${json.error}`);
+        throw new Error(`API処理エラー: ${getLocalizedError(json.error)}`);
       }
       
       // 成功時の処理

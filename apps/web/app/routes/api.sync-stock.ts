@@ -189,7 +189,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.log("=====================");
     
     if (!items || items.length === 0) {
-      return json({ error: "同期する商品がありません" }, { status: 400 });
+      return json({ error: "No items to sync" }, { status: 400 });
     }
 
     // ストアのLocation IDを動的に取得
@@ -216,7 +216,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     
     if (!locationData || !locationData.data || !locationData.data.locations) {
       return json({ 
-        error: "ロケーション情報を取得できませんでした",
+        error: "Failed to fetch location information",
         debug: locationData 
       }, { status: 400 });
     }
@@ -224,7 +224,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const locations = locationData.data.locations.edges;
     
     if (!locations || locations.length === 0) {
-      return json({ error: "ストアにロケーションが見つかりません" }, { status: 400 });
+      return json({ error: "No location found for this store" }, { status: 400 });
     }
     
     // 最初のアクティブなロケーション（通常はメインロケーション）を使用
@@ -276,7 +276,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         if (hasGraphQLErrors) {
           results.push({
             variant_id: item.variant_id,
-            error: "バリアントGraphQLエラー",
+            error: "Variant GraphQL error",
             errorType: "graphql",
             failedStep: step,
             graphqlErrors: variantData.errors,
@@ -288,7 +288,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         if (!variant) {
           results.push({
             variant_id: item.variant_id,
-            error: "バリアントが見つかりません",
+            error: "Variant not found",
             errorType: "logic",
             failedStep: step,
           });
@@ -306,7 +306,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         if (!inventoryItemId) {
           results.push({
             variant_id: item.variant_id,
-            error: "inventory_item_idが取得できませんでした",
+            error: "Failed to resolve inventory_item_id",
             errorType: "logic",
             failedStep: "inventoryItem",
           });
@@ -517,7 +517,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             const levelErrorCheck = hasErrors(levelData);
             if (levelErrorCheck.hasGraphQLErrors || levelErrorCheck.hasUserErrors) {
               console.error("InventoryLevel取得エラー - 戦略2をスキップ");
-              throw new Error("InventoryLevel取得に失敗");
+              throw new Error("Failed to fetch inventory level");
             }
             const inventoryLevels = levelData.data?.inventoryLevels;
             let inventoryLevelId: string | undefined;
@@ -550,12 +550,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               logGraphQLResponse("inventoryActivate", activateData, activateVariables);
               const activateErrors = hasErrors(activateData);
               if (activateErrors.hasGraphQLErrors || activateErrors.hasUserErrors) {
-                results.push({
-                  variant_id: item.variant_id,
-                  error: "This product is not tracked at the current location and could not be activated. Please enable inventory tracking in your Shopify admin.",
-                  errorType: "inventoryLevelActivateFailed",
-                  failedStep: step,
-                  errors: activateErrors.userErrors,
+              results.push({
+                variant_id: item.variant_id,
+                error: "This product is not tracked at the current location and could not be activated. Please enable inventory tracking in your Shopify admin.",
+                errorType: "inventoryLevelActivateFailed",
+                failedStep: step,
+                errors: activateErrors.userErrors,
                   graphqlErrors: [],
                 });
                 continue;
@@ -565,7 +565,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               if (!inventoryLevelId) {
                 results.push({
                   variant_id: item.variant_id,
-                  error: "Inventory level activation succeeded but no inventoryLevel ID returned.",
+                  error: "Inventory level activation succeeded but no inventoryLevel ID was returned.",
                   errorType: "inventoryLevelActivateNoId",
                   failedStep: step,
                 });
@@ -842,7 +842,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           // 失敗詳細を記録
           results.push({
             variant_id: item.variant_id,
-            error: "在庫調整に失敗しました",
+            error: "Inventory adjustment failed",
             errorType: adjGraphqlErrors ? "graphql" : (adjUserErrors.length ? "userError" : "unknown"),
             failedStep: step,
             errors: adjUserErrors,

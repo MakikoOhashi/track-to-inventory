@@ -95,7 +95,7 @@ export async function convertPdfToImage(request: Request): Promise<PdfToImageRes
   return postMultipartToOcrApi<PdfToImageResult>(
     "/pdf-to-image",
     formData,
-    "PDF→画像変換に失敗しました",
+    "Failed to convert PDF to image",
   );
 }
 
@@ -106,7 +106,7 @@ export async function extractOcrText(file: File): Promise<OcrTextResult> {
   return postMultipartToOcrApi<OcrTextResult>(
     "/ocr-text",
     formData,
-    "OCRに失敗しました",
+    "OCR failed",
   );
 }
 
@@ -121,7 +121,7 @@ export async function uploadShipmentFile(
   return postMultipartToOcrApi<UploadShipmentFileResult>(
     "/shipment-files",
     formData,
-    "ファイルアップロード中にエラーが発生しました",
+    "An error occurred while uploading the file",
   );
 }
 
@@ -135,6 +135,6 @@ export async function createSignedFileUrls(
       ...input,
       shopId,
     },
-    "署名付きURL生成に失敗しました",
+    "Failed to generate signed URLs",
   );
 }
