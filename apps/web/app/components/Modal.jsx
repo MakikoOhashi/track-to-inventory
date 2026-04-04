@@ -129,7 +129,6 @@ const CustomModal = ({
     if (filePaths.length === 0) return;
 
     try {
-      console.log('Loading signed URLs for files:', filePaths);
       
       const res = await fetch('/api/get-file-url', {
         method: 'POST',
@@ -143,21 +142,17 @@ const CustomModal = ({
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        console.error('Failed to get signed URLs:', res.status, errorData);
         return;
       }
       
       const json = await res.json();
       if (json.signedUrls) {
         setSignedUrlCache(prev => ({ ...prev, ...json.signedUrls }));
-        console.log('Cached signed URLs:', Object.keys(json.signedUrls));
       }
       
       if (json.errors) {
-        console.warn('Some signed URLs failed to generate:', json.errors);
       }
     } catch (error) {
-      console.error('Error loading signed URLs:', error);
     }
   }, [formData?.si_number, formData?.invoice_url, formData?.pl_url, formData?.si_url, formData?.other_url]);
 
@@ -169,7 +164,6 @@ const CustomModal = ({
   // ファイル表示用のsigned URL取得関数（キャッシュ優先）
   const getSignedUrl = useCallback(async (filePath) => {
     if (!filePath) {
-      console.error('Empty file path provided');
       return null;
     }
 
@@ -184,19 +178,16 @@ const CustomModal = ({
           return filePath;
         }
       } catch (error) {
-        console.error('URL parsing error:', error);
       }
     }
 
     // キャッシュから取得を試行
     if (signedUrlCache[filePath]) {
-      console.log('Using cached signed URL for:', filePath);
       return signedUrlCache[filePath];
     }
 
     // キャッシュにない場合は個別取得
     try {
-      console.log('Requesting signed URL for file path:', filePath);
 
       const res = await fetch('/api/get-file-url', {
         method: 'POST',
@@ -210,7 +201,6 @@ const CustomModal = ({
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        console.error('Failed to get signed URL:', res.status, errorData);
         throw new Error(`Failed to get signed URL: ${errorData.error || res.statusText}`);
       }
       
@@ -218,14 +208,11 @@ const CustomModal = ({
       if (json.signedUrl) {
         // キャッシュに保存
         setSignedUrlCache(prev => ({ ...prev, [filePath]: json.signedUrl }));
-        console.log('Successfully received and cached signed URL');
         return json.signedUrl;
       } else {
-        console.error('No signed URL in response');
         return null;
       }
     } catch (error) {
-      console.error('Error getting signed URL:', error);
       return null;
     }
   }, [signedUrlCache, formData?.si_number]);
@@ -245,7 +232,6 @@ const CustomModal = ({
         alert(`${fileType}ファイルの表示に失敗しました`);
       }
     } catch (error) {
-      console.error('File view error:', error);
       alert(`${fileType}ファイルの表示に失敗しました: ${error.message}`);
     }
   };
@@ -256,12 +242,10 @@ const CustomModal = ({
   }
   
   if (!formData) {
-    console.warn('Modal: No formData available');
     return null;
   }
   
   if (!formData.si_number) {
-    console.warn('Modal: No si_number in formData:', formData);
     return null;
   }
 
@@ -363,7 +347,6 @@ const CustomModal = ({
       
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('Save failed with status:', res.status, 'Response:', errorText);
         let localizedError = errorText;
         try {
           const parsed = JSON.parse(errorText);
@@ -376,20 +359,15 @@ const CustomModal = ({
       }
       
       const json = await res.json();
-      console.log('Response JSON:', json);
       
       if (json.error) {
-        console.error('Save failed with error:', json.error);
         alert(`保存に失敗しました: ${getLocalizedApiError(json.error)}`);
         return;
       }
-      
-      console.log('Save successful:', json);
       alert(t('modal.messages.saveSuccess'));
       setEditMode(false);
       if (onUpdated) onUpdated();
     } catch (error) {
-      console.error('Save error:', error);
       alert(`保存に失敗しました: ${getLocalizedApiError(error.message)}`);
     } finally {
       setSaving(false);
@@ -414,13 +392,6 @@ const CustomModal = ({
       uploadFormData.append('type', fileType);
       uploadFormData.append('locale', effectiveLocale);
 
-      console.log('Uploading file:', {
-        fileName: file.name,
-        fileSize: file.size,
-        siNumber: formData.si_number,
-        fileType: fileType
-      });
-
       const res = await fetch('/api/uploadShipmentFile', {
         method: 'POST',
         body: uploadFormData,
@@ -432,13 +403,10 @@ const CustomModal = ({
       }
       
       const data = await res.json();
-      console.log('Upload response:', data);
       
       // 署名付きURLをデータベースに保存
       const updatedFormData = { ...formData };
       updatedFormData[`${fileType}_url`] = data.signedUrl; // 署名付きURLを保存
-      
-      console.log('Updating database with:', updatedFormData);
       
       // created_at, updated_atフィールドを除外してデータベースを更新
       const { created_at, updated_at, ...cleanFormData } = updatedFormData;
@@ -477,7 +445,6 @@ const CustomModal = ({
       alert(t('modal.messages.fileUploadSuccess'));
 
     } catch (error) {
-      console.error('File upload error:', error);
       alert(getLocalizedApiError(error.message) || t('modal.messages.fileUploadFailed'));
     }
   };
@@ -508,7 +475,6 @@ const CustomModal = ({
       alert(t('modal.messages.deleteFileSuccess'));
       if (onUpdated) onUpdated();
     } catch (e) {
-      console.error('File delete error:', e);
       alert(getLocalizedApiError(e.message) || t('modal.messages.deleteFileFailed'));
     } finally {
       setDeleting(false);
@@ -550,7 +516,6 @@ const CustomModal = ({
       if (onUpdated) onUpdated();
       onClose();
     } catch (e) {
-      console.error('Delete error:', e);
       alert(getLocalizedApiError(e.message) || t('modal.messages.deleteGeneralFailed'));
     } finally {
       setDeleting(false);
@@ -647,7 +612,6 @@ const CustomModal = ({
             />
             {/* 積載商品リスト */}
             <Text as="h4" variant="headingSm">{t('modal.sections.itemList')}</Text>
-            {console.log('🔍 Modal: Rendering items:', formData.items)}
             {(formData.items || []).map((item, idx) => (
               <InlineStack key={idx} gap="200" align="center">
                 <TextField
@@ -705,7 +669,6 @@ const CustomModal = ({
             <Button
               size="slim"
               onClick={() => {
-                console.log('🔍 Modal: Adding new item');
                 setFormData(prev => ({
                   ...prev,
                   items: [...(prev.items || []), { name: "", quantity: 1 }]

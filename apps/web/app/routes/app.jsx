@@ -48,7 +48,6 @@ export default function App() {
 
   useEffect(() => {
     fetch("/api/ocr-health").catch((error) => {
-      console.error("OCR warm-up failed:", error);
     });
   }, []);
 

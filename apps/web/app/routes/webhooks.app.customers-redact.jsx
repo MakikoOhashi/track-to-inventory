@@ -5,7 +5,6 @@ export const action = async ({ request }) => {
   const payload = await authenticate.webhook(request);
 
   // ログ出力
-  console.log("GDPR 顧客データ消去リクエスト受信:", payload);
 
   // 必要なら顧客データ削除処理を追加
 

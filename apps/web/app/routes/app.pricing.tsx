@@ -22,7 +22,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // 課金ページはshopパラメータを使って最低限の表示を優先する。
     return json({ plan: "free", shop: shopFromUrl });
   } catch (error) {
-    console.error('Pricing loader error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return json({ plan: "free", error: errorMessage, shop: undefined });
   }
@@ -48,7 +47,6 @@ export default function Pricing() {
 
   // エラーがある場合は表示
   if (error) {
-    console.warn("Pricing page error:", error);
   }
 
   // Shopify管理画面のアプリ課金ページURL（必要に応じてyour-app-handleを修正）

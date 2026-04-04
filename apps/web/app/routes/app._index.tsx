@@ -112,20 +112,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         .eq('shop_id', shop);
       
       if (error) {
-        console.error('Supabase error:', error);
         shipments = [];
       } else if (data) {
         shipments = data;
       }
     } catch (error) {
-      console.error('SSR shipments fetch error:', error);
       shipments = [];
     }
 
     try {
       shopifyProducts = await loadShopifyProductsForShop(shop);
     } catch (error) {
-      console.error('SSR Shopify products fetch error:', error);
       shopifyProducts = [];
     }
     
@@ -135,7 +132,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     if (error instanceof Response) {
       throw error;
     }
-    console.error('Authentication error:', error);
     throw new Response("Authentication failed", { status: 401 });
   }
 };
@@ -208,7 +204,6 @@ export default function Index() {
   // データ取得関数（認証済みshop_idのみ使用）
   const fetchShipments = async (shopIdValue: string) => {
     if (!shopIdValue || shopIdValue !== shop) {
-      console.error('Shop ID mismatch or invalid');
       setError('認証エラーが発生しました');
       return;
     }
@@ -224,7 +219,6 @@ export default function Index() {
       const data = await res.json();
       setShipments(data.shipments || []);
     } catch (err) {
-      console.error('Failed to fetch shipments:', err);
       setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
       setShipments([]);
     } finally {

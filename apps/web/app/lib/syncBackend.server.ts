@@ -56,18 +56,7 @@ export async function proxySyncStockRequest(request: Request) {
     targetUrl.searchParams.set("shop_id", shopId);
   }
 
-  console.log("proxySyncStockRequest start", {
-    targetUrl: targetUrl.toString(),
-    shopId,
-    method: request.method,
-    hasSyncSecret: Boolean(SYNC_API_SHARED_SECRET),
-    hasOcrSecret: Boolean(OCR_API_SHARED_SECRET),
-  });
-
   const body = await withTimeout(request.text(), "sync proxy request.text");
-  console.log("proxySyncStockRequest body read", {
-    bodyLength: body.length,
-  });
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(new Error("sync proxy fetch timed out")), SYNC_API_TIMEOUT_MS);
@@ -83,7 +72,6 @@ export async function proxySyncStockRequest(request: Request) {
       signal: controller.signal,
     });
   } catch (error) {
-    console.error("proxySyncStockRequest fetch failed", error);
     return json(
       {
         error: error instanceof Error ? error.message : "External sync API request failed",
@@ -94,19 +82,11 @@ export async function proxySyncStockRequest(request: Request) {
     clearTimeout(timeoutId);
   }
 
-  console.log("proxySyncStockRequest fetch completed", {
-    status: response.status,
-    ok: response.ok,
-  });
-
   if (!response.ok) {
     const errorMessage = await parseSyncApiError(response, "External sync API request failed");
     return json({ error: errorMessage }, { status: response.status });
   }
 
   const data = await withTimeout(response.json(), "sync proxy response.json");
-  console.log("proxySyncStockRequest response parsed", {
-    keys: data && typeof data === "object" ? Object.keys(data) : [],
-  });
   return json(data);
 }

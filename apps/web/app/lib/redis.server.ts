@@ -34,7 +34,6 @@ export async function getStoreIdFromAuth(request: Request): Promise<string> {
     const { session } = await authenticate.admin(request)
     return session.shop
   } catch (error) {
-    console.error('Shopify認証エラー:', error)
     throw new Error('認証に失敗しました')
   }
 }
@@ -143,7 +142,6 @@ export async function getUserUsage(userId: string) {
   let siCount = 0
   try {
     if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.warn('Supabase環境変数が設定されていません')
       siCount = 0
     } else {
       const { count, error } = await supabase
@@ -152,14 +150,12 @@ export async function getUserUsage(userId: string) {
         .eq('shop_id', userId)
       
       if (error) {
-        console.error('Supabase SI件数取得エラー:', error)
         siCount = 0
       } else {
         siCount = count || 0
       }
     }
   } catch (error) {
-    console.error('SI件数取得エラー:', getErrorMessage(error))
     siCount = 0 // エラー時は0件として扱う
   }
 

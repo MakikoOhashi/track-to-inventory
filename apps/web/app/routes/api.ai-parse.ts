@@ -44,9 +44,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       // query がない場合だけ Shopify 認証にフォールバック
       const { session } = await authenticate.admin(request);
       shopId = session.shop;
-      console.log("✅ Shopify authentication successful, shopId:", shopId);
     } else {
-      console.log("✅ Using shop_id from query:", shopId);
     }
 
     await checkAndIncrementAI(shopId);
@@ -133,11 +131,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       JSON.parse(cleanedJson);
       return json({ result: cleanedJson });
     } catch (parseError) {
-      console.error("JSON Parse Error:", parseError, "Raw AI text:", aiText);
       return json({ result: "{}" });
     }
   } catch (e: any) {
-    console.error("AI API Error:", e);
     return json({ error: e?.message || String(e) }, { status: 500 });
   }
 };

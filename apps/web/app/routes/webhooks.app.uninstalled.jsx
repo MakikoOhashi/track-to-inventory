@@ -11,8 +11,6 @@ const supabase = createClient(
 export const action = async ({ request }) => {
   const { shop, session, topic } = await authenticate.webhook(request);
 
-  console.log(`Received ${topic} webhook for ${shop}`);
-
   // Shopifyセッション削除
   if (shop) {
     const sessions = await sessionStorage.findSessionsByShop(shop);
@@ -31,7 +29,6 @@ export const action = async ({ request }) => {
         .eq("shop_id", shop);
 
       if (fetchError) {
-        console.error("Supabase shipments取得エラー:", fetchError);
       } else if (shipments && shipments.length > 0) {
         // 2. 各shipmentのファイルを削除
         const filesToDelete = [];
@@ -64,9 +61,7 @@ export const action = async ({ request }) => {
             .remove(uniqueFiles);
 
           if (deleteError) {
-            console.error("Supabase Storage ファイル削除エラー:", deleteError);
           } else {
-            console.log(`削除されたファイル数: ${uniqueFiles.length}`);
           }
         }
       }
@@ -78,13 +73,10 @@ export const action = async ({ request }) => {
         .eq("shop_id", shop);
 
       if (deleteShipmentsError) {
-        console.error("Supabase shipments削除エラー:", deleteShipmentsError);
       } else {
-        console.log(`削除されたshipments数: ${shipments?.length || 0}`);
       }
 
     } catch (error) {
-      console.error("Uninstall処理エラー:", error);
     }
   }
 
@@ -108,7 +100,6 @@ function extractFilePathFromUrl(url) {
     
     return null;
   } catch (error) {
-    console.error("URL解析エラー:", error);
     return null;
   }
 }

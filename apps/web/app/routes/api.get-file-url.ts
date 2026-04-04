@@ -27,7 +27,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json(result);
 
   } catch (error) {
-    console.error('Error generating signed URLs:', error);
     const message = error instanceof Error ? error.message : String(error);
     return json({ 
       error: message,

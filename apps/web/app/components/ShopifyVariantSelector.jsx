@@ -4,8 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { fetchProductsWithVariants, getShopifyProductsCache } from "~/lib/shopifyProducts.client";
 
 const ShopifyVariantSelector = ({ value, onChange, initialProductId = "", products: productsProp = null, loading: loadingProp = false, error: errorProp = "" }) => {
-  console.log('🚀 ShopifyVariantSelector: Component initialized!', { value, initialProductId });
-  console.log('🔍 ShopifyVariantSelector: Props received:', { value, onChange: typeof onChange, initialProductId });
   
   const { t } = useTranslation();
 
@@ -25,14 +23,11 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "", produc
       setError(errorProp || "");
       return;
     }
-
-    console.log('🔄 ShopifyVariantSelector: useEffect triggered');
     let isActive = true;
     const loadProducts = async () => {
       try {
         const cached = getShopifyProductsCache();
         if (cached) {
-          console.log("📦 ShopifyVariantSelector: Using cached products");
           if (isActive) {
             setProducts(cached);
             setError("");
@@ -43,19 +38,11 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "", produc
 
         setLoading(true);
         setError("");
-        console.log('🔄 ShopifyVariantSelector: Loading products...');
         const productsData = await fetchProductsWithVariants();
-        console.log('📦 ShopifyVariantSelector: Products loaded:', productsData);
         if (isActive) {
           setProducts(productsData);
         }
       } catch (err) {
-        console.error('❌ ShopifyVariantSelector: Failed to load products:', err);
-        console.error('❌ ShopifyVariantSelector: Error details:', {
-          name: err.name,
-          message: err.message,
-          stack: err.stack
-        });
         if (isActive) {
           setProducts([]);
           setError(t('shopifyVariantSelector.fetchError', { message: err.message }));
@@ -72,16 +59,6 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "", produc
       isActive = false;
     };
   }, [t, productsProp, loadingProp, errorProp]);
-
-  // デバッグログ
-  console.log('🔍 ShopifyVariantSelector Debug:', {
-    productsCount: products.length,
-    error: error,
-    loading: loading,
-    selectedProductId: selectedProductId,
-    selectedVariantId: selectedVariantId,
-    debugState
-  });
 
   // 選択された商品のバリアントオプションをメモ化
   const variantOptions = useMemo(() => {
@@ -119,14 +96,12 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "", produc
     const variant = variantOptions.find((v) => v.value === selectedVariantId)?.variant;
     
     if (product && variant) {
-      console.log('✅ ShopifyVariantSelector: Variant selected:', { variantId: selectedVariantId, product: product.title });
       onChange(selectedVariantId, { product, variant });
     }
   }, [selectedVariantId, selectedProductId, products, variantOptions, onChange]);
 
   // 選択クリア処理
   const handleClearSelection = useCallback(() => {
-    console.log('🗑️ ShopifyVariantSelector: Clearing selection');
     setSelectedProductId("");
     setSelectedVariantId("");
     if (onChange) {
@@ -136,7 +111,6 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "", produc
 
   // 商品選択処理
   const handleProductChange = useCallback((value) => {
-    console.log('📦 ShopifyVariantSelector: Product changed:', value);
     setSelectedProductId(value);
     // 商品が変更されたらバリアント選択をクリア
     setSelectedVariantId("");
@@ -147,13 +121,11 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "", produc
 
   // バリアント選択処理
   const handleVariantChange = useCallback((value) => {
-    console.log('🔧 ShopifyVariantSelector: Variant changed:', value);
     setSelectedVariantId(value);
   }, []);
 
   // ローディング中
   if (loading) {
-    console.log('⏳ ShopifyVariantSelector: Loading state');
     return (
       <div>
         <Text variant="headingSm">{t('shopifyVariantSelector.title')}</Text>
@@ -164,7 +136,6 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "", produc
 
   // エラー表示
   if (error) {
-    console.log('❌ ShopifyVariantSelector: Error state:', error);
     return (
       <div>
         <Text variant="headingSm">{t('shopifyVariantSelector.title')}</Text>
@@ -172,8 +143,6 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "", produc
       </div>
     );
   }
-
-  console.log('✅ ShopifyVariantSelector: Ready state with', products.length, 'products');
   return (
     <div>
       <Text variant="headingSm">{t('shopifyVariantSelector.title')}</Text>

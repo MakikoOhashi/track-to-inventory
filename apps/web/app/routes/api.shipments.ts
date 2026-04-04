@@ -67,13 +67,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       .eq('shop_id', shopId);
 
     if (error) {
-      console.error('Supabase error:', error);
       return json({ error: ja ? "データベースエラーが発生しました" : "Database error" }, { status: 500 });
     }
     
     return json({ shipments: data || [] });
   } catch (error) {
-    console.error('Authentication error:', error);
     return json({ error: isJapaneseRequest(request, resolveRequestLocale(request)) ? "認証に失敗しました" : "Authentication failed" }, { status: 401 });
   }
 };

@@ -33,7 +33,6 @@ export default async function handleRequest(
         signal: controller.signal,
         onError(error) {
           didError = true;
-          console.error(error);
         },
       },
     );

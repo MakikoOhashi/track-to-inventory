@@ -5,7 +5,6 @@ export const action = async ({ request }) => {
   const payload = await authenticate.webhook(request);
 
   // ログ出力
-  console.log("GDPR 顧客データリクエスト受信:", payload);
 
   // 必要ならデータ取得処理を追加
 

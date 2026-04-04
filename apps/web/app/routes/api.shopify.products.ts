@@ -3,7 +3,6 @@ import { authenticate } from "~/shopify.server";
 
 // /api/shopify/products?title=xxxx
 export const loader = async ({ request }: LoaderFunctionArgs ) => {
-    console.log("API HIT", request.url);
     const url = new URL(request.url);
   const title = url.searchParams.get("title") || "";
   if (!title) return json({ products: [] });

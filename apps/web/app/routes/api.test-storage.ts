@@ -2,7 +2,6 @@ import { data as json, type ActionFunctionArgs } from "react-router";
 import { createClient } from '@supabase/supabase-js';
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  console.log('Test storage API called');
   
   try {
     // 環境変数の確認
@@ -21,31 +20,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     // バケット一覧を取得
-    console.log('Fetching bucket list...');
     const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
     
     if (bucketError) {
-      console.error('Bucket list error:', bucketError);
       return json({ 
         error: 'ストレージバケット取得エラー',
         details: bucketError.message
       }, { status: 500 });
     }
     
-    console.log('Available buckets:', buckets);
-    
     // shipment-filesバケットの存在確認
     const shipmentFilesBucket = buckets.find(bucket => bucket.name === 'shipment-files');
     
     if (!shipmentFilesBucket) {
-      console.error('shipment-files bucket not found');
       return json({ 
         error: 'shipment-filesバケットが見つかりません',
         availableBuckets: buckets.map(b => b.name)
       }, { status: 404 });
     }
-    
-    console.log('shipment-files bucket found:', shipmentFilesBucket);
     
     // バケット内のファイル一覧を取得（テスト用）
     const { data: files, error: fileError } = await supabase.storage
@@ -53,15 +45,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       .list('', { limit: 10 });
     
     if (fileError) {
-      console.error('File list error:', fileError);
       return json({ 
         error: 'Failed to list files in bucket',
         details: fileError.message,
         bucketExists: true
       }, { status: 500 });
     }
-    
-    console.log('Files in bucket:', files);
     
     // テストファイルのアップロード
     const testContent = "test file content";
@@ -87,7 +76,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       .remove([testFileName]);
 
     if (deleteError) {
-      console.warn("Test file cleanup failed:", deleteError);
     }
 
     return json({ 
@@ -100,7 +88,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
     
   } catch (error) {
-    console.error('Storage test error:', error);
     return json({ 
       error: '予期しないエラー',
       details: error instanceof Error ? error.message : String(error)

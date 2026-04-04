@@ -19,7 +19,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const result = await extractOcrText(file);
     return json(result);
   } catch (error) {
-    console.error("OCR text extraction failed:", error);
     const ja = isJapaneseRequest(request, resolveRequestLocale(request));
     const message = error instanceof Error ? error.message : (ja ? "OCRに失敗しました" : "OCR failed");
     return json(

@@ -74,10 +74,8 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       });
 
       if (!res.ok) {
-        console.warn("OCR backend warm-up returned non-OK:", res.status);
       }
     } catch (error) {
-      console.error("OCR backend warm-up failed:", error);
       ocrWarmUpStartedRef.current = false;
     }
   }, []);
@@ -99,7 +97,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
           setOcrError(t("ocrUploader.usageInfoFail", { message: `status: ${res.status}` }));
         }
       } catch (error) {
-        console.error("使用状況の取得に失敗:", error);
       }
     };
 
@@ -213,7 +210,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     setLoading(true);
     setOcrError("");
     try {
-      // ★ ここでOCR使用制限チェック
       await checkOCRLimit();
 
       let text = "";
@@ -232,15 +228,11 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       setOcrTextEdited(text);
       setFields(extractFields(text));
     } catch (error) {
-      // ★ ここでエラーメッセージを適切に設定
-      console.error("OCR処理エラー:", error);
       setOcrError(error.message || t("ocrUploader.ocrFailed"));
     } finally {
       setLoading(false);
     }
   }, [file, requestBackendOcr, t]);
-
-   // ★ 手動入力フォームを開く関数
    const handleOpenManualForm = () => {
     setShowManualForm(true);
     // フィールドをクリア（必要に応じて）
@@ -254,8 +246,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     setAiError("");
     setSaveError("");
   };
-
-    // ★ 手動入力フォームを閉じる関数
     const handleCloseManualForm = () => {
       setShowManualForm(false);
       setFields({ si_number: "", supplier_name: "", transport_type: "", items: [] });
@@ -359,7 +349,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     setAiError("");
     
     try {
-      console.log("Sending to AI:", { text: ocrTextEdited, fields }); // デバッグ用
       
       const query = shopId ? `?shop_id=${encodeURIComponent(shopId)}` : "";
       const res = await fetch(`/api/ai-parse${query}`, {
@@ -370,8 +359,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
           fields,
         }),
       });
-      
-      // ★ 401エラー（認証エラー）の専用ハンドリング
       if (res.status === 401) {
         let data;
         try {
@@ -382,8 +369,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         setAiError(getLocalizedError(data.error) || t("ocrUploader.authFailed"));
         return;
       }
-      
-      // ★ 429エラー（使用回数制限）の専用ハンドリング
       let data;
       if (res.status === 429) {
         data = await res.json(); // ← 必ずここでawait！
@@ -403,7 +388,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       }
       
       data = await res.json();
-      console.log("AI Response:", data); // デバッグ用
       
       if (data.error) {
         throw new Error(getLocalizedError(data.error));
@@ -413,7 +397,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       try {
         aiFields = JSON.parse(data.result);
       } catch (parseError) {
-        console.error("JSON parse error:", parseError, "Raw result:", data.result);
         setAiError(t("ocrUploader.aiParseFail"));
         return;
       }
@@ -441,7 +424,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       setAiResult(aiFields);
       
     } catch (error) {
-      console.error("AI assist error:", error);
       setAiError(`AI補完に失敗しました: ${error.message}`);
     } finally {
       setAiLoading(false);
@@ -483,9 +465,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         // created_at, updated_atフィールドは明示的に除外
       };
 
-      // デバッグ：送信するデータをコンソールに出力
-      console.log('📤 送信データ:', shipmentData);
-
       // API呼び出し
       const saveQuery = shopId ? `?shop_id=${encodeURIComponent(shopId)}` : "";
       const res = await fetch(`/api/createShipment${saveQuery}`, {
@@ -497,13 +476,8 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         }),
       });
       
-      // デバッグ：レスポンスステータスを確認
-      console.log('📡 レスポンスステータス:', res.status);
-      console.log('📡 レスポンスOK:', res.ok);
-      
       // レスポンステキストを取得（エラー詳細のため）
       const responseText = await res.text();
-      console.log('📡 レスポンステキスト:', responseText);
       
       // HTTPステータスエラーをチェック
       if (!res.ok) {
@@ -528,20 +502,15 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       try {
         json = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('❌ JSON解析エラー:', parseError);
         throw new Error(`APIレスポンスのJSON解析に失敗しました: ${responseText}`);
       }
       
-      console.log('📥 APIレスポンス:', json);
-      
       // APIからのエラーメッセージをチェック
       if (json.error) {
-        console.error('❌ APIエラー:', json.error);
         throw new Error(`API処理エラー: ${getLocalizedError(json.error)}`);
       }
       
       // 成功時の処理
-      console.log('✅ 保存成功');
       alert(t("ocrUploader.saveSuccess"));
       
       // フォームリセット
@@ -558,13 +527,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       }
 
     } catch (error) {
-      console.error('❌ 保存エラーの詳細:', {
-        エラーメッセージ: error.message,
-        スタックトレース: error.stack,
-        フィールドデータ: fields,
-        OCRテキスト: ocrTextEdited,
-        shopId: shopId
-      });
       setSaveError(t("ocrUploader.saveFail", { message: error.message }));
     } finally {
       setLoading(false);

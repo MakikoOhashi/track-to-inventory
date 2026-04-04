@@ -5,7 +5,6 @@ export const action = async ({ request }) => {
   const payload = await authenticate.webhook(request);
 
   // ログ出力
-  console.log("GDPR ショップデータ消去リクエスト受信:", payload);
 
   // Shopifyには200 OKで即時応答すればOK
   return new Response("ok");

@@ -20,9 +20,7 @@ export async function action({ request }) {
       // query がない場合だけ Shopify 認証にフォールバック
       const { session } = await authenticate.admin(request);
       shopId = session.shop;
-      console.log("✅ Shopify authentication successful, shopId:", shopId);
     } else {
-      console.log("✅ Using shop_id from query:", shopId);
     }
 
     // OCR使用制限をチェック＆インクリメント
@@ -30,7 +28,6 @@ export async function action({ request }) {
     
     return json({ success: true });
   } catch (error) {
-    console.error("OCR制限チェックエラー:", error);
     
     // 認証エラーの場合は401を返す
     const errorMessage = error instanceof Error ? error.message : String(error);

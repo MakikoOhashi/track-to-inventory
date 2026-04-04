@@ -117,7 +117,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       .single();
 
     if (checkError && checkError.code !== 'PGRST116') { // PGRST116は「見つからない」エラー
-      console.error("重複チェックエラー:", checkError);
       return json({ error: ja ? "データベースエラーが発生しました" : "Database error" }, { status: 500 });
     }
 
@@ -149,8 +148,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       is_archived: false, // デフォルト値
     };
 
-    console.log('📤 Supabaseに保存するデータ:', shipmentData);
-
     const { data: result, error: shipmentError } = await supabase
       .from("shipments")
       .insert([shipmentData])
@@ -158,7 +155,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       .single();
 
     if (shipmentError) {
-      console.error("Shipment creation error:", shipmentError);
       
       // 一意制約違反の詳細なエラーハンドリング
       if (shipmentError.code === '23505') {
@@ -177,7 +173,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       message: ja ? "SIが正常に登録されました" : "SI was registered successfully"
     });
   } catch (error) {
-    console.error("Create shipment error:", error);
     return json({ 
       error: (isJapaneseRequest(request, resolveRequestLocale(request)) ? "内部サーバーエラーが発生しました" : "Internal server error"),
       details:

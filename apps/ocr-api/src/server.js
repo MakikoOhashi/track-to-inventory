@@ -52,7 +52,6 @@ function ensureAuthorized(request) {
 
   const providedOcr = request.headers.get("x-ocr-api-key");
   const providedSync = request.headers.get("x-sync-api-key");
-  console.log("OCR API auth check", {
     pathname,
     hasOcrSecret: Boolean(sharedSecret),
     hasSyncSecret: Boolean(syncSharedSecret),
@@ -378,7 +377,6 @@ const server = createServer(async (req, res) => {
     const response = await handler(request);
     await sendNodeResponse(res, response);
   } catch (error) {
-    console.error("OCR API error:", error);
 
     const status = error instanceof HttpError ? error.status : 500;
     const message =
@@ -397,5 +395,4 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`OCR API listening on http://${host}:${port}`);
 });

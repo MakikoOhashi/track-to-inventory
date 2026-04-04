@@ -88,7 +88,6 @@ export const action = async ({ request }: any) => {
     .remove([filePath]);
 
     if (storageError) {
-      console.error("Storage delete error:", storageError);
       return json({ error: messages.fileDeleteFailed }, { status: 500 });
     }
 
@@ -123,13 +122,11 @@ export const action = async ({ request }: any) => {
       });
 
     if (dbError) {
-      console.error("Database update error:", dbError);
       return json({ error: messages.dbUpdateFailed }, { status: 500 });
   }
 
     return json({ success: true, message: messages.success });
   } catch (error) {
-    console.error("Delete file error:", error);
     return json({ 
       error: getMessages(request).serverError
     }, { status: 500 });

@@ -26,7 +26,6 @@ export async function getCurrentPlan(session: Session): Promise<UserPlan> {
   try {
     // sessionの整合性チェック
     if (!session || !session.shop || !session.accessToken) {
-      console.error("Invalid session:", session);
       throw new Error("Invalid Shopify session");
     }
 
@@ -55,7 +54,6 @@ export async function getCurrentPlan(session: Session): Promise<UserPlan> {
 
     const subs = response.body?.data?.currentAppInstallation?.activeSubscriptions;
     if (!Array.isArray(subs)) {
-      console.warn("Shopify Billing APIのレスポンスが不正です。デフォルトでfreeプランを返します。");
       await redis.set(`plan:${session.shop}`, "free");
       return "free";
     }
@@ -72,7 +70,6 @@ export async function getCurrentPlan(session: Session): Promise<UserPlan> {
     await redis.set(`plan:${session.shop}`, "free");
     return "free";
   } catch (error) {
-    console.error("getCurrentPlan error:", error);
     // エラーが発生した場合はデフォルトでfreeプランを返す
     return "free";
   }
