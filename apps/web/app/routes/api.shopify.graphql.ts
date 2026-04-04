@@ -1,4 +1,4 @@
-import { json, type ActionFunctionArgs } from "react-router";
+import { data as json, type ActionFunctionArgs } from "react-router";
 import { authenticate, unauthenticated } from "~/shopify.server";
 
 type GraphQLResponse = {
