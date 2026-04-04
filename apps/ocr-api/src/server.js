@@ -46,7 +46,7 @@ function ensureAuthorized(request) {
   if (!sharedSecret && !syncSharedSecret) return;
 
   const pathname = new URL(request.url).pathname;
-  if (pathname === "/health") {
+  if (pathname === "/health" || pathname === "/") {
     return;
   }
 
@@ -323,6 +323,15 @@ async function handleSignedUrlRequest(request) {
 }
 
 function getRouteHandler(method, pathname) {
+  if (method === "GET" && pathname === "/") {
+    return async () =>
+      json({
+        ok: true,
+        service: "ocr-api",
+        requestId: randomUUID(),
+      });
+  }
+
   if (method === "GET" && pathname === "/health") {
     return async () =>
       json({
