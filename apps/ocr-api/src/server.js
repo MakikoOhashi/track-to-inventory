@@ -52,6 +52,13 @@ function ensureAuthorized(request) {
 
   const providedOcr = request.headers.get("x-ocr-api-key");
   const providedSync = request.headers.get("x-sync-api-key");
+  console.log("OCR API auth check", {
+    pathname,
+    hasOcrSecret: Boolean(sharedSecret),
+    hasSyncSecret: Boolean(syncSharedSecret),
+    providedOcr: Boolean(providedOcr),
+    providedSync: Boolean(providedSync),
+  });
 
   const authorized =
     (sharedSecret && providedOcr === sharedSecret) ||

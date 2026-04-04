@@ -60,6 +60,8 @@ export async function proxySyncStockRequest(request: Request) {
     targetUrl: targetUrl.toString(),
     shopId,
     method: request.method,
+    hasSyncSecret: Boolean(SYNC_API_SHARED_SECRET),
+    hasOcrSecret: Boolean(OCR_API_SHARED_SECRET),
   });
 
   const body = await withTimeout(request.text(), "sync proxy request.text");
