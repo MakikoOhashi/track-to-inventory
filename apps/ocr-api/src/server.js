@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import dns from "node:dns";
 import fs from "node:fs/promises";
 import { createServer } from "node:http";
 import os from "node:os";
@@ -16,6 +17,8 @@ import {
   validateUploadFile,
 } from "@track-to-inventory/shared/ocr-runtime";
 import { handleSyncStock } from "./sync-stock.js";
+
+dns.setDefaultResultOrder("ipv4first");
 
 const host = process.env.HOST ?? "0.0.0.0";
 const port = Number(process.env.PORT ?? 4001);
