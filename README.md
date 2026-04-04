@@ -367,7 +367,7 @@ npm run dev
 
 ## 📞 サポート
 
-- **ドキュメント**: [Notion](https://www.notion.so/track-to-inventory-211c3eba44cb803dbc79f9a485bc8342)
+- **ドキュメント**: [Notion](https://quiet-thrill-c13.notion.site/Track-To-Inventory-User-Guide-211c3eba44cb803dbc79f9a485bc8342)
 - **Issues**: GitHub Issuesでバグ報告や機能要望
 - **Email**: サポート用メールアドレス　ohashinaomaki@gmail.com
 
