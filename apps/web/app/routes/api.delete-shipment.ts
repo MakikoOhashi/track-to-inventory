@@ -4,10 +4,35 @@ import { checkDeleteLimit, incrementDeleteCount } from "~/lib/redis.server";
 
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
+function isJapaneseRequest(request: Request) {
+  const acceptLanguage = request.headers.get("accept-language") || "";
+  return acceptLanguage.toLowerCase().includes("ja");
+}
+
+function getDeleteMessages(request: Request) {
+  const ja = isJapaneseRequest(request);
+  return {
+    shopIdRequired: ja ? "shop_idが必要です" : "shop_id is required",
+    siNumberRequired: ja ? "SI番号が必須です" : "SI number is required",
+    shipmentNotFound: ja ? "指定されたSI番号のデータが見つかりません" : "No shipment found for the specified SI number",
+    databaseError: ja ? "データベースエラーが発生しました" : "A database error occurred",
+    freePlanLimit: ja
+      ? "Freeプランの削除可能回数を超えました。プランをアップグレードしてください。"
+      : "You have exceeded the number of deletions allowed on the Free plan. Please upgrade your plan.",
+    deleteFailed: ja ? "データの削除に失敗しました" : "Failed to delete data",
+    serverError:
+      ja
+        ? "サーバーエラーが発生しました。しばらく時間をおいて再度お試しください。"
+        : "A server error occurred. Please try again later.",
+    success: ja ? "データを正常に削除しました" : "Data deleted successfully",
+  };
+}
+
 export const action = async ({ request }: any) => {
   console.log('=== DELETE SHIPMENT API START ===');
   console.log('Request method:', request.method);
   console.log('Request URL:', request.url);
+  const messages = getDeleteMessages(request);
 
   if (request.method !== "DELETE") {
     console.log('Method not allowed:', request.method);
@@ -28,7 +53,7 @@ export const action = async ({ request }: any) => {
     if (!shopId) {
       console.error('❌ No authenticated shop available');
       return json({
-        error: "shop_idが必要です"
+        error: messages.shopIdRequired
       }, { status: 401 });
     }
 
@@ -38,7 +63,7 @@ export const action = async ({ request }: any) => {
 
     if (!siNumber) {
       console.error('❌ SI number is missing');
-      return json({ error: "SI番号が必須です" }, { status: 400 });
+      return json({ error: messages.siNumberRequired }, { status: 400 });
     }
 
     // 2. 削除対象の存在チェック
@@ -53,14 +78,14 @@ export const action = async ({ request }: any) => {
     if (checkError) {
       console.error('❌ Database check error:', checkError);
       if (checkError.code === 'PGRST116') {
-        return json({ error: "指定されたSI番号のデータが見つかりません" }, { status: 404 });
+        return json({ error: messages.shipmentNotFound }, { status: 404 });
       }
-      return json({ error: "データベースエラーが発生しました" }, { status: 500 });
+      return json({ error: messages.databaseError }, { status: 500 });
     }
 
     if (!existingShipment) {
       console.error('❌ Shipment not found:', { siNumber, shopId });
-      return json({ error: "指定されたSI番号のデータが見つかりません" }, { status: 404 });
+      return json({ error: messages.shipmentNotFound }, { status: 404 });
     }
 
     console.log('✅ Shipment exists:', existingShipment);
@@ -73,7 +98,7 @@ export const action = async ({ request }: any) => {
     } catch (limitError) {
       console.error('❌ Delete limit exceeded:', limitError);
       return json({ 
-        error: "Freeプランの削除可能回数を超えました。プランをアップグレードしてください。" 
+        error: messages.freePlanLimit
       }, { status: 403 });
     }
 
@@ -87,7 +112,7 @@ export const action = async ({ request }: any) => {
 
     if (deleteError) {
       console.error('❌ Delete operation failed:', deleteError);
-      return json({ error: "データの削除に失敗しました" }, { status: 500 });
+      return json({ error: messages.deleteFailed }, { status: 500 });
     }
 
     console.log('✅ Shipment deleted successfully');
@@ -102,11 +127,11 @@ export const action = async ({ request }: any) => {
     }
 
     console.log('=== DELETE SHIPMENT API SUCCESS ===');
-    return json({ success: true, message: "データを正常に削除しました" });
+    return json({ success: true, message: messages.success });
   } catch (error) {
     console.error('❌ DELETE SHIPMENT API ERROR:', error);
     return json({ 
-      error: "サーバーエラーが発生しました。しばらく時間をおいて再度お試しください。" 
+      error: getDeleteMessages(request).serverError
     }, { status: 500 });
   }
 };

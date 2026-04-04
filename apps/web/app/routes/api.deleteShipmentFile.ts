@@ -6,9 +6,31 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY as string
 );
 
+function isJapaneseRequest(request: Request) {
+  const acceptLanguage = request.headers.get("accept-language") || "";
+  return acceptLanguage.toLowerCase().includes("ja");
+}
+
+function getMessages(request: Request) {
+  const ja = isJapaneseRequest(request);
+  return {
+    methodNotAllowed: ja ? "Method not allowed" : "Method not allowed",
+    shopIdRequired: ja ? "shop_idが必要です" : "shop_id is required",
+    invalidParams: ja ? "SI番号とファイルタイプが必須です" : "SI number and file type are required",
+    fileDeleteFailed: ja ? "ファイルの削除に失敗しました" : "Failed to delete file",
+    invalidFileType: ja ? "無効なファイルタイプです" : "Invalid file type",
+    dbUpdateFailed: ja ? "データベースの更新に失敗しました" : "Failed to update database",
+    serverError: ja
+      ? "サーバーエラーが発生しました。しばらく時間をおいて再度お試しください。"
+      : "A server error occurred. Please try again later.",
+    success: ja ? "ファイルを正常に削除しました" : "File deleted successfully",
+  };
+}
+
 export const action = async ({ request }: any) => {
+  const messages = getMessages(request);
   if (request.method !== "DELETE") {
-    return json({ error: "Method not allowed" }, { status: 405 });
+    return json({ error: messages.methodNotAllowed }, { status: 405 });
   }
 
   try {
@@ -29,7 +51,7 @@ export const action = async ({ request }: any) => {
 
     if (!shopId) {
       return json({
-        error: "shop_idが必要です"
+        error: messages.shopIdRequired
       }, { status: 401 });
     }
 
@@ -37,7 +59,7 @@ export const action = async ({ request }: any) => {
     const fileType = body.get?.("fileType") as string || body.fileType;
 
     if (!siNumber || !fileType) {
-      return json({ error: "SI番号とファイルタイプが必須です" }, { status: 400 });
+      return json({ error: messages.invalidParams }, { status: 400 });
   }
 
     // ファイルパスを構築
@@ -50,7 +72,7 @@ export const action = async ({ request }: any) => {
 
     if (storageError) {
       console.error("Storage delete error:", storageError);
-      return json({ error: "ファイルの削除に失敗しました" }, { status: 500 });
+      return json({ error: messages.fileDeleteFailed }, { status: 500 });
     }
 
     // データベースからファイルURLを削除
@@ -74,7 +96,7 @@ export const action = async ({ request }: any) => {
         updateData.other_url = null;
         break;
       default:
-        return json({ error: "無効なファイルタイプです" }, { status: 400 });
+        return json({ error: messages.invalidFileType }, { status: 400 });
     }
 
     const { error: dbError } = await supabase
@@ -85,14 +107,14 @@ export const action = async ({ request }: any) => {
 
     if (dbError) {
       console.error("Database update error:", dbError);
-      return json({ error: "データベースの更新に失敗しました" }, { status: 500 });
+      return json({ error: messages.dbUpdateFailed }, { status: 500 });
   }
 
-    return json({ success: true, message: "ファイルを正常に削除しました" });
+    return json({ success: true, message: messages.success });
   } catch (error) {
     console.error("Delete file error:", error);
     return json({ 
-      error: "サーバーエラーが発生しました。しばらく時間をおいて再度お試しください。" 
+      error: getMessages(request).serverError
     }, { status: 500 });
   }
 };
