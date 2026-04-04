@@ -32,6 +32,7 @@ import type { Shipment,ShipmentItem } from '../../types/Shipment';
 import { data as json, type LoaderFunctionArgs, useLoaderData } from "react-router";
 import { useTranslation } from "react-i18next";
 import { i18n } from "~/utils/i18n.server";
+import { makeLocaleCookie } from "~/utils/locale";
 
 import { unauthenticated } from "~/shopify.server";
 import { createSupabaseAdminClient } from "~/lib/supabase.server";
@@ -197,6 +198,7 @@ export default function Index() {
     i18nInstance.changeLanguage(newLanguage);
     // 言語設定をlocalStorageに保存
     localStorage.setItem('i18nextLng', newLanguage);
+    document.cookie = makeLocaleCookie(newLanguage);
     // 状態を更新して再レンダリングをトリガー
     setLocale(newLanguage);
   };

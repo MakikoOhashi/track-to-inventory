@@ -1,28 +1,66 @@
-// @ts-ignore
-import { GoogleGenAI } from "@google/genai";
 import { GEMINI_MODEL } from "../config/gemini";
 
-// APIキーの安全性確認
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
   throw new Error("GEMINI_API_KEY is not set in environment variables.");
 }
 
-const genAI = new GoogleGenAI({ 
-  apiKey: apiKey,
-  apiBaseUrl: "https://generativelanguage.googleapis.com/v1" }as any);
+type GeminiResponse = {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        text?: string;
+      }>;
+    };
+  }>;
+  error?: {
+    message?: string;
+    status?: string;
+  };
+};
 
-// プロンプトからGeminiの応答テキストを取得
+function extractText(response: GeminiResponse): string {
+  const text =
+    response.candidates?.[0]?.content?.parts
+      ?.map((part) => part.text ?? "")
+      .join("")
+      .trim() ?? "";
+
+  if (!text) {
+    throw new Error("Gemini API returned an empty response text.");
+  }
+
+  return text;
+}
+
 export async function generateGeminiContent(prompt: string): Promise<string> {
-  const result = await genAI.models.generateContent({
-    model: GEMINI_MODEL,
-    contents:  [{ text: prompt }],
-    config: { responseMimeType: "application/json" },
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }],
+          },
+        ],
+        generationConfig: {
+          responseMimeType: "application/json",
+        },
+      }),
+    },
+  );
 
-  });
-  if (result.text === undefined) {
-        throw new Error("Gemini API returned an empty response text.");
-    }
+  const payload = (await response.json()) as GeminiResponse;
 
-  return result.text;
+  if (!response.ok) {
+    const message = payload.error?.message || `Gemini API request failed with status ${response.status}`;
+    throw new Error(message);
+  }
+
+  return extractText(payload);
 }
