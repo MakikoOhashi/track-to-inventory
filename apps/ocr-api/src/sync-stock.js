@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { createClient } from "@supabase/supabase-js";
 import dns from "node:dns";
 
 dns.setDefaultResultOrder("ipv4first");
@@ -71,35 +71,40 @@ function hasErrors(data) {
   return { hasGraphQLErrors, hasUserErrors: userErrors.length > 0, userErrors };
 }
 
-let pool;
-function getPool() {
-  if (!process.env.DATABASE_URL) {
-    throw new SyncHttpError(500, "DATABASE_URL is required for sync backend");
+let supabaseAdminClient;
+function getSupabaseAdminClient() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new SyncHttpError(500, "Supabase設定エラー");
   }
 
-  pool ??= new Pool({
-    connectionString: process.env.DATABASE_URL,
-    max: 3,
-    family: 4,
-    connectionTimeoutMillis: 10000,
+  supabaseAdminClient ??= createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
   });
 
-  return pool;
+  return supabaseAdminClient;
 }
 
 async function getOfflineAccessToken(shopId) {
-  const pool = getPool();
-  const query = `
-    SELECT "accessToken"
-    FROM "TrackToInventorySession"
-    WHERE "shop" = $1
-      AND "isOnline" = false
-    ORDER BY COALESCE("expires", NOW()) DESC
-    LIMIT 1
-  `;
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("TrackToInventorySession")
+    .select("accessToken")
+    .eq("shop", shopId)
+    .eq("isOnline", false)
+    .order("expires", { ascending: false, nullsFirst: false })
+    .limit(1);
 
-  const result = await pool.query(query, [shopId]);
-  const token = result.rows?.[0]?.accessToken;
+  if (error) {
+    throw new SyncHttpError(500, `Offline session query failed: ${error.message}`);
+  }
+
+  const token = data?.[0]?.accessToken;
   if (!token) {
     throw new SyncHttpError(401, `Offline session not found for shop: ${shopId}`);
   }
