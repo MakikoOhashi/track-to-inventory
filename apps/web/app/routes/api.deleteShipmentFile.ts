@@ -12,7 +12,9 @@ function isJapaneseRequest(request: Request) {
 }
 
 function getMessages(request: Request) {
-  const ja = isJapaneseRequest(request);
+  const url = new URL(request.url);
+  const locale = (url.searchParams.get("locale") || request.headers.get("x-app-locale") || "").toLowerCase();
+  const ja = locale.startsWith("ja") || (!locale && isJapaneseRequest(request));
   return {
     methodNotAllowed: ja ? "Method not allowed" : "Method not allowed",
     shopIdRequired: ja ? "shop_idが必要です" : "shop_id is required",

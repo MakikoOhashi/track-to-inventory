@@ -871,6 +871,7 @@ export default function Index() {
           shopifyProducts={shopifyProducts}
           shopifyProductsLoading={shopifyProductsLoading}
           shopifyProductsError={shopifyProductsError}
+          locale={locale}
         />
       )}
     </Page>

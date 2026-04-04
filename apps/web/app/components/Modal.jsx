@@ -33,6 +33,7 @@ const CustomModal = ({
   shopifyProducts = [],
   shopifyProductsLoading = false,
   shopifyProductsError = "",
+  locale = "ja",
 }) => {
   const { t, i18n } = useTranslation();
   
@@ -262,6 +263,7 @@ const CustomModal = ({
         body: JSON.stringify({
           items: itemsWithVariantId,
           shop_id: shipment.shop_id || formData.shop_id,
+          locale,
         })
       });
       
@@ -328,6 +330,7 @@ const CustomModal = ({
         body: JSON.stringify({
           shipment: saveData,
           shop_id: shipment.shop_id || saveData.shop_id,
+          locale,
         }),
       });
       
@@ -375,6 +378,7 @@ const CustomModal = ({
       uploadFormData.append('file', file);
       uploadFormData.append('si_number', formData.si_number);
       uploadFormData.append('type', fileType);
+      uploadFormData.append('locale', locale);
 
       console.log('Uploading file:', {
         fileName: file.name,
@@ -418,6 +422,7 @@ const CustomModal = ({
         body: JSON.stringify({
           shipment: cleanFormData,
           shop_id: shipment.shop_id || cleanFormData.shop_id,
+          locale,
         }),
         });
         
@@ -451,10 +456,12 @@ const CustomModal = ({
       const formData = new FormData();
       formData.append('siNumber', shipment.si_number);
       formData.append('fileType', type);
+      formData.append('locale', locale);
     
       // shopパラメータをURLに追加（認証fallback用）
       const url = new URL('/api/deleteShipmentFile', window.location.origin);
       url.searchParams.append('shop_id', shipment.shop_id);
+      url.searchParams.append('locale', locale);
       
       const res = await fetch(url.toString(), {
         method: 'DELETE',
@@ -484,10 +491,12 @@ const CustomModal = ({
     try {
       const formData = new FormData();
       formData.append('siNumber', shipment.si_number);
+      formData.append('locale', locale);
       
       // shopパラメータをURLに追加（認証fallback用）
       const url = new URL('/api/delete-shipment', window.location.origin);
       url.searchParams.append('shop_id', shipment.shop_id);
+      url.searchParams.append('locale', locale);
       
       const res = await fetch(url.toString(), {
         method: 'DELETE',

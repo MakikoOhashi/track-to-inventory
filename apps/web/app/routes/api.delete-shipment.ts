@@ -10,7 +10,9 @@ function isJapaneseRequest(request: Request) {
 }
 
 function getDeleteMessages(request: Request) {
-  const ja = isJapaneseRequest(request);
+  const url = new URL(request.url);
+  const locale = (url.searchParams.get("locale") || request.headers.get("x-app-locale") || "").toLowerCase();
+  const ja = locale.startsWith("ja") || (!locale && isJapaneseRequest(request));
   return {
     shopIdRequired: ja ? "shop_idが必要です" : "shop_id is required",
     siNumberRequired: ja ? "SI番号が必須です" : "SI number is required",
