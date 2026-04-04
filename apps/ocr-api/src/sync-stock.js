@@ -175,6 +175,7 @@ export async function handleSyncStock(request) {
   const locations = locationResult.data.data.locations.edges;
   const primaryLocation = locations.find((loc) => loc.node.isPrimary) || locations[0];
   const locationId = primaryLocation.node.id;
+  const seenVariantIds = new Set();
 
   const results = [];
 
@@ -239,6 +240,33 @@ export async function handleSyncStock(request) {
         });
         continue;
       }
+
+      const normalizedQuantity = Number(item.quantity);
+      if (!Number.isFinite(normalizedQuantity)) {
+        results.push({
+          variant_id: item.variant_id,
+          error: "quantityが数値ではありません",
+          errorType: "logic",
+          failedStep: "quantityNormalize",
+        });
+        continue;
+      }
+
+      if (seenVariantIds.has(item.variant_id)) {
+        results.push({
+          variant_id: item.variant_id,
+          product_title: variant.product.title,
+          before_quantity: variant.inventoryQuantity,
+          delta: normalizedQuantity,
+          after_quantity: variant.inventoryQuantity,
+          tracking_enabled: variant.inventoryItem.tracked,
+          response: null,
+          errors: [],
+          strategy_used: "skipped-duplicate-variant",
+        });
+        continue;
+      }
+      seenVariantIds.add(item.variant_id);
 
       if (!variant.inventoryItem.tracked) {
         step = "inventoryItemUpdate";
@@ -340,14 +368,14 @@ export async function handleSyncStock(request) {
           input: {
             reason: "correction",
             name: "available",
-            changes: [
-              {
-                delta: item.quantity,
-                inventoryItemId,
-                locationId,
-              },
-            ],
-          },
+              changes: [
+                {
+                  delta: normalizedQuantity,
+                  inventoryItemId,
+                  locationId,
+                },
+              ],
+            },
         };
 
         const adjustResult = await shopifyGraphQL(
@@ -376,7 +404,7 @@ export async function handleSyncStock(request) {
         step = "inventorySetQuantities";
         try {
           const currentQuantity = Number(variant.inventoryQuantity) || 0;
-          const delta = Number(item.quantity) || 0;
+          const delta = normalizedQuantity;
           const newQuantity = Math.max(0, currentQuantity + delta);
 
           const setMutation = `
@@ -441,8 +469,8 @@ export async function handleSyncStock(request) {
           variant_id: item.variant_id,
           product_title: variant.product.title,
           before_quantity: variant.inventoryQuantity,
-          delta: item.quantity,
-          after_quantity: variant.inventoryQuantity + item.quantity,
+          delta: normalizedQuantity,
+          after_quantity: variant.inventoryQuantity + normalizedQuantity,
           tracking_enabled: variant.inventoryItem.tracked,
           response:
             adjData?.data?.inventoryAdjustQuantities?.inventoryAdjustmentGroup ||
