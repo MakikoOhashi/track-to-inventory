@@ -85,7 +85,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                         {t('startGuide.step1.button')}
                       </Button>
                       <div style={{ width: 8, display: 'inline-block' }} />
-                      <Link url="https://www.notion.so/track-to-inventory-211c3eba44cb803dbc79f9a485bc8342?source=copy_link#211c3eba44cb805ba274e891bd9d2c59" target="_blank">
+                      <Link url="https://quiet-thrill-c13.notion.site/Track-To-Inventory-User-Guide-211c3eba44cb803dbc79f9a485bc8342" target="_blank">
                         {t('startGuide.tutorial')}
                       </Link>
                     </Box>
@@ -117,7 +117,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                         {t('startGuide.step2.button')}
                       </Button>
                       <div style={{ width: 8, display: 'inline-block' }} />
-                      <Link url="https://www.notion.so/track-to-inventory-211c3eba44cb803dbc79f9a485bc8342?source=copy_link#211c3eba44cb80569cbde4b68b11514b" target="_blank">
+                      <Link url="https://quiet-thrill-c13.notion.site/Track-To-Inventory-User-Guide-211c3eba44cb803dbc79f9a485bc8342" target="_blank">
                         {t('startGuide.tutorial')}
                       </Link>
                     </Box>
@@ -148,7 +148,7 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                         {t('startGuide.step3.button')}
                       </Button>
                       <div style={{ width: 8, display: 'inline-block' }} />
-                      <Link url="https://www.notion.so/track-to-inventory-211c3eba44cb803dbc79f9a485bc8342?source=copy_link#211c3eba44cb80ddab5dfa6fecc2e32c" target="_blank">
+                      <Link url="https://quiet-thrill-c13.notion.site/Track-To-Inventory-User-Guide-211c3eba44cb803dbc79f9a485bc8342" target="_blank">
                         {t('startGuide.tutorial')}
                       </Link>
                     </Box>
