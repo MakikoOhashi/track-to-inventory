@@ -1,6 +1,7 @@
 import { Outlet, useLoaderData, useLocation, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider as ShopifyAppProvider } from "@shopify/shopify-app-react-router/react";
+import { NavMenu } from "@shopify/app-bridge-react";
 import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import polarisTranslations from "@shopify/polaris/locales/en.json";
@@ -40,6 +41,40 @@ export default function App() {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     });
   };
+  const navigation = isPreview ? (
+    <div
+      style={{
+        padding: "12px 16px",
+        borderBottom: "1px solid #e1e3e5",
+        background: "#f6f6f7",
+        display: "flex",
+        gap: "12px",
+        alignItems: "center",
+        flexWrap: "wrap",
+      }}
+    >
+      <span style={{ fontSize: 13, fontWeight: 600, color: "#616161" }}>
+        Preview navigation
+      </span>
+      <a href={linkWithSearch("/app")} rel="home" onClick={scrollToTop}>
+        Home
+      </a>
+      <a href={linkWithSearch("/app/pricing")} onClick={scrollToTop}>
+        Pricing
+      </a>
+      <a href={linkWithSearch("/app/contact")} onClick={scrollToTop}>
+        Contact
+      </a>
+    </div>
+  ) : (
+    <NavMenu>
+      <a href={linkWithSearch("/app")} rel="home">
+        Home
+      </a>
+      <a href={linkWithSearch("/app/pricing")}>Pricing</a>
+      <a href={linkWithSearch("/app/contact")}>Contact</a>
+    </NavMenu>
+  );
 
   useEffect(() => {
     if (locale && i18n.language !== locale) {
@@ -68,32 +103,7 @@ export default function App() {
     <I18nextProvider i18n={i18n}>
       <PolarisAppProvider i18n={polarisTranslations}>
         <ShopifyAppProvider embedded apiKey={apiKey}>
-          {isPreview ? (
-            <div
-              style={{
-                padding: "12px 16px",
-                borderBottom: "1px solid #e1e3e5",
-                background: "#f6f6f7",
-                display: "flex",
-                gap: "12px",
-                alignItems: "center",
-                flexWrap: "wrap",
-              }}
-            >
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#616161" }}>
-                Preview navigation
-              </span>
-              <a href={linkWithSearch("/app")} rel="home" onClick={scrollToTop}>
-                Home
-              </a>
-              <a href={linkWithSearch("/app/pricing")} onClick={scrollToTop}>
-                Pricing
-              </a>
-              <a href={linkWithSearch("/app/contact")} onClick={scrollToTop}>
-                Contact
-              </a>
-            </div>
-          ) : null}
+          {navigation}
           <Outlet />
         </ShopifyAppProvider>
       </PolarisAppProvider>

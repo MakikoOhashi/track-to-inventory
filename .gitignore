@@ -33,3 +33,6 @@ database.sqlite
 /apps/web/.shopify/*
 /apps/web/.shopify.lock
 /apps/web/.react-router/
+/apps/web/dist/
+/apps/web/.wrangler/
+/apps/web/wrangler.jsonc.bak
