@@ -504,7 +504,13 @@ const CustomModal = ({
         body: formData,
       });
       
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (json.error === "DELETE_LIMIT_EXCEEDED" || res.status === 403) {
+          throw new Error(t("modal.messages.freePlanRestriction"));
+        }
+        throw new Error(json.error || `HTTP ${res.status}`);
+      }
       if (json.error) throw new Error(json.error);
       
       alert(t('modal.messages.deleteSuccess'));

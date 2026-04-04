@@ -18,9 +18,6 @@ function getDeleteMessages(request: Request) {
     siNumberRequired: ja ? "SI番号が必須です" : "SI number is required",
     shipmentNotFound: ja ? "指定されたSI番号のデータが見つかりません" : "No shipment found for the specified SI number",
     databaseError: ja ? "データベースエラーが発生しました" : "A database error occurred",
-    freePlanLimit: ja
-      ? "Freeプランの削除可能回数を超えました。プランをアップグレードしてください。"
-      : "You have exceeded the number of deletions allowed on the Free plan. Please upgrade your plan.",
     deleteFailed: ja ? "データの削除に失敗しました" : "Failed to delete data",
     serverError:
       ja
@@ -53,9 +50,6 @@ export const action = async ({ request }: any) => {
         siNumberRequired: ja ? "SI番号が必須です" : "SI number is required",
         shipmentNotFound: ja ? "指定されたSI番号のデータが見つかりません" : "No shipment found for the specified SI number",
         databaseError: ja ? "データベースエラーが発生しました" : "A database error occurred",
-        freePlanLimit: ja
-          ? "Freeプランの削除可能回数を超えました。プランをアップグレードしてください。"
-          : "You have exceeded the number of deletions allowed on the Free plan. Please upgrade your plan.",
         deleteFailed: ja ? "データの削除に失敗しました" : "Failed to delete data",
         serverError:
           ja
@@ -120,7 +114,7 @@ export const action = async ({ request }: any) => {
     } catch (limitError) {
       console.error('❌ Delete limit exceeded:', limitError);
       return json({ 
-        error: messages.freePlanLimit
+        error: "DELETE_LIMIT_EXCEEDED"
       }, { status: 403 });
     }
 

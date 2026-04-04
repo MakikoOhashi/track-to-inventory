@@ -257,7 +257,7 @@ export async function checkDeleteLimit(shopId: string, limit: number) {
   const currentCount = await redis.get<number>(`delete:${shopId}:${month}`) ?? 0
   
   if (currentCount >= limit) {
-    throw new Error(`削除回数の上限（${limit}回）に達しました。`)
+    throw new Error("DELETE_LIMIT_EXCEEDED")
   }
 }
 

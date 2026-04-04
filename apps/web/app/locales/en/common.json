@@ -134,6 +134,7 @@
       "deleteConfirm": "Are you sure you want to delete?",
       "deleteSuccess": "Deleted successfully",
       "deleteFailed": "Failed to delete",
+      "freePlanRestriction": "You have exceeded the deletion limit on the Free plan. Please upgrade your plan.",
       "saveSuccess": "Saved successfully",
       "saveFailed": "Failed to save",
       "uploadSuccess": " uploaded successfully",

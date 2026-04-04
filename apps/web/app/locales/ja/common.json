@@ -134,6 +134,7 @@
       "deleteConfirm": "本当に削除しますか？",
       "deleteSuccess": "削除しました",
       "deleteFailed": "削除に失敗しました",
+      "freePlanRestriction": "Freeプランの削除可能回数を超えました。プランをアップグレードしてください。",
       "saveSuccess": "保存しました",
       "saveFailed": "保存に失敗しました",
       "uploadSuccess": "のアップロード成功",
