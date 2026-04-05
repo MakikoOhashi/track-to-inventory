@@ -25,9 +25,14 @@ function withTimeout(promise, label, timeoutMs = 10000) {
 }
 
 function logGraphQLResponse(step, data, variables) {
+  console.log(`=== ${step} 詳細ログ ===`);
+  if (variables !== undefined) {
+    console.log("Variables:", JSON.stringify(variables, null, 2));
+  }
 
   if (data?.errors && Array.isArray(data.errors)) {
     data.errors.forEach((error, index) => {
+      console.error(`Error ${index + 1}:`, {
         message: error.message,
         extensions: error.extensions,
         path: error.path,
@@ -37,6 +42,7 @@ function logGraphQLResponse(step, data, variables) {
       });
     });
   }
+  console.log(`=== ${step} ログ終了 ===`);
 }
 
 function hasErrors(data) {
@@ -120,6 +126,7 @@ async function shopifyGraphQL(shopId, accessToken, query, variables) {
 }
 
 export async function handleSyncStock(request) {
+  console.log("sync-stock action started", {
     method: request.method,
     url: request.url,
   });
@@ -137,6 +144,7 @@ export async function handleSyncStock(request) {
   }
 
   const accessToken = await getOfflineAccessToken(shopId);
+  console.log("sync-stock access token resolved", {
     shopId,
     tokenPresent: Boolean(accessToken),
   });
