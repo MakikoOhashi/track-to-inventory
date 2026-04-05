@@ -30,7 +30,6 @@ export const loader = async ({ request }) => {
 export default function App() {
   const { apiKey, locale } = useLoaderData();
   const location = useLocation();
-  const [hasMounted, setHasMounted] = useState(false);
   const [navReady, setNavReady] = useState(false);
   const search = location.search || "";
   const isLocalPreview =
@@ -96,10 +95,6 @@ export default function App() {
   }, [locale]);
 
   useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  useEffect(() => {
     let cancelled = false;
 
     const waitForNavigationElements = async () => {
@@ -132,14 +127,6 @@ export default function App() {
     fetch("/api/ocr-health").catch((error) => {
     });
   }, []);
-
-  if (!hasMounted) {
-    return (
-      <div suppressHydrationWarning style={{ padding: 16 }}>
-        Loading...
-      </div>
-    );
-  }
 
   return (
     <I18nextProvider i18n={i18n}>
