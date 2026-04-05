@@ -728,23 +728,28 @@ export default function Index() {
         const statusLabel = getStatusLabel(statusKey);
         const shipmentsForStatus = getStatusStats(shipments)[statusLabel] || [];
         
-        const rows = shipmentsForStatus.flatMap(s =>
-          (s.items || []).map(item => [
+        const rows = shipmentsForStatus.flatMap((s) => {
+          const items =
+            s.items && s.items.length > 0
+              ? s.items
+              : [{ name: t('message.unknown'), quantity: '-' as const }];
+
+          return items.map((item, index) => [
             <span
-            style={{ color: "#2a5bd7", cursor: "pointer", textDecoration: "underline" }}
-            onClick={() => setSelectedShipment(s)}
-            tabIndex={0}
-            onKeyDown={e => { if (e.key === 'Enter') setSelectedShipment(s); }}
-            title={t('message.clickForDetails')}
-            key={s.si_number + (item.name || 'unknown')}
-          >
-            {s.si_number}
-          </span>, 
-            item.name || 'Unknown',
-            item.quantity || 0,
+              style={{ color: "#2a5bd7", cursor: "pointer", textDecoration: "underline" }}
+              onClick={() => setSelectedShipment(s)}
+              tabIndex={0}
+              onKeyDown={e => { if (e.key === 'Enter') setSelectedShipment(s); }}
+              title={t('message.clickForDetails')}
+              key={`${s.si_number}-${item.name || 'unknown'}-${index}`}
+            >
+              {s.si_number}
+            </span>,
+            item.name || t('message.unknown'),
+            item.quantity ?? '-',
             getStatusLabel(s.status)
-          ])
-        );
+          ]);
+        });
         
         return rows.length > 0 ?(
           <Box key={statusKey} paddingBlock="400">
