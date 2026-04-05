@@ -91,6 +91,19 @@ async function loadShopifyProductsForShop(shop: string) {
   return products;
 }
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<T>((resolve) => {
+    timeoutId = setTimeout(() => resolve(fallback), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
@@ -107,10 +120,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     let shopifyProducts: any[] = [];
     try {
       const supabase = createSupabaseAdminClient();
-      const { data, error } = await supabase
-        .from('shipments')
-        .select('*')
-        .eq('shop_id', shop);
+      const { data, error } = await withTimeout(
+        supabase
+          .from('shipments')
+          .select('*')
+          .eq('shop_id', shop),
+        5000,
+        { data: null, error: null } as any,
+      );
       
       if (error) {
         shipments = [];
@@ -122,7 +139,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
 
     try {
-      shopifyProducts = await loadShopifyProductsForShop(shop);
+      shopifyProducts = await withTimeout(loadShopifyProductsForShop(shop), 5000, []);
     } catch (error) {
       shopifyProducts = [];
     }
