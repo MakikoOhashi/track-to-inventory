@@ -39,7 +39,7 @@ export default function App() {
   const navSearch = (() => {
     const params = new URLSearchParams(search);
     const preserved = new URLSearchParams();
-    ["shop", "host", "embedded", "locale"].forEach((key) => {
+    ["shop", "host"].forEach((key) => {
       const value = params.get(key);
       if (value) preserved.set(key, value);
     });
