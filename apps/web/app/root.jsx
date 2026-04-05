@@ -23,12 +23,20 @@ export function links() {
 }
 
 export default function App() {
+  const shopifyApiKey = process.env.SHOPIFY_API_KEY || "";
+
   return (
     <html lang="ja">
       <head>
         <meta charSet="utf-8" />
         <Meta />
         <Links />
+        {shopifyApiKey ? (
+          <script
+            src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
+            data-api-key={shopifyApiKey}
+          />
+        ) : null}
       </head>
       <body>
         <Outlet />

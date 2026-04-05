@@ -31,6 +31,7 @@ export default function App() {
   const { apiKey, locale } = useLoaderData();
   const location = useLocation();
   const [hasMounted, setHasMounted] = useState(false);
+  const [navReady, setNavReady] = useState(false);
   const search = location.search || "";
   const isLocalPreview =
     typeof window !== "undefined" &&
@@ -99,6 +100,35 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const waitForNavigationElements = async () => {
+      if (typeof window === "undefined" || !window.customElements) {
+        setNavReady(true);
+        return;
+      }
+
+      const timeout = new Promise((resolve) => setTimeout(resolve, 3000));
+      const defined = Promise.all([
+        window.customElements.whenDefined("s-app-nav"),
+        window.customElements.whenDefined("s-link"),
+      ]);
+
+      await Promise.race([defined, timeout]);
+
+      if (!cancelled) {
+        setNavReady(true);
+      }
+    };
+
+    waitForNavigationElements();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     fetch("/api/ocr-health").catch((error) => {
     });
   }, []);
@@ -115,7 +145,7 @@ export default function App() {
     <I18nextProvider i18n={i18n}>
       <PolarisAppProvider i18n={polarisTranslations}>
         <ShopifyAppProvider embedded apiKey={apiKey}>
-          {navigation}
+          {navReady ? navigation : null}
           <Outlet />
         </ShopifyAppProvider>
       </PolarisAppProvider>
