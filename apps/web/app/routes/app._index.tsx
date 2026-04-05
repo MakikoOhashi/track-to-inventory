@@ -404,42 +404,52 @@ export default function Index() {
     }
   };
 
-  // ステータス日本語→英語キー変換マップ
-  const statusJaToKey = {
+  const statusAliases: Record<string, string> = {
     "SI発行済": "siIssued",
+    "SI Issued": "siIssued",
+    "siIssued": "siIssued",
     "船積スケジュール確定": "scheduleConfirmed",
+    "Shipping Schedule Confirmed": "scheduleConfirmed",
+    "scheduleConfirmed": "scheduleConfirmed",
     "船積中": "shipping",
+    "Shipping": "shipping",
+    "shipping": "shipping",
     "輸入通関中": "customsClearance",
+    "Import Customs Clearance": "customsClearance",
+    "customsClearance": "customsClearance",
     "倉庫着": "warehouseArrival",
-    "同期済み": "synced"
-  };
-
-  // statusTranslationMapの定義も関数内で
-  const statusTranslationMap: Record<string, string> = {
-    "SI発行済": t('modal.status.siIssued'),
-    "船積スケジュール確定": t('modal.status.scheduleConfirmed'),
-    "船積中": t('modal.status.shipping'),
-    "輸入通関中": t('modal.status.customsClearance'),
-    "倉庫着": t('modal.status.warehouseArrival'),
-    "同期済み": t('modal.status.synced'),
-    "siIssued": t('modal.status.siIssued'),
-    "scheduleConfirmed": t('modal.status.scheduleConfirmed'),
-    "shipping": t('modal.status.shipping'),
-    "customsClearance": t('modal.status.customsClearance'),
-    "warehouseArrival": t('modal.status.warehouseArrival'),
-    "synced": t('modal.status.synced'),
-    "未設定": t('status.notSet'),
+    "Warehouse Arrival": "warehouseArrival",
+    "warehouseArrival": "warehouseArrival",
+    "商品同期": "productSync",
+    "Product Sync": "productSync",
+    "productSync": "productSync",
+    "同期済み": "synced",
+    "Synced": "synced",
+    "synced": "synced",
+    "未設定": "notSet",
+    "Not Set": "notSet",
+    "notSet": "notSet",
   };
 
   const statusOrder = [
-    t('modal.status.siIssued'),
-    t('modal.status.scheduleConfirmed'),
-    t('modal.status.shipping'),
-    t('modal.status.customsClearance'),
-    t('modal.status.warehouseArrival'),
-    t('status.productSync'),
-    t('modal.status.synced')
+    "siIssued",
+    "scheduleConfirmed",
+    "shipping",
+    "customsClearance",
+    "warehouseArrival",
+    "productSync",
+    "synced",
   ];
+
+  const getStatusKey = (status?: string | null) =>
+    status ? statusAliases[status] || status : "notSet";
+
+  const getStatusLabel = (status?: string | null) => {
+    const statusKey = getStatusKey(status);
+    if (statusKey === "productSync") return t('status.productSync');
+    if (statusKey === "notSet") return t('status.notSet');
+    return t(`modal.status.${statusKey}`);
+  };
 
   // ETAの早い順でソートして上位2件を抽出
   const upcomingShipments = shipments
@@ -463,7 +473,9 @@ export default function Index() {
   .filter(s => (s.items || []).some(item => item.name === hoveredProduct))
   .sort((a, b) => {
     // まずstatus順
-    const statusDiff = statusOrder.indexOf(a.status ?? t('status.notSet')) - statusOrder.indexOf(b.status ?? t('status.notSet'));
+    const statusDiff =
+      statusOrder.indexOf(getStatusKey(a.status)) -
+      statusOrder.indexOf(getStatusKey(b.status));
     if (statusDiff !== 0) return statusDiff;
     // 同じstatusならETA順（undefinedならInfinityで一番後ろへ）
     const aEta = a.eta ? new Date(a.eta).getTime() : Infinity;
@@ -487,7 +499,7 @@ export default function Index() {
         </span>,
         item?.name || 'Unknown',
         item?.quantity || 0,
-        s.status
+        getStatusLabel(s.status)
       ];
     });
 
@@ -712,8 +724,9 @@ export default function Index() {
     <BlockStack gap="500">
     <Text as="h3" variant="headingMd">{t('title.statusChart')}</Text>
     
-      {statusOrder.map((status, index) => {
-        const shipmentsForStatus = getStatusStats(shipments)[status] || [];
+      {statusOrder.map((statusKey) => {
+        const statusLabel = getStatusLabel(statusKey);
+        const shipmentsForStatus = getStatusStats(shipments)[statusLabel] || [];
         
         const rows = shipmentsForStatus.flatMap(s =>
           (s.items || []).map(item => [
@@ -729,36 +742,14 @@ export default function Index() {
           </span>, 
             item.name || 'Unknown',
             item.quantity || 0,
-            // ステータスを翻訳して表示
-            (() => {
-              if (s.status === "siIssued") return t('modal.status.siIssued');
-              if (s.status === "scheduleConfirmed") return t('modal.status.scheduleConfirmed');
-              if (s.status === "shipping") return t('modal.status.shipping');
-              if (s.status === "customsClearance") return t('modal.status.customsClearance');
-              if (s.status === "warehouseArrival") return t('modal.status.warehouseArrival');
-              if (s.status === "productSync") return t('status.productSync');
-              if (s.status === "synced") return t('modal.status.synced');
-              return s.status || t('status.notSet');
-            })()
+            getStatusLabel(s.status)
           ])
         );
         
         return rows.length > 0 ?(
-          <Box key={status} paddingBlock="400">
+          <Box key={statusKey} paddingBlock="400">
             <BlockStack gap="300">
-            <Text as="h4" variant="headingMd">
-              {(() => {
-                // 英語のステータスを翻訳して表示
-                if (status === "siIssued") return t('modal.status.siIssued');
-                if (status === "scheduleConfirmed") return t('modal.status.scheduleConfirmed');
-                if (status === "shipping") return t('modal.status.shipping');
-                if (status === "customsClearance") return t('modal.status.customsClearance');
-                if (status === "warehouseArrival") return t('modal.status.warehouseArrival');
-                if (status === "productSync") return t('status.productSync');
-                if (status === "synced") return t('modal.status.synced');
-                return status;
-              })()}
-            </Text>
+            <Text as="h4" variant="headingMd">{statusLabel}</Text>
             <DataTable
               columnContentTypes={['text', 'text', 'numeric', 'text']}
               headings={[t('label.siNumber'), t('label.productName'), t('label.quantity'), t('label.status')]}
@@ -767,8 +758,8 @@ export default function Index() {
           </BlockStack>
           </Box>
         ): (
-          <Box key={status} paddingBlock="400">
-            <Text as="h4" variant="headingMd">{t('status.noData')}</Text>
+          <Box key={statusKey} paddingBlock="400">
+            <Text as="h4" variant="headingMd">{statusLabel}</Text>
             <Banner tone="info">{t('status.noData')}</Banner>
           </Box>
         );
