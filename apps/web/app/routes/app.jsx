@@ -33,7 +33,10 @@ export default function App() {
   const location = useLocation();
   const [hasMounted, setHasMounted] = useState(false);
   const search = location.search || "";
-  const isPreview = typeof window !== "undefined" && window.location.hostname.endsWith(".workers.dev");
+  const isPreview =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1");
 
   const linkWithSearch = (path) => `${path}${search}`;
   const scrollToTop = () => {
