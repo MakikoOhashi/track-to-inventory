@@ -17,12 +17,16 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "", produc
 
   // 商品データを取得
   useEffect(() => {
-    if (productsProp) {
-      setProducts(productsProp);
+    const hasProvidedProducts = Array.isArray(productsProp) && productsProp.length > 0;
+    const shouldUseProvidedState = hasProvidedProducts || loadingProp || Boolean(errorProp);
+
+    if (shouldUseProvidedState) {
+      setProducts(productsProp || []);
       setLoading(Boolean(loadingProp));
       setError(errorProp || "");
       return;
     }
+
     let isActive = true;
     const loadProducts = async () => {
       try {
