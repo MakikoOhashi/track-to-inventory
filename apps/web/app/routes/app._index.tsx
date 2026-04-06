@@ -16,6 +16,7 @@ import {
   Divider,
   Box,
   Layout,
+  Tooltip,
 } from '@shopify/polaris';
 import { QuestionCircleIcon } from '@shopify/polaris-icons';
 
@@ -488,9 +489,30 @@ export default function Index() {
   ];
   const selectedTab = tabs.findIndex(tab => tab.id === detailViewMode);
   const sectionTabs = [
-    { id: 'overview', content: t('tabs.overview') },
-    { id: 'details', content: t('tabs.details') },
-    { id: 'ocr', content: t('tabs.ocr') },
+    {
+      id: 'overview',
+      content: (
+        <Tooltip content={t('tabs.overviewHelp')}>
+          <span>{t('tabs.overview')}</span>
+        </Tooltip>
+      ),
+    },
+    {
+      id: 'details',
+      content: (
+        <Tooltip content={t('tabs.detailsHelp')}>
+          <span>{t('tabs.details')}</span>
+        </Tooltip>
+      ),
+    },
+    {
+      id: 'ocr',
+      content: (
+        <Tooltip content={t('tabs.ocrHelp')}>
+          <span>{t('tabs.ocr')}</span>
+        </Tooltip>
+      ),
+    },
   ];
   const selectedSectionTab = sectionTabs.findIndex(tab => tab.id === sectionViewMode);
 

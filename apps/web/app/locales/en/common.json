@@ -207,8 +207,11 @@
   },
   "tabs": {
     "overview": "Overview",
+    "overviewHelp": "See upcoming arrivals and the arrival status summary",
     "details": "Details",
+    "detailsHelp": "Check SI search, product-based, and status-based details",
     "ocr": "OCR",
+    "ocrHelp": "Upload documents and register shipment information",
     "search": "Search by SI Number",
     "product": "Planned arrivals by product",
     "status": "Status-wise chart"

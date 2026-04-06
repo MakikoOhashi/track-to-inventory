@@ -205,9 +205,12 @@
     "freePlanRestriction": "Freeプランでは月5回まで利用できます"
   },
   "tabs": {
-    "overview": "Overview",
-    "details": "Details",
-    "ocr": "OCR",
+    "overview": "概要",
+    "overviewHelp": "近日入荷予定と入荷ステータス一覧を確認します",
+    "details": "詳細",
+    "detailsHelp": "SI検索、商品別、ステータス別の詳細情報を確認します",
+    "ocr": "OCR登録",
+    "ocrHelp": "書類をアップロードして入荷情報を登録します",
     "search": "SI番号で検索",
     "product": "商品別の入荷予定",
     "status": "ステータスごとのチャート"
