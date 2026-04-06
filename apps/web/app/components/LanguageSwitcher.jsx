@@ -1,14 +1,9 @@
-import { Select } from '@shopify/polaris';
+import { Button, ButtonGroup, InlineStack, Text } from '@shopify/polaris';
 import { useTranslation } from 'react-i18next';
 import { makeLocaleCookie } from '~/utils/locale';
 
 const LanguageSwitcher = ({ value = 'ja', onChange }) => {
   const { t, i18n } = useTranslation('common');
-
-  const options = [
-    { label: t('language.japanese'), value: 'ja' },
-    { label: t('language.english'), value: 'en' },
-  ];
 
   const handleChange = (selectedValue) => {
     if (onChange) {
@@ -24,12 +19,25 @@ const LanguageSwitcher = ({ value = 'ja', onChange }) => {
   };
 
   return (
-    <Select
-      label={t('language.switch')}
-      options={options}
-      value={value}
-      onChange={handleChange}
-    />
+    <InlineStack gap="200" align="center" blockAlign="center">
+      <Text as="span" variant="bodySm" tone="subdued">
+        {t('language.switch')}
+      </Text>
+      <ButtonGroup variant="segmented">
+        <Button
+          pressed={value === 'ja'}
+          onClick={() => handleChange('ja')}
+        >
+          {t('language.japanese')}
+        </Button>
+        <Button
+          pressed={value === 'en'}
+          onClick={() => handleChange('en')}
+        >
+          {t('language.english')}
+        </Button>
+      </ButtonGroup>
+    </InlineStack>
   );
 };
 
