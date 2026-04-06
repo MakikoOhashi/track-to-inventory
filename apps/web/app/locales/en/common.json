@@ -3,7 +3,7 @@
     "shipmentsByOwner": "Shipment List",
     "arrivalStatus": "Arrival Status List",
     "upcomingArrivals": "Upcoming Arrivals",
-    "detailDisplay": "Detailed Information",
+    "detailedInfo": "Detailed Information",
     "productArrivals": "Product-wise Arrival Schedule (All Shipments)",
     "statusChart": "Arrival Schedule by Status",
     "siSearch": "Search by SI Number (Forward Match, Top 10)"

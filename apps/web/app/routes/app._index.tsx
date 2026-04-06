@@ -725,7 +725,7 @@ export default function Index() {
 <Card>
   <BlockStack gap="500">
 
-  <Text as="h2" variant="headingLg" id="detail-section">{t('title.detailDisplay')}</Text>
+  <Text as="h2" variant="headingLg" id="detail-section">{t('title.detailedInfo')}</Text>
 
   {/* デバッグ情報 */}
   {process.env.NODE_ENV === 'development' && (

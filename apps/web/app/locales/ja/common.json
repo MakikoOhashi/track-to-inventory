@@ -3,7 +3,7 @@
     "shipmentsByOwner": "入荷予定一覧",
     "arrivalStatus": "入荷ステータス一覧",
     "upcomingArrivals": "近日入荷予定の出荷",
-    "detailDisplay": "詳細情報",
+    "detailedInfo": "詳細情報",
     "productArrivals": "商品別の入荷予定（全出荷分）",
     "statusChart": "ステータスごとの入荷予定",
     "siSearch": "SI番号で検索（前方一致・上位10件）"
