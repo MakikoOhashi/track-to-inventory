@@ -279,34 +279,7 @@ export default function Index() {
     const stats: StatusStats = {};
     
     shipments.forEach((s) => {
-      // データベースの英語ステータスを翻訳された値に変換
-      let translatedStatus: string;
-      
-      if (s.status === "siIssued") {
-        translatedStatus = t('modal.status.siIssued');
-      }
-      else if (s.status === "scheduleConfirmed") {
-        translatedStatus = t('modal.status.scheduleConfirmed');
-      }
-      else if (s.status === "shipping") {
-        translatedStatus = t('modal.status.shipping');
-      }
-      else if (s.status === "customsClearance") {
-        translatedStatus = t('modal.status.customsClearance');
-      }
-      else if (s.status === "warehouseArrival") {
-        translatedStatus = t('modal.status.warehouseArrival');
-      }
-      else if (s.status === "productSync") {
-        translatedStatus = t('status.productSync');
-      }
-      else if (s.status === "synced") {
-        translatedStatus = t('modal.status.synced');
-      }
-      else {
-        translatedStatus = t('status.notSet');
-      }
-      
+      const translatedStatus = getStatusLabel(s.status);
       if (!stats[translatedStatus]) stats[translatedStatus] = [];
       stats[translatedStatus].push(s);
     });
