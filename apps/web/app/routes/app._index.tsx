@@ -523,7 +523,6 @@ export default function Index() {
       ),
     },
   ];
-  const selectedSectionTab = sectionTabs.findIndex(tab => tab.id === sectionViewMode);
 
   const filteredAndSortedShipments = shipments
   .filter(s => (s.items || []).some(item => item.name === hoveredProduct))
@@ -639,14 +638,17 @@ export default function Index() {
             </Box>
           )}
 
-        <Tabs
-          tabs={sectionTabs}
-          selected={selectedSectionTab}
-          onSelect={(selectedIndex) => {
-            const selectedId = sectionTabs[selectedIndex].id as 'overview' | 'details' | 'ocr';
-            setSectionViewMode(selectedId);
-          }}
-        />
+        <ButtonGroup variant="segmented">
+          {sectionTabs.map((tab) => (
+            <Button
+              key={tab.id}
+              pressed={sectionViewMode === tab.id}
+              onClick={() => setSectionViewMode(tab.id as 'overview' | 'details' | 'ocr')}
+            >
+              {tab.content}
+            </Button>
+          ))}
+        </ButtonGroup>
 
         {sectionViewMode === 'overview' && (
         <Card>
@@ -676,16 +678,20 @@ export default function Index() {
         
         <Text as="h2" variant="headingLg">{t('title.arrivalStatus')}</Text>
         {/* ▼▼▼ ここが変更点 ▼▼▼ */}
-        <Tabs
-          tabs={[
-            { id: 'card', content: t('button.cardView') },
-            { id: 'table', content: t('button.tableView') }
-          ]}
-          selected={viewMode === 'card' ? 0 : 1}
-          onSelect={selectedIndex => {
-            setViewMode(selectedIndex === 0 ? 'card' : 'table');
-          }}
-        />
+        <ButtonGroup variant="segmented">
+          <Button
+            pressed={viewMode === 'card'}
+            onClick={() => setViewMode('card')}
+          >
+            {t('button.cardView')}
+          </Button>
+          <Button
+            pressed={viewMode === 'table'}
+            onClick={() => setViewMode('table')}
+          >
+            {t('button.tableView')}
+          </Button>
+        </ButtonGroup>
 
       <Divider />
       {/* 表示形式に応じて切り替え */}
