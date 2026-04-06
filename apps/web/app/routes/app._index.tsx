@@ -181,6 +181,7 @@ export default function Index() {
   const [popupPos, setPopupPos] = useState<PopupPos>({ x: 0, y: 0 });
   const [locale, setLocale] = useState<string>(initialLocale || 'ja');
   const popupTimeout = useRef<NodeJS.Timeout | null>(null);
+  const guideRef = useRef<HTMLDivElement | null>(null);
 
   const shopifyVariantLabelMap = Object.fromEntries(
     (shopifyProducts || []).flatMap((product: any) =>
@@ -226,6 +227,14 @@ export default function Index() {
       fetchShipments(shopId);
     }
   }, [shopId, shop]);
+
+  useEffect(() => {
+    if (!showStartGuide) return;
+
+    window.setTimeout(() => {
+      guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+  }, [showStartGuide]);
   
   // ガイド関連
     const handleDismissGuide = () => {
@@ -608,7 +617,9 @@ export default function Index() {
 
         {/* StartGuide本体 */}
       {showStartGuide && (
-        <StartGuide onDismiss={handleDismissGuide} onNavigate={handleGuideNavigate} />
+        <div ref={guideRef}>
+          <StartGuide onDismiss={handleDismissGuide} onNavigate={handleGuideNavigate} />
+        </div>
       )}
 
      {/* ガイドが非表示ならヘルプボタンを右上に表示 */}
