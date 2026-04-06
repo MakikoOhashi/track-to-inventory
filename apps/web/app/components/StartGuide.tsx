@@ -183,18 +183,6 @@ const ImportCargoGuide = ({
                   {t('startGuide.footer')}
                 </Text>
               </InlineStack>
-
-              <Box paddingBlockStart="300">
-                <InlineStack align="end">
-                  <Button 
-                    onClick={onDismiss} 
-                    variant="tertiary"
-                    size="medium"
-                  >
-                    {t('startGuide.closeGuide')}
-                  </Button>
-                </InlineStack>
-              </Box>
             </BlockStack>
           )}
         </BlockStack>
