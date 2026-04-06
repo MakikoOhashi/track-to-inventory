@@ -490,6 +490,14 @@ export default function Index() {
   const selectedTab = tabs.findIndex(tab => tab.id === detailViewMode);
   const sectionTabs = [
     {
+      id: 'ocr',
+      content: (
+        <Tooltip content={t('tabs.ocrHelp')}>
+          <span>{t('tabs.ocr')}</span>
+        </Tooltip>
+      ),
+    },
+    {
       id: 'overview',
       content: (
         <Tooltip content={t('tabs.overviewHelp')}>
@@ -502,14 +510,6 @@ export default function Index() {
       content: (
         <Tooltip content={t('tabs.detailsHelp')}>
           <span>{t('tabs.details')}</span>
-        </Tooltip>
-      ),
-    },
-    {
-      id: 'ocr',
-      content: (
-        <Tooltip content={t('tabs.ocrHelp')}>
-          <span>{t('tabs.ocr')}</span>
         </Tooltip>
       ),
     },
