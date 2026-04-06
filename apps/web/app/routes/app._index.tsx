@@ -500,7 +500,7 @@ export default function Index() {
         >
           {s.si_number}
         </span>,
-        item?.name || 'Unknown',
+        renderProductNameCell(item),
         item?.quantity || 0,
         getStatusLabel(s.status)
       ];
