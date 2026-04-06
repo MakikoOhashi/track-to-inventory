@@ -35,7 +35,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   const [isClient, setIsClient] = useState(false);
   const [usageInfo, setUsageInfo] = useState(null); // 使用状況情報を保存
   const [showManualForm, setShowManualForm] = useState(false);
-  const demoImageUrl = "https://track-to-inventory.onrender.com/instruction_demo.png";
+  const demoImageUrl = "/instruction_demo.png";
   const ocrWarmUpStartedRef = useRef(false);
 
   const getLocalizedError = useCallback((value) => {
