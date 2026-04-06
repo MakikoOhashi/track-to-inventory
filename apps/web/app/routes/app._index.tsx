@@ -232,7 +232,22 @@ export default function Index() {
     localStorage.setItem('startGuideDismissed', 'true');
     };
   
-    const handleShowGuide = () => setShowStartGuide(true);
+  const handleShowGuide = () => setShowStartGuide(true);
+
+  const handleGuideNavigate = (target: 'overview' | 'details' | 'ocr') => {
+    const targetConfig = {
+      overview: { section: 'overview' as const, anchorId: 'card-edit' },
+      details: { section: 'details' as const, anchorId: 'detail-section' },
+      ocr: { section: 'ocr' as const, anchorId: 'ocr-section' },
+    }[target];
+
+    setSectionViewMode(targetConfig.section);
+
+    window.setTimeout(() => {
+      const el = document.getElementById(targetConfig.anchorId);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  };
 
   // 言語切り替えハンドラー
   const handleLanguageChange = (newLanguage: string) => {
@@ -571,7 +586,7 @@ export default function Index() {
 
         {/* StartGuide本体 */}
       {showStartGuide && (
-        <StartGuide onDismiss={handleDismissGuide} />
+        <StartGuide onDismiss={handleDismissGuide} onNavigate={handleGuideNavigate} />
       )}
 
      {/* ガイドが非表示ならヘルプボタンを右上に表示 */}

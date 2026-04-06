@@ -14,7 +14,15 @@ import {
 import { XIcon, UploadIcon, ViewIcon, EditIcon, PackageIcon } from '@shopify/polaris-icons';
 import { useTranslation } from 'react-i18next';
 
-const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
+type GuideTarget = 'ocr' | 'details' | 'overview';
+
+const ImportCargoGuide = ({
+  onDismiss,
+  onNavigate,
+}: {
+  onDismiss: () => void;
+  onNavigate?: (target: GuideTarget) => void;
+}) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const { t } = useTranslation('common');
 
@@ -81,7 +89,11 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                       {t('startGuide.step1.desc4')}
                     </Text>
                     <Box paddingBlockStart="100">
-                      <Button variant="primary" size="medium" url="#ocr-section">
+                      <Button
+                        variant="primary"
+                        size="medium"
+                        onClick={() => onNavigate?.('ocr')}
+                      >
                         {t('startGuide.step1.button')}
                       </Button>
                       <div style={{ width: 8, display: 'inline-block' }} />
@@ -113,7 +125,11 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                       {t('startGuide.step2.desc4')}
                     </Text>
                     <Box paddingBlockStart="100">
-                      <Button variant="primary" size="medium" url="#detail-section">
+                      <Button
+                        variant="primary"
+                        size="medium"
+                        onClick={() => onNavigate?.('details')}
+                      >
                         {t('startGuide.step2.button')}
                       </Button>
                       <div style={{ width: 8, display: 'inline-block' }} />
@@ -144,7 +160,11 @@ const ImportCargoGuide = ({ onDismiss }: { onDismiss: () => void }) => {
                       {t('startGuide.step3.desc3')}
                     </Text>
                     <Box paddingBlockStart="100">
-                      <Button variant="primary" size="medium"  url="#card-edit">
+                      <Button
+                        variant="primary"
+                        size="medium"
+                        onClick={() => onNavigate?.('overview')}
+                      >
                         {t('startGuide.step3.button')}
                       </Button>
                       <div style={{ width: 8, display: 'inline-block' }} />
