@@ -172,6 +172,7 @@ export default function Index() {
   const [shopifyProductsError, setShopifyProductsError] = useState("");
   const [showStartGuide, setShowStartGuide] = useState(false);
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [sectionViewMode, setSectionViewMode] = useState<'overview' | 'details' | 'ocr'>('overview');
   const [detailViewMode, setDetailViewMode] = useState<'product' | 'status' | 'search'>('product');
   const [productStatsSort, setProductStatsSort] = useState<'name-asc' | 'name-desc'>('name-asc');
   const [siQuery, setSiQuery] = useState("");
@@ -471,6 +472,12 @@ export default function Index() {
     { id: 'status', content: t('tabs.status') },
   ];
   const selectedTab = tabs.findIndex(tab => tab.id === detailViewMode);
+  const sectionTabs = [
+    { id: 'overview', content: t('tabs.overview') },
+    { id: 'details', content: t('tabs.details') },
+    { id: 'ocr', content: t('tabs.ocr') },
+  ];
+  const selectedSectionTab = sectionTabs.findIndex(tab => tab.id === sectionViewMode);
 
   const filteredAndSortedShipments = shipments
   .filter(s => (s.items || []).some(item => item.name === hoveredProduct))
@@ -584,6 +591,16 @@ export default function Index() {
             </Box>
           )}
 
+        <Tabs
+          tabs={sectionTabs}
+          selected={selectedSectionTab}
+          onSelect={(selectedIndex) => {
+            const selectedId = sectionTabs[selectedIndex].id as 'overview' | 'details' | 'ocr';
+            setSectionViewMode(selectedId);
+          }}
+        />
+
+        {sectionViewMode === 'overview' && (
         <Card>
         
           <BlockStack gap="400"> 
@@ -644,12 +661,14 @@ export default function Index() {
       
       </BlockStack>
       </Card>
+      )}
 
 
       
       
 
 {/* 詳細表示　　セクション */}
+{sectionViewMode === 'details' && (
 <Card>
   <BlockStack gap="500">
 
@@ -827,10 +846,11 @@ export default function Index() {
                  
           </BlockStack>
           </Card>
+)}
 
 
        {/* ここにOCRアップローダーを追加 - shopIdを渡す */}
-       {hasMounted && (
+       {sectionViewMode === 'ocr' && hasMounted && (
         <>
           <div id="ocr-section" />
           <OCRUploader 

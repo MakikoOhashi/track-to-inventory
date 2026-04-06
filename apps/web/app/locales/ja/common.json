@@ -205,6 +205,9 @@
     "freePlanRestriction": "Freeプランでは月5回まで利用できます"
   },
   "tabs": {
+    "overview": "Overview",
+    "details": "Details",
+    "ocr": "OCR",
     "search": "SI番号で検索",
     "product": "商品別の入荷予定",
     "status": "ステータスごとのチャート"

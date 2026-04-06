@@ -206,6 +206,9 @@
     "freePlanRestriction": "Available up to 5 times per month on the Free plan"
   },
   "tabs": {
+    "overview": "Overview",
+    "details": "Details",
+    "ocr": "OCR",
     "search": "Search by SI Number",
     "product": "Planned arrivals by product",
     "status": "Status-wise chart"
