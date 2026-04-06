@@ -34,11 +34,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const shopIdFromBody = typeof requestBody?.shop_id === "string" ? requestBody.shop_id : "";
     const shopId = shopIdFromQuery || shopIdFromBody;
 
-    if (shopId) {
+    try {
+      ({ admin } = await authenticate.admin(request));
+    } catch (authError) {
+      if (!shopId) {
+        throw authError;
+      }
+
       const unauthenticatedAdmin = await unauthenticated.admin(shopId);
       admin = unauthenticatedAdmin.admin;
-    } else {
-      ({ admin } = await authenticate.admin(request));
     }
 
     const response = await admin.graphql(query, { variables });
