@@ -39,7 +39,9 @@
     "upcomingArrivals": "近日入荷予定",
     "noMatchingSi": "該当するSIがありません",
     "clickForDetails": "クリックで詳細",
-    "siListWith": "「{{productName}}」積載SI一覧"
+    "siListWith": "「{{productName}}」積載SI一覧",
+    "shopifyProductUnassigned": "Shopify商品名未割り当て",
+    "shopifyProductAssigned": "Shopify商品名: {{name}}"
   },
   "status": {
     "siIssued": "SI発行済",

@@ -39,7 +39,9 @@
     "upcomingArrivals": "Upcoming Arrivals",
     "noMatchingSi": "No matching SI found",
     "clickForDetails": "Click for details",
-    "siListWith": "SI List containing \"{{productName}}\""
+    "siListWith": "SI List containing \"{{productName}}\"",
+    "shopifyProductUnassigned": "Shopify product unassigned",
+    "shopifyProductAssigned": "Shopify product: {{name}}"
   },
   "status": {
     "siIssued": "SI Issued",

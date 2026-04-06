@@ -180,6 +180,19 @@ export default function Index() {
   const [locale, setLocale] = useState<string>(initialLocale || 'ja');
   const popupTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  const shopifyVariantLabelMap = Object.fromEntries(
+    (shopifyProducts || []).flatMap((product: any) =>
+      (product.variants || []).map((variant: any) => {
+        const variantSuffix =
+          variant.title && variant.title !== "Default Title"
+            ? ` / ${variant.title}`
+            : "";
+
+        return [variant.id, `${product.title}${variantSuffix}`];
+      })
+    )
+  ) as Record<string, string>;
+
   // 定数
   const POPUP_WIDTH = 400;
   const POPUP_HEIGHT = 300;
@@ -422,6 +435,23 @@ export default function Index() {
     if (statusKey === "productSync") return t('status.productSync');
     if (statusKey === "notSet") return t('status.notSet');
     return t(`modal.status.${statusKey}`);
+  };
+
+  const renderProductNameCell = (item?: ShipmentItem) => {
+    const docName = item?.name || t('message.unknown');
+    const shopifyLabel =
+      item?.variant_id ? shopifyVariantLabelMap[item.variant_id] : undefined;
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+        <span>{docName}</span>
+        <span style={{ color: '#6d7175', fontSize: '0.85rem' }}>
+          {shopifyLabel
+            ? t('message.shopifyProductAssigned', { name: shopifyLabel })
+            : t('message.shopifyProductUnassigned')}
+        </span>
+      </div>
+    );
   };
 
   // ETAの早い順でソートして上位2件を抽出
@@ -718,7 +748,7 @@ export default function Index() {
             >
               {s.si_number}
             </span>,
-            item.name || t('message.unknown'),
+            renderProductNameCell(item),
             item.quantity ?? '-',
             getStatusLabel(s.status)
           ]);
