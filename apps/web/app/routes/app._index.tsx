@@ -868,7 +868,7 @@ export default function Index() {
         {/* <Text as="p" variant="bodyMd" fontWeight="semibold">
           {t('message.siListWith', { productName: hoveredProduct })}
         </Text> */}
-        <Box paddingBlockStart="200">
+        <Box paddingBlockStart="0">
           <DataTable
             columnContentTypes={['text', 'text', 'numeric', 'text']}
             headings={[
