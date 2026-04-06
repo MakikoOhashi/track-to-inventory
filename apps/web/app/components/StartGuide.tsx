@@ -6,12 +6,11 @@ import {
   Text,
   Button,
   Box,
-  Icon,
   Badge,
   Divider,
   Link
 } from '@shopify/polaris';
-import { XIcon, UploadIcon, ViewIcon, EditIcon, PackageIcon } from '@shopify/polaris-icons';
+import { XIcon, UploadIcon, ViewIcon, EditIcon } from '@shopify/polaris-icons';
 import { useTranslation } from 'react-i18next';
 
 type GuideTarget = 'ocr' | 'details' | 'overview';
@@ -35,7 +34,6 @@ const ImportCargoGuide = ({
           {/* ヘッダー */}
           <InlineStack align="space-between">
             <InlineStack gap="400" align="center">
-              <Icon source={PackageIcon} />
               <BlockStack gap="100">
                 <Text as="h2" variant="headingXl">
                   {t('startGuide.title')}
