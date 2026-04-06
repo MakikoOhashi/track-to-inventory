@@ -496,7 +496,6 @@ export default function Index() {
     { id: 'product', content: t('tabs.product') },
     { id: 'status', content: t('tabs.status') },
   ];
-  const selectedTab = tabs.findIndex(tab => tab.id === detailViewMode);
   const sectionTabs = [
     {
       id: 'ocr',
@@ -735,18 +734,20 @@ export default function Index() {
       <p>Shipments数: {shipments.length}</p>
       <p>現在の言語: {locale}</p>
       <p>DetailViewMode: {detailViewMode}</p>
-      <p>SelectedTab: {selectedTab}</p>
-    </Banner>
+      </Banner>
   )}
 
-                <Tabs 
-                  tabs={tabs}
-                  selected={selectedTab}
-                  onSelect={(selectedIndex) => {
-                    const selectedId = tabs[selectedIndex].id as 'product' | 'status' | 'search';
-                    setDetailViewMode(selectedId);
-                  }}
-                />
+                <ButtonGroup variant="segmented">
+                  {tabs.map((tab) => (
+                    <Button
+                      key={tab.id}
+                      pressed={detailViewMode === tab.id}
+                      onClick={() => setDetailViewMode(tab.id as 'product' | 'status' | 'search')}
+                    >
+                      {tab.content}
+                    </Button>
+                  ))}
+                </ButtonGroup>
 
 
 
