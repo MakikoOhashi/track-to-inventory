@@ -127,7 +127,7 @@
       "delete": "削除",
       "addItem": "商品を追加",
       "deleteShipment": "入荷情報を削除",
-      "syncShopify": "Shopify在庫と同期",
+      "syncShopify": "Shopify在庫へ反映",
       "viewFile": "ファイルを表示",
       "viewFileType": "{{fileType}}を表示"
     },
@@ -138,6 +138,7 @@
       "deleteFailed": "削除に失敗しました",
       "freePlanRestriction": "Freeプランの削除可能回数を超えました。プランをアップグレードしてください。",
       "saveSuccess": "保存しました",
+      "syncComplete": "反映が完了しました",
       "saveFailed": "保存に失敗しました",
       "uploadSuccess": "のアップロード成功",
       "uploadFailed": "アップロード失敗",

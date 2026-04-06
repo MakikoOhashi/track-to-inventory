@@ -127,7 +127,7 @@
       "delete": "Delete",
       "addItem": "Add Item",
       "deleteShipment": "Delete Shipment",
-      "syncShopify": "Sync with Shopify",
+      "syncShopify": "Apply to Shopify inventory",
       "viewFile": "View File",
       "viewFileType": "View {{fileType}}"
     },
@@ -138,6 +138,7 @@
       "deleteFailed": "Failed to delete",
       "freePlanRestriction": "You have exceeded the deletion limit on the Free plan. Please upgrade your plan.",
       "saveSuccess": "Saved successfully",
+      "syncComplete": "Inventory update complete",
       "saveFailed": "Failed to save",
       "uploadSuccess": " uploaded successfully",
       "uploadFailed": "Upload failed",
