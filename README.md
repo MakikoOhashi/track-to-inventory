@@ -1,8 +1,8 @@
-# Track to Inventory - Shopify入荷管理アプリ
+# Inbound Tracking (formerly Track to Inventory) - Shopify入荷前管理アプリ
 
 Shopify App Store の審査を通過し、公開まで到達した Shopify Embedded App です。
 
-Track to Inventoryは、Shopifyストアの入荷管理を効率化するためのアプリです。船荷証券（SI）の追跡から在庫同期まで、輸入ビジネスに必要な機能を一つのアプリで提供します。
+Inbound Tracking（旧称: Track to Inventory）は、Shopifyストアの入荷前フローを見える化するためのアプリです。船荷証券（SI）の追跡から在庫同期まで、輸入ビジネスに必要な機能を一つのアプリで提供します。
 
 このリポジトリのポートフォリオ上の価値は、機能量そのものよりも、実際に Shopify アプリとして設計し、認証・埋め込み表示・課金導線・運用を含めて公開審査を通した点にあります。
 
@@ -391,16 +391,16 @@ npm run dev
 
 ---
 
-**Track to Inventory** - Shopify入荷管理を効率化するための最適なソリューション
+**Inbound Tracking** (formerly **Track to Inventory**) - Shopify入荷前管理を効率化するための最適なソリューション
 
 
 ---
 
 ## 🇺🇸 English Summary
 
-### Track to Inventory – Shopify Inventory Management App
+### Inbound Tracking (formerly Track to Inventory) – Shopify Pre-Inventory Management App
 
-**Track to Inventory** is a Shopify app designed to streamline the inventory management process for import-based businesses.  
+**Inbound Tracking** (formerly **Track to Inventory**) is a Shopify app designed to streamline the pre-inventory management process for import-based businesses.  
 It provides powerful features for tracking shipping instructions (SI), managing arrival schedules, synchronizing stock with Shopify, and automating data extraction using OCR and AI.
 
 ### 🔧 Key Features
