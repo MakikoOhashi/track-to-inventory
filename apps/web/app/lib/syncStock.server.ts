@@ -180,11 +180,50 @@ async function loadShipmentForSync(params: {
   }
 
   const items = Array.isArray(data.items) ? ([...data.items] as ShipmentLineItem[]) : [];
+
+  // Prefer reusing succeeded ledger item_keys when sync_item_id is missing,
+  // so a later ID backfill cannot create a new idempotency key and re-adjust stock.
+  const { data: succeededRows } = await supabase
+    .from("inventory_sync_ledger")
+    .select("item_key, variant_id, delta_quantity")
+    .eq("shop_id", params.shop)
+    .eq("si_number", params.siNumber)
+    .eq("status", "succeeded");
+
+  const usedKeys = new Set(
+    items
+      .map((item) => (typeof item.sync_item_id === "string" ? item.sync_item_id.trim() : ""))
+      .filter(Boolean),
+  );
+  const reusable = (succeededRows || []).filter(
+    (row) => row.item_key && !usedKeys.has(row.item_key),
+  );
+
   let mutated = false;
   for (const item of items) {
-    const before = item.sync_item_id;
+    const existing =
+      typeof item.sync_item_id === "string" && item.sync_item_id.trim()
+        ? item.sync_item_id.trim()
+        : "";
+    if (existing) continue;
+
+    const delta = normalizeDeltaQuantity(item.quantity);
+    const matchIndex = reusable.findIndex(
+      (row) =>
+        row.variant_id === item.variant_id &&
+        delta !== null &&
+        Number(row.delta_quantity) === delta,
+    );
+    if (matchIndex >= 0) {
+      const [matched] = reusable.splice(matchIndex, 1);
+      item.sync_item_id = matched.item_key;
+      usedKeys.add(matched.item_key);
+      mutated = true;
+      continue;
+    }
+
     ensureSyncItemId(item);
-    if (item.sync_item_id !== before) mutated = true;
+    mutated = true;
   }
 
   if (mutated) {

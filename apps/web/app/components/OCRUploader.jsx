@@ -425,13 +425,12 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       setLoading(true);
       setSaveError("");
 
-      // データの準備
+      // データの準備（shop_id はサーバーが session から設定）
       const shipmentData = {
         si_number: fields.si_number,
         supplier_name: fields.supplier_name,
         transport_type: fields.transport_type || null,
-        items: fields.items || [],// ← JSONBカラムにそのまま保存
-        
+        items: fields.items || [],
         status: t("ocrUploader.initialStatus"),
         etd: null,
         eta: null,
@@ -440,18 +439,13 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         arrival_date: null,
         memo: null,
         is_archived: false,
-        shop_id: shopId, // ← 親コンポーネントから受け取ったshopIdを追加
-        // created_at, updated_atフィールドは明示的に除外
       };
 
-      // API呼び出し
-      const saveQuery = shopId ? `?shop_id=${encodeURIComponent(shopId)}` : "";
-      const res = await fetch(`/api/createShipment${saveQuery}`, {
+      const res = await shopifyAuthenticatedFetch(shopify, "/api/createShipment", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           shipment: shipmentData,
-          shop_id: shopId,
         }),
       });
       

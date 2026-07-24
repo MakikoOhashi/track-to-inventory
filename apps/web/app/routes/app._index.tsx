@@ -26,6 +26,8 @@ import StatusTable from '../components/StatusTable';
 import OCRUploader from "../components/OCRUploader";
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 import StartGuide from '~/components/StartGuide';
+import { useAppBridge } from '@shopify/app-bridge-react';
+import { shopifyAuthenticatedFetch } from '~/lib/shopifyAuthenticatedFetch.client';
 
 import type { Shipment,ShipmentItem } from '../../types/Shipment';
 
@@ -35,8 +37,9 @@ import { useTranslation } from "react-i18next";
 import { i18n } from "~/utils/i18n.server";
 import { makeLocaleCookie } from "~/utils/locale";
 
-import { unauthenticated } from "~/shopify.server";
+import { unauthenticated, authenticate } from "~/shopify.server";
 import { createSupabaseAdminClient } from "~/lib/supabase.server";
+import { normalizeShopDomain } from "~/utils/shopDomain";
 
 type StatusTableProps = {
   shipments: Shipment[];
@@ -109,14 +112,21 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     const url = new URL(request.url);
-    const shop = url.searchParams.get("shop") || "";
     const locale = await i18n.getLocale(request);
-    
+
+    // Prefer session shop; query shop is display fallback only (not for data auth).
+    let shop = "";
+    try {
+      const auth = await authenticate.admin(request);
+      shop = normalizeShopDomain(auth.session.shop);
+    } catch {
+      shop = normalizeShopDomain(url.searchParams.get("shop") || "");
+    }
+
     if (!shop) {
       throw new Response("Unauthorized", { status: 401 });
     }
-    
-    // Preview段階ではshop queryを信頼してSSR初期データだけ返す。
+
     let shipments = [];
     let shopifyProducts: any[] = [];
     try {
@@ -129,7 +139,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         5000,
         { data: null, error: null } as any,
       );
-      
+
       if (error) {
         shipments = [];
       } else if (data) {
@@ -144,10 +154,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     } catch (error) {
       shopifyProducts = [];
     }
-    
+
     return json({ shop, locale, shipments, shopifyProducts });
   } catch (error) {
-    // 認証失敗時は401エラー
     if (error instanceof Response) {
       throw error;
     }
@@ -159,6 +168,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function Index() {
   const { shop, shipments: initialShipments, locale: initialLocale, shopifyProducts: initialShopifyProducts } = useLoaderData<typeof loader>();
   const { t, i18n: i18nInstance } = useTranslation();
+  const shopify = useAppBridge();
   const [hasMounted, setHasMounted] = useState(false);
 
   // 状態管理
@@ -269,25 +279,27 @@ export default function Index() {
     setLocale(newLanguage);
   };
 
-  // データ取得関数（認証済みshop_idのみ使用）
-  const fetchShipments = async (shopIdValue: string) => {
-    if (!shopIdValue || shopIdValue !== shop) {
-      setError('認証エラーが発生しました');
-      return;
-    }
-    
+  // データ取得関数（Bearer session shop のみ。query shop_id は送らない）
+  const fetchShipments = async (_shopIdValue?: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
-    const res = await fetch(`/api/shipments?shop_id=${encodeURIComponent(shopIdValue)}`);
-    if (!res.ok) {
+      const res = await shopifyAuthenticatedFetch(shopify, '/api/shipments');
+      if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
       const data = await res.json();
       setShipments(data.shipments || []);
+      if (data.shop) {
+        setShopId(data.shop);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
+      if (err instanceof Error && err.message === 'SESSION_TOKEN_UNAVAILABLE') {
+        setError(t('ocrUploader.authFailed') || 'Authentication failed');
+      } else {
+        setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
+      }
       setShipments([]);
     } finally {
       setLoading(false);

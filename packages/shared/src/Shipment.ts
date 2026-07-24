@@ -5,6 +5,7 @@ export type ShipmentItem = {
 };
 
 export type Shipment = {
+  id?: string;
   si_number: string;
   shop_id: string;
   status?: string;

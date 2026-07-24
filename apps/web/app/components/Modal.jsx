@@ -320,12 +320,11 @@ const CustomModal = ({
       // Only mark shipment synced when every line is synced/already-synced
       // and at least one succeeded or all were already synced.
       if (anyFreshSync || allAlready) {
-        const updateRes = await fetch('/api/updateShipment', {
+        const updateRes = await shopifyAuthenticatedFetch(shopify, '/api/updateShipment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            shipment: { ...formData, status: "synced" },
-            shop_id: shipment.shop_id || formData.shop_id,
+            shipment: { ...formData, status: "synced", shop_id: undefined },
           }),
         });
         if (!updateRes.ok) throw new Error(t('modal.messages.statusUpdateFailed'));
@@ -362,12 +361,11 @@ const CustomModal = ({
       saveData.arrival_date = cleanDate(saveData.arrival_date);
       // 他のフィールドも空文字列ならnullにしたい場合はここで追加可能
       
-      const res = await fetch('/api/updateShipment', {
+      const res = await shopifyAuthenticatedFetch(shopify, '/api/updateShipment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          shipment: saveData,
-          shop_id: shipment.shop_id || saveData.shop_id,
+          shipment: { ...saveData, shop_id: undefined },
           locale: effectiveLocale,
         }),
       });
@@ -380,6 +378,10 @@ const CustomModal = ({
           localizedError = getLocalizedApiError(parsed.error || parsed.details || errorText);
         } catch {
           localizedError = getLocalizedApiError(errorText);
+        }
+        if (errorText.includes('SESSION_TOKEN') || res.status === 401) {
+          alert(getLocalizedApiError('AUTH_FAILED') || t('ocrUploader.authFailed'));
+          return;
         }
         alert(`保存に失敗しました: HTTP ${res.status} - ${localizedError}`);
         return;
@@ -445,12 +447,11 @@ const CustomModal = ({
       cleanFormData.arrival_date = cleanDate(cleanFormData.arrival_date);
       
       // データベースを更新
-      const updateRes = await fetch('/api/updateShipment', {
+      const updateRes = await shopifyAuthenticatedFetch(shopify, '/api/updateShipment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          shipment: cleanFormData,
-          shop_id: shipment.shop_id || cleanFormData.shop_id,
+          shipment: { ...cleanFormData, shop_id: undefined },
           locale: effectiveLocale,
         }),
         });
@@ -522,13 +523,8 @@ const CustomModal = ({
       const formData = new FormData();
       formData.append('siNumber', shipment.si_number);
       formData.append('locale', effectiveLocale);
-      
-      // shopパラメータをURLに追加（認証fallback用）
-      const url = new URL('/api/delete-shipment', window.location.origin);
-      url.searchParams.append('shop_id', shipment.shop_id);
-      url.searchParams.append('locale', effectiveLocale);
-      
-      const res = await fetch(url.toString(), {
+
+      const res = await shopifyAuthenticatedFetch(shopify, '/api/delete-shipment', {
         method: 'DELETE',
         body: formData,
       });
@@ -546,6 +542,10 @@ const CustomModal = ({
       if (onUpdated) onUpdated();
       onClose();
     } catch (e) {
+      if (e?.message === 'SESSION_TOKEN_UNAVAILABLE') {
+        alert(getLocalizedApiError('AUTH_FAILED') || t('ocrUploader.authFailed'));
+        return;
+      }
       alert(getLocalizedApiError(e.message) || t('modal.messages.deleteGeneralFailed'));
     } finally {
       setDeleting(false);
