@@ -14,6 +14,14 @@
     "SHOPIFY_SESSION_STORAGE": "upstash",
     "INVSYNC_LEDGER_MODE": "shadow"
   },
+  "d1_databases": [
+    {
+      "binding": "TTI_DB",
+      "database_name": "track-to-inventory",
+      "database_id": "28b7a4e7-3bb3-4f91-8d81-399e7cb928cb",
+      "migrations_dir": "migrations"
+    }
+  ],
   "observability": {
     "enabled": true
   }
