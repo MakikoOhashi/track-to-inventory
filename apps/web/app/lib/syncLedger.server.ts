@@ -1,5 +1,10 @@
 import { createSupabaseAdminClient } from "~/lib/supabase.server";
 import {
+  shadowClaimOnD1,
+  shadowFinalizeOnD1,
+  shadowMarkAmbiguousOnD1,
+} from "~/lib/d1LedgerShadow.server";
+import {
   claimInventorySyncLedgerRedis,
   classifyShadowDiff,
   finalizeLedgerRedis,
@@ -50,6 +55,8 @@ export type ClaimResult = {
   action: LedgerClaimAction;
   row?: LedgerRow;
   error_code?: string;
+  /** Correlates D1 shadow logs for this claim attempt */
+  correlationId?: string;
 };
 
 /** Processing older than this is treated as stale → ambiguous (no Shopify retry). */
@@ -198,6 +205,7 @@ export async function claimInventorySyncLedger(params: {
   idempotencyKey: string;
 }): Promise<ClaimResult> {
   const mode = getInvsyncLedgerMode();
+  const correlationId = crypto.randomUUID();
 
   if (mode === "redis") {
     const result = await claimInventorySyncLedgerRedis(params);
@@ -205,10 +213,18 @@ export async function claimInventorySyncLedger(params: {
       // Mirror must not gate Shopify mutation
       void mirrorClaimToSupabase(result.row);
     }
+    result.correlationId = correlationId;
+    // D1 shadow is independent of Redis authority mode
+    await shadowClaimOnD1({
+      correlationId,
+      primary: result,
+      ...params,
+    });
     return result;
   }
 
   const primary = await claimSupabase(params);
+  primary.correlationId = correlationId;
 
   if (mode === "shadow") {
     try {
@@ -272,6 +288,13 @@ export async function claimInventorySyncLedger(params: {
     }
   }
 
+  // D1 shadow (Stage L2): after primary decision; never alters primary / mutation auth
+  await shadowClaimOnD1({
+    correlationId,
+    primary,
+    ...params,
+  });
+
   return primary;
 }
 
@@ -281,6 +304,7 @@ export async function claimInventorySyncLedger(params: {
  */
 export async function resolveStaleProcessing(
   row: LedgerRow,
+  opts?: { correlationId?: string },
 ): Promise<LedgerRow> {
   if (row.status !== "processing" || !row.started_at) return row;
 
@@ -289,7 +313,14 @@ export async function resolveStaleProcessing(
 
   const mode = getInvsyncLedgerMode();
   if (mode === "redis") {
-    return markStaleProcessingRedis(row);
+    const updated = await markStaleProcessingRedis(row);
+    await shadowMarkAmbiguousOnD1({
+      correlationId: opts?.correlationId || crypto.randomUUID(),
+      shopId: row.shop_id,
+      idempotencyKey: row.idempotency_key,
+      staleBefore: new Date(Date.now() - STALE_PROCESSING_MS).toISOString(),
+    });
+    return updated;
   }
 
   const supabase = createSupabaseAdminClient();
@@ -322,6 +353,13 @@ export async function resolveStaleProcessing(
     }
   }
 
+  await shadowMarkAmbiguousOnD1({
+    correlationId: opts?.correlationId || crypto.randomUUID(),
+    shopId: row.shop_id,
+    idempotencyKey: row.idempotency_key,
+    staleBefore: new Date(Date.now() - STALE_PROCESSING_MS).toISOString(),
+  });
+
   return updated;
 }
 
@@ -336,8 +374,10 @@ export async function finalizeLedgerSuccess(params: {
   siNumber?: string;
   itemKey?: string;
   idempotencyKey?: string;
+  correlationId?: string;
 }): Promise<boolean> {
   const mode = getInvsyncLedgerMode();
+  const correlationId = params.correlationId || crypto.randomUUID();
 
   if (mode === "redis") {
     if (
@@ -368,6 +408,18 @@ export async function finalizeLedgerSuccess(params: {
         inventoryItemId: params.inventoryItemId,
         locationId: params.locationId,
         shopifyAdjustmentId: params.shopifyAdjustmentId,
+      });
+    }
+    if (params.shopId && params.idempotencyKey) {
+      await shadowFinalizeOnD1({
+        correlationId,
+        shopId: params.shopId,
+        idempotencyKey: params.idempotencyKey,
+        outcome: "succeeded",
+        inventoryItemId: params.inventoryItemId,
+        locationId: params.locationId,
+        shopifyAdjustmentId: params.shopifyAdjustmentId,
+        primaryFinalizeOk: result.ok,
       });
     }
     return result.ok;
@@ -428,6 +480,19 @@ export async function finalizeLedgerSuccess(params: {
     }
   }
 
+  if (params.shopId && params.idempotencyKey) {
+    await shadowFinalizeOnD1({
+      correlationId,
+      shopId: params.shopId,
+      idempotencyKey: params.idempotencyKey,
+      outcome: "succeeded",
+      inventoryItemId: params.inventoryItemId,
+      locationId: params.locationId,
+      shopifyAdjustmentId: params.shopifyAdjustmentId,
+      primaryFinalizeOk: ok,
+    });
+  }
+
   return ok;
 }
 
@@ -443,8 +508,11 @@ export async function finalizeLedgerFailure(params: {
   siNumber?: string;
   itemKey?: string;
   idempotencyKey?: string;
+  correlationId?: string;
 }): Promise<void> {
   const mode = getInvsyncLedgerMode();
+  const correlationId = params.correlationId || crypto.randomUUID();
+  let primaryOk = true;
 
   if (mode === "redis") {
     if (
@@ -479,6 +547,17 @@ export async function finalizeLedgerFailure(params: {
       errorCode: params.errorCode,
       errorMessage: params.errorMessage,
     });
+    await shadowFinalizeOnD1({
+      correlationId,
+      shopId: params.shopId,
+      idempotencyKey: params.idempotencyKey,
+      outcome: params.status,
+      inventoryItemId: params.inventoryItemId,
+      locationId: params.locationId,
+      errorCode: params.errorCode,
+      errorMessage: params.errorMessage,
+      primaryFinalizeOk: true,
+    });
     return;
   }
 
@@ -498,6 +577,19 @@ export async function finalizeLedgerFailure(params: {
     .eq("status", "processing");
 
   if (error) {
+    if (params.shopId && params.idempotencyKey) {
+      await shadowFinalizeOnD1({
+        correlationId,
+        shopId: params.shopId,
+        idempotencyKey: params.idempotencyKey,
+        outcome: params.status,
+        inventoryItemId: params.inventoryItemId,
+        locationId: params.locationId,
+        errorCode: params.errorCode,
+        errorMessage: params.errorMessage,
+        primaryFinalizeOk: false,
+      });
+    }
     throw new Error(`ledger failure finalize failed: ${error.message}`);
   }
 
@@ -525,6 +617,20 @@ export async function finalizeLedgerFailure(params: {
     } catch {
       // shadow finalize errors are non-fatal
     }
+  }
+
+  if (params.shopId && params.idempotencyKey) {
+    await shadowFinalizeOnD1({
+      correlationId,
+      shopId: params.shopId,
+      idempotencyKey: params.idempotencyKey,
+      outcome: params.status,
+      inventoryItemId: params.inventoryItemId,
+      locationId: params.locationId,
+      errorCode: params.errorCode,
+      errorMessage: params.errorMessage,
+      primaryFinalizeOk: primaryOk,
+    });
   }
 }
 

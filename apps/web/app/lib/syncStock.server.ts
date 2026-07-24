@@ -597,7 +597,9 @@ export async function syncShipmentStock(params: {
     }
 
     if (claim.action === "in_progress" && claim.row) {
-      const resolved = await resolveStaleProcessing(claim.row);
+      const resolved = await resolveStaleProcessing(claim.row, {
+        correlationId: claim.correlationId,
+      });
       if (resolved.status === "ambiguous") {
         results.push(
           resultFromLedger(resolved, "manual-review-required", {
@@ -636,6 +638,7 @@ export async function syncShipmentStock(params: {
       siNumber,
       itemKey,
       idempotencyKey,
+      correlationId: claim.correlationId,
     };
     let step = "variantQuery";
 

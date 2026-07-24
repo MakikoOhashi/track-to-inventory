@@ -1,4 +1,5 @@
 import { createRequestHandler } from "react-router";
+import { runWithCloudflareEnv } from "../app/lib/cloudflareBindings.server";
 
 type CloudflareLoadContext = {
   cloudflare: {
@@ -39,6 +40,7 @@ function applyCloudflareEnvToProcess(env: Env) {
     "NOTION_REDIRECT_URI",
     "TOKEN_ENCRYPTION_KEY",
     "INVSYNC_LEDGER_MODE",
+    "D1_LEDGER_MODE",
   ] as const;
 
   for (const key of envKeys) {
@@ -75,27 +77,29 @@ function shouldServeFromAssets(request: Request) {
 
 export default {
   async fetch(request, env, ctx): Promise<Response> {
-    if (shouldServeFromAssets(request)) {
-      const assetResponse = await (env.ASSETS as AssetBinding).fetch(request);
+    return runWithCloudflareEnv({ env, ctx }, async () => {
+      if (shouldServeFromAssets(request)) {
+        const assetResponse = await (env.ASSETS as AssetBinding).fetch(request);
 
-      if (assetResponse.status !== 404) {
-        return assetResponse;
+        if (assetResponse.status !== 404) {
+          return assetResponse;
+        }
+
+        return new Response(`Asset not found: ${new URL(request.url).pathname}`, {
+          status: 404,
+        });
       }
 
-      return new Response(`Asset not found: ${new URL(request.url).pathname}`, {
-        status: 404,
-      });
-    }
+      const handleRequest = await getRequestHandler(env);
+      const loadContext: CloudflareLoadContext = {
+        cloudflare: {
+          env,
+          ctx,
+          cf: request.cf,
+        },
+      };
 
-    const handleRequest = await getRequestHandler(env);
-    const loadContext: CloudflareLoadContext = {
-      cloudflare: {
-        env,
-        ctx,
-        cf: request.cf,
-      },
-    };
-
-    return handleRequest(request, loadContext);
+      return handleRequest(request, loadContext);
+    });
   },
 } satisfies ExportedHandler<Env>;

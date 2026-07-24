@@ -24,7 +24,10 @@
     "d1:migrate:remote": "wrangler d1 migrations apply track-to-inventory --remote",
     "d1:migrations:list": "wrangler d1 migrations list track-to-inventory --remote",
     "d1:schema:check": "node --experimental-strip-types scripts/d1-schema-check.mts",
-    "test:d1": "npm run d1:migrate:local && npx tsx scripts/d1-l1-integration-tests.mts"
+    "test:d1": "npm run d1:migrate:local && npx tsx scripts/d1-l1-integration-tests.mts",
+    "test:d1:l2": "npm run d1:migrate:local && npx tsx scripts/d1-l2-shadow-tests.mts",
+    "seed:d1:ledger:dry": "npx tsx --env-file=.env.local scripts/seed-ledger-succeeded-to-d1.mts --dry-run --remote",
+    "seed:d1:ledger:apply": "npx tsx --env-file=.env.local scripts/seed-ledger-succeeded-to-d1.mts --apply --remote"
   },
   "type": "module",
   "engines": {
