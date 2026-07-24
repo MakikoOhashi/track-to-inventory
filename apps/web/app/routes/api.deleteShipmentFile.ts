@@ -118,15 +118,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
   }
 
-  const updateData: Record<string, string | null> = {
-    si_number: siNumber,
-    shop_id: auth.shop,
-    [columnKey]: null,
-  };
-
-  const { error: dbError } = await supabase.from("shipments").upsert(updateData, {
-    onConflict: "si_number,shop_id",
-  });
+  const { error: dbError } = await supabase
+    .from("shipments")
+    .update({ [columnKey]: null })
+    .eq("si_number", siNumber)
+    .eq("shop_id", auth.shop);
 
   if (dbError) {
     return json(
