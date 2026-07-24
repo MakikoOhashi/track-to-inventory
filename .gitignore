@@ -36,3 +36,5 @@ database.sqlite
 /apps/web/dist/
 /apps/web/.wrangler/
 /apps/web/wrangler.jsonc.bak
+
+TODO.md

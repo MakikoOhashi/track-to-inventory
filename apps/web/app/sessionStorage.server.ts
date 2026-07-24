@@ -1,8 +1,6 @@
 import { Session } from "@shopify/shopify-api";
 import type { SessionStorage } from "@shopify/shopify-app-session-storage";
-import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import { Redis } from "@upstash/redis";
-import prisma from "./db.server";
 
 type StoredSessionPayload = {
   entries: [string, string | number | boolean][];
@@ -32,8 +30,8 @@ function getShopSetKey(shop: string) {
   return `${SHOP_SET_KEY_PREFIX}:${shop}`;
 }
 
-function getExpiresInSeconds(session: Session) {
-  if (!session.expires) return undefined;
+function getOnlineExpiresInSeconds(session: Session) {
+  if (!session.isOnline || !session.expires) return undefined;
 
   const seconds = Math.floor((session.expires.getTime() - Date.now()) / 1000);
   return Math.max(seconds, 1);
@@ -45,6 +43,11 @@ function sortSessionsByExpiryDesc(a: Session, b: Session) {
   return bTime - aTime;
 }
 
+/**
+ * Shopify SessionStorage backed only by Upstash Redis.
+ * Offline sessions never get a TTL. Online sessions may expire with the session.
+ * Does not write to Prisma / Supabase TrackToInventorySession.
+ */
 class UpstashSessionStorage implements SessionStorage {
   private redis = getRedisClient();
 
@@ -55,17 +58,19 @@ class UpstashSessionStorage implements SessionStorage {
       expiresAt: session.expires?.getTime(),
     };
 
-    const ttl = getExpiresInSeconds(session);
     const sessionKey = getSessionKey(session.id);
     const shopSetKey = getShopSetKey(session.shop);
+    const onlineTtl = getOnlineExpiresInSeconds(session);
 
-    if (ttl) {
-      await this.redis.setex(sessionKey, ttl, payload);
-      await this.redis.expire(shopSetKey, ttl);
+    if (onlineTtl) {
+      await this.redis.setex(sessionKey, onlineTtl, payload);
     } else {
+      // Offline (and online without expires): persist without TTL.
       await this.redis.set(sessionKey, payload);
     }
 
+    // Keep the shop index without TTL so offline session ids are not dropped
+    // when a short-lived online session is stored for the same shop.
     await this.redis.sadd(shopSetKey, session.id);
     return true;
   }
@@ -117,18 +122,6 @@ class UpstashSessionStorage implements SessionStorage {
   }
 }
 
-function getSessionStorageDriver() {
-  return (process.env.SHOPIFY_SESSION_STORAGE ?? "prisma").toLowerCase();
-}
-
-function createSessionStorage() {
-  if (getSessionStorageDriver() === "upstash") {
-    return new UpstashSessionStorage();
-  }
-
-  return new PrismaSessionStorage(prisma);
-}
-
-const sessionStorage = createSessionStorage();
+const sessionStorage = new UpstashSessionStorage();
 
 export default sessionStorage;

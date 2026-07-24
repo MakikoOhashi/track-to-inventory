@@ -11,6 +11,7 @@ import { i18n as i18nServer } from "../utils/i18n.server";
 import { I18nextProvider } from "react-i18next";
 import i18n from "../i18n";
 import { useEffect, useState } from "react";
+import AuthContextProbe from "../components/AuthContextProbe";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
@@ -124,8 +125,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/ocr-health").catch((error) => {
-    });
+    fetch("/api/ocr-health").catch(() => {});
   }, []);
 
   return (
@@ -133,6 +133,7 @@ export default function App() {
       <PolarisAppProvider i18n={polarisTranslations}>
         <ShopifyAppProvider embedded apiKey={apiKey}>
           {navReady ? navigation : null}
+          <AuthContextProbe />
           <Outlet />
         </ShopifyAppProvider>
       </PolarisAppProvider>
