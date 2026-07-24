@@ -81,12 +81,26 @@ export type SessionDeleteOptions = {
   updatedAt?: string;
 };
 
+/** Detailed D1 session inspection for Stage L4.4a primary reads. */
+export type D1SessionInspectResult =
+  | {
+      status: "live";
+      session: Session;
+      row: ShopifySessionRow;
+    }
+  | { status: "missing" }
+  | { status: "tombstone"; row: ShopifySessionRow }
+  | { status: "expired"; row: ShopifySessionRow }
+  | { status: "invalid"; reason: string; row?: ShopifySessionRow };
+
 export type ShopifySessionRepository = {
   storeSession: (
     session: Session,
     options?: SessionWriteOptions,
   ) => Promise<boolean>;
   loadSession: (id: string) => Promise<Session | undefined>;
+  /** Distinguishes missing / tombstone / expired / invalid / live. */
+  inspectSession: (id: string) => Promise<D1SessionInspectResult>;
   deleteSession: (
     id: string,
     options?: SessionDeleteOptions,
@@ -159,26 +173,67 @@ export function createShopifySessionRepository(
     }
   }
 
-  async function loadSession(id: string): Promise<Session | undefined> {
+  async function inspectSession(id: string): Promise<D1SessionInspectResult> {
     try {
       const raw = await db
         .prepare(`SELECT * FROM shopify_sessions WHERE id = ?`)
         .bind(id)
         .first<SessionRaw>();
       const row = mapSessionRow(raw ?? undefined);
-      if (!row) return undefined;
-      if (isDeletedSessionRow(row)) return undefined;
+      if (!row || !row.id) return { status: "missing" };
+      if (isDeletedSessionRow(row)) return { status: "tombstone", row };
 
       if (isExpired(row.expires_at, Date.now())) {
-        return undefined;
+        return { status: "expired", row };
       }
 
-      const payload = JSON.parse(row.payload_json) as ShopifySessionPayload;
-      if (!payload?.entries) return undefined;
-      return deserializeSessionPayload(payload);
+      let payload: ShopifySessionPayload;
+      try {
+        payload = JSON.parse(row.payload_json) as ShopifySessionPayload;
+      } catch {
+        return { status: "invalid", reason: "payload_json_parse", row };
+      }
+      if (!payload?.entries || !Array.isArray(payload.entries)) {
+        return { status: "invalid", reason: "payload_entries_missing", row };
+      }
+
+      let session: Session;
+      try {
+        session = deserializeSessionPayload(payload);
+      } catch {
+        return { status: "invalid", reason: "session_deserialize", row };
+      }
+
+      if (!session.id || session.id !== id) {
+        return { status: "invalid", reason: "session_id_mismatch", row };
+      }
+      if (!session.shop || session.shop !== row.shop) {
+        return { status: "invalid", reason: "shop_mismatch", row };
+      }
+      if (typeof session.isOnline !== "boolean") {
+        return { status: "invalid", reason: "is_online_type", row };
+      }
+      if (Boolean(session.isOnline) !== Boolean(row.is_online)) {
+        return { status: "invalid", reason: "is_online_mismatch", row };
+      }
+      if (!session.accessToken) {
+        return { status: "invalid", reason: "access_token_missing", row };
+      }
+      // Known migration versions only (L1 runtime / seed).
+      const ver = row.migration_version || "";
+      if (ver && ver !== D1_MIGRATION_VERSION && !/^l4\.1/.test(ver)) {
+        return { status: "invalid", reason: "unsupported_migration_version", row };
+      }
+
+      return { status: "live", session, row };
     } catch (error) {
       throw classifyD1Error(error);
     }
+  }
+
+  async function loadSession(id: string): Promise<Session | undefined> {
+    const inspected = await inspectSession(id);
+    return inspected.status === "live" ? inspected.session : undefined;
   }
 
   /**
@@ -261,6 +316,7 @@ export function createShopifySessionRepository(
   return {
     storeSession,
     loadSession,
+    inspectSession,
     deleteSession,
     findSessionsByShop,
   };

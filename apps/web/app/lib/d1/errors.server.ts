@@ -53,7 +53,11 @@ export class D1RepositoryError extends Error {
 export function inferFailureStage(message: string): D1FailureStage {
   const lower = message.toLowerCase();
   if (lower.includes("binding") && lower.includes("missing")) return "binding";
-  if (lower.includes("d1_dual_write_timeout") || lower.includes("d1_shadow_timeout")) {
+  if (
+    lower.includes("d1_dual_write_timeout") ||
+    lower.includes("d1_shadow_timeout") ||
+    lower.includes("d1_primary_timeout")
+  ) {
     return "timeout";
   }
   if (lower.includes("timeout")) return "timeout";

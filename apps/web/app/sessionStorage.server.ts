@@ -16,6 +16,8 @@ import {
   mirrorSessionDeleteToD1,
   mirrorSessionStoreToD1,
 } from "~/lib/sessionD1DualWrite.server";
+import { isSessionD1PrimaryActive } from "~/lib/sessionD1Mode.server";
+import { loadSessionD1Primary } from "~/lib/sessionD1Primary.server";
 
 type StoredSessionPayload = {
   entries: [string, string | number | boolean][];
@@ -48,11 +50,12 @@ function sortSessionsByExpiryDesc(a: Session, b: Session) {
 }
 
 /**
- * Shopify SessionStorage backed by Upstash Redis (authority).
+ * Shopify SessionStorage backed by Upstash Redis (authority for writes).
  * Keys: tti:shopify:session:* / tti:shopify:shop-sessions:*
  * Legacy shopify:* is read-fallback; writes go to tti: only.
  * Stage L4.2: loadSession may shadow-compare D1 (never returns D1 / never rescues).
  * Stage L4.3: store/delete may mirror to D1 after Redis success (dual_write mode).
+ * Stage L4.4a: d1_primary load reads D1 first with Redis fallback (no read-repair).
  */
 class UpstashSessionStorage implements SessionStorage {
   private redis = getRedisClient();
@@ -87,8 +90,8 @@ class UpstashSessionStorage implements SessionStorage {
   }
 
   /**
-   * Redis-only load (no D1 shadow). Used by findSessionsByShop —
-   * find path is out of L4.2 shadow scope (and may SREM orphans).
+   * Redis-only load (no D1 shadow / primary). Used by findSessionsByShop and
+   * as d1_primary fallback — find path is out of L4.2/L4.4a shadow/primary scope.
    */
   private async loadSessionFromRedis(id: string): Promise<{
     session: Session | undefined;
@@ -117,6 +120,14 @@ class UpstashSessionStorage implements SessionStorage {
   }
 
   async loadSession(id: string): Promise<Session | undefined> {
+    if (isSessionD1PrimaryActive()) {
+      const result = await loadSessionD1Primary({
+        sessionId: id,
+        loadFromRedis: () => this.loadSessionFromRedis(id),
+      });
+      return result.session;
+    }
+
     const { session, namespace } = await this.loadSessionFromRedis(id);
 
     // Shadow never alters return value; exceptions must not escape.
@@ -178,7 +189,7 @@ class UpstashSessionStorage implements SessionStorage {
 
     const sessions = await Promise.all(
       ids.map(async (id) => {
-        // No D1 shadow on find path (L4.2 scope)
+        // No D1 primary/shadow on find path (L4.2 / L4.4a scope)
         const { session } = await this.loadSessionFromRedis(id);
         if (!session) {
           await this.redis.srem(shopifyShopSessionsKey(shop), id);

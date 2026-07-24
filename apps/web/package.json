@@ -35,6 +35,8 @@
     "test:session:l43": "npm run d1:migrate:local && npx tsx scripts/session-l43-dual-write-tests.mts",
     "test:session:l43b": "npx tsx scripts/session-l43b-error-classify-tests.mts",
     "test:session:l43c": "npx tsx scripts/session-l43c-ops-gate-tests.mts",
+    "test:session:l44a": "npm run d1:migrate:local && npx tsx scripts/session-l44a-primary-tests.mts",
+    "compare:session:l44a": "npx tsx --env-file=.env.local scripts/session-l44a-readonly-compare.mts",
     "seed:d1:sessions:dry": "npx tsx --env-file=.env.local scripts/seed-sessions-to-d1.mts --dry-run --remote",
     "seed:d1:sessions:apply": "npx tsx --env-file=.env.local scripts/seed-sessions-to-d1.mts --apply --remote"
   },
