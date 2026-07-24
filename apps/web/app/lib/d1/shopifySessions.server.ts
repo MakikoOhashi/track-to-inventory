@@ -94,6 +94,22 @@ export type ShopifySessionRepository = {
   findSessionsByShop: (shop: string) => Promise<Session[]>;
 };
 
+/**
+ * Live upsert may apply when:
+ * - excluded.updated_at is strictly newer, OR
+ * - timestamps are equal AND the current row is not a tombstone
+ *   (equal + tombstone present → tombstone wins; live must not resurrect)
+ *
+ * Delete (tombstone) keeps `>=` so equal timestamp always prefers tombstone.
+ */
+const STORE_UPSERT_WHERE = `excluded.updated_at > shopify_sessions.updated_at
+             OR (
+               excluded.updated_at = shopify_sessions.updated_at
+               AND IFNULL(shopify_sessions.migration_source, '') != '${SESSION_MIGRATION_SOURCE_DELETED}'
+             )`;
+
+const DELETE_UPSERT_WHERE = `excluded.updated_at >= shopify_sessions.updated_at`;
+
 export function createShopifySessionRepository(
   db: D1Database,
 ): ShopifySessionRepository {
@@ -123,7 +139,7 @@ export function createShopifySessionRepository(
              migration_source = excluded.migration_source,
              migration_version = excluded.migration_version,
              updated_at = excluded.updated_at
-           WHERE excluded.updated_at >= shopify_sessions.updated_at`,
+           WHERE ${STORE_UPSERT_WHERE}`,
         )
         .bind(
           session.id,
@@ -136,7 +152,7 @@ export function createShopifySessionRepository(
           ts,
         )
         .run();
-      // meta.changes === 0 means a newer row (e.g. tombstone) rejected this store
+      // meta.changes === 0 means a newer/equal tombstone rejected this store
       return (result.meta?.changes ?? 1) > 0;
     } catch (error) {
       throw classifyD1Error(error);
@@ -189,7 +205,7 @@ export function createShopifySessionRepository(
              migration_source = excluded.migration_source,
              migration_version = excluded.migration_version,
              updated_at = excluded.updated_at
-           WHERE excluded.updated_at >= shopify_sessions.updated_at`,
+           WHERE ${DELETE_UPSERT_WHERE}`,
         )
         .bind(
           id,

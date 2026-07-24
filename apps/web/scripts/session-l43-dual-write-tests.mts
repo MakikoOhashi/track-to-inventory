@@ -161,6 +161,43 @@ async function main() {
     assert.equal(appliedStale, false);
     assert.equal(await repo.loadSession(session.id), undefined);
 
+    // equal timestamp: store→delete → tombstone; delete→store → tombstone stays
+    const equalTs = "2024-06-15T12:00:00.000Z";
+    await db.prepare("DELETE FROM shopify_sessions WHERE id = ?").bind(session.id).run();
+    assert.equal(
+      await repo.storeSession(session, { updatedAt: equalTs }),
+      true,
+    );
+    assert.equal(
+      await repo.deleteSession(session.id, {
+        shop: session.shop,
+        updatedAt: equalTs,
+      }),
+      true,
+    );
+    assert.equal(await repo.loadSession(session.id), undefined);
+    const equalTomb = await db
+      .prepare("SELECT migration_source FROM shopify_sessions WHERE id = ?")
+      .bind(session.id)
+      .first<{ migration_source: string }>();
+    assert.equal(equalTomb?.migration_source, SESSION_MIGRATION_SOURCE_DELETED);
+
+    assert.equal(
+      await repo.storeSession(session, { updatedAt: equalTs }),
+      false,
+      "equal-ts live must not beat tombstone",
+    );
+    assert.equal(await repo.loadSession(session.id), undefined);
+
+    // idempotent delete at same ts
+    assert.equal(
+      await repo.deleteSession(session.id, {
+        shop: session.shop,
+        updatedAt: equalTs,
+      }),
+      true,
+    );
+
     // fresh store after delete may resurrect (newer updated_at)
     const freshTs = new Date().toISOString();
     const appliedFresh = await repo.storeSession(session, {
@@ -168,6 +205,20 @@ async function main() {
     });
     assert.equal(appliedFresh, true);
     assert.ok(await repo.loadSession(session.id));
+
+    // same store again → still one live row for this id (online sibling may remain)
+    assert.equal(
+      await repo.storeSession(session, { updatedAt: new Date().toISOString() }),
+      true,
+    );
+    const liveForId = await db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM shopify_sessions
+         WHERE id = ? AND IFNULL(migration_source, '') != ?`,
+      )
+      .bind(session.id, SESSION_MIGRATION_SOURCE_DELETED)
+      .first<{ c: number }>();
+    assert.equal(Number(liveForId?.c ?? 0), 1);
 
     // delete again then assert dual_write delete path
     await runWithCloudflareEnv(
@@ -211,7 +262,11 @@ async function main() {
           "online_expires_roundtrip",
           "soft_delete_tombstone",
           "stale_store_no_resurrect",
+          "equal_ts_store_then_delete_tombstone",
+          "equal_ts_delete_then_store_no_resurrect",
+          "equal_ts_delete_idempotent",
           "fresh_store_after_delete",
+          "re_store_no_dup_live",
           "binding_missing_safe",
           "secret_redaction",
         ],
