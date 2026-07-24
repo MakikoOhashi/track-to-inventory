@@ -125,7 +125,7 @@ export async function assertShipmentOwnedForSync(params: {
 }
 
 /**
- * Production sync behavior (ported from Render apps/ocr-api sync-stock):
+ * Stock sync behavior (Workers):
  * - Primary: inventoryAdjustQuantities with delta = item.quantity (NOT absolute set)
  * - Fallback: inventorySetQuantities to max(0, current + delta)
  * - Duplicate variant_id in one request is skipped (no second adjust)

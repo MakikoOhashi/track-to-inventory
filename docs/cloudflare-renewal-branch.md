@@ -1,5 +1,7 @@
 # Cloudflare Renewal Branch Spec
 
+> **Archive note (2026-07-24):** Render / `apps/ocr-api` split is retired. Production runs entirely on Cloudflare Workers. Keep this file as historical migration context only.
+
 This document is a branch-specific working spec for `codex/cloudflare-renewal`.
 
 Its purpose is to keep the renewal direction clear while the app is gradually refactored.

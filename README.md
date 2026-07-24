@@ -14,7 +14,7 @@ Inbound Tracking（旧称: Track to Inventory）は、Shopifyストアの入荷�
 - `ステータスごとの入荷予定` で、ローカライズされたステータス値を正しく集計するよう修正
 - 商品明細が未登録でも、ステータス別一覧で shipment 自体は確認できるよう表示を改善
 - `main` を現行の本線として整理し、Shopify Embedded App のフロントを Cloudflare Workers 前提の構成へ統一
-- OCR / 在庫同期のような重い処理は、フロントとは分離したバックエンドへ逃がせる構成に整理
+- 書類解析・ファイル・在庫同期を Workers 上で完結させ、Render 依存を撤去
 
 ## ⭐ ポートフォリオ観点のポイント
 
@@ -58,18 +58,18 @@ Inbound Tracking（旧称: Track to Inventory）は、Shopifyストアの入荷�
 ``` 
 track-to-inventory/
 ├── apps/
-│   ├── web/                 # 現在の Shopify Embedded App 本体
-│   │   ├── app/             # UI・ルート・軽量API
-│   │   ├── prisma/          # Prismaスキーマとマイグレーション
-│   │   ├── public/          # 静的アセット
-│   │   └── extensions/      # Shopify拡張機能
-│   └── ocr-api/             # Renderへ切り出す想定の OCR/PDF backend
+│   └── web/                 # Shopify Embedded App（Cloudflare Workers）
+│       ├── app/             # UI・ルート・API
+│       ├── prisma/          # Prismaスキーマとマイグレーション
+│       ├── public/          # 静的アセット
+│       ├── workers/         # Workers エントリ
+│       └── extensions/      # Shopify拡張機能
 ├── packages/
-│   └── shared/              # 共有型・API契約
-└── docs/                    # 移行メモ・branch spec
+│   └── shared/              # 共有型・utility
+└── docs/                    # 設計・移行メモ
 ```
 
-現在はモノレポ構成で、`apps/web` が Shopify Embedded App のフロント本体、`apps/ocr-api` が OCR や在庫同期のような重い処理を担う分離バックエンドです。ポートフォリオ上も、「埋め込み UI と重い業務処理を分けて運用する設計」を示す構成になっています。
+`apps/web` が Shopify Embedded App の本体です。書類解析（Gemini）、出荷ファイル（Supabase Storage）、在庫同期（Shopify Admin API）はすべて Cloudflare Workers 上で動作します。
 
 ### 🔧 主要コンポーネント
 
@@ -87,11 +87,11 @@ track-to-inventory/
 
 #### 3. **APIエンドポイント**
 - `apps/web/app/routes/api.shipments.ts`: 入荷情報のCRUD操作
+- `apps/web/app/routes/api.document-parse.ts`: Gemini による書類解析
 - `apps/web/app/routes/api.ai-parse.ts`: Gemini APIによるデータ補完
 - `apps/web/app/routes/api.sync-stock.ts`: Shopify在庫同期
-- `apps/web/app/routes/api.check-ocr-limit.js`: OCR使用制限管理
 - `apps/web/app/routes/api.uploadShipmentFile.ts`: ファイルアップロード処理
-- `apps/web/app/routes/api.pdf2image.ts`: PDFから画像変換
+- `apps/web/app/routes/api.get-file-url.ts`: 署名付きURL発行
 
 #### 4. **UIコンポーネント**
 - **StatusCard**: 視覚的なステータスカード表示
@@ -224,10 +224,6 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 # Gemini API
 GEMINI_API_KEY=your_gemini_api_key
 
-# OCR backend split (optional during transition)
-OCR_API_BASE_URL=http://localhost:4001
-OCR_API_SHARED_SECRET=your_internal_shared_secret
-
 # Upstash Redis
 UPSTASH_REDIS_REST_URL=your_upstash_redis_url
 UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token
@@ -264,24 +260,12 @@ npm run dev
 npm run dev
 ```
 
-OCR/PDF backend のみ試したい場合:
-
-```bash
-npm run dev:ocr
-```
-
-`apps/ocr-api` を Render に切り出す前提メモは [docs/ocr-api-render-deploy.md](/Users/makiko/Documents/Documents%20-%20makiko%E2%80%99s%20MacBook%20Air/dev/track-to-inventory/docs/ocr-api-render-deploy.md) にあります。
+Render 向け `apps/ocr-api` は Stage H で撤去済みです。履歴メモ: [docs/ocr-api-render-deploy.md](./docs/ocr-api-render-deploy.md)
 
 ### ビルド
 
 ```bash
 npm run build
-```
-
-OCR/PDF backend 単体の構文確認:
-
-```bash
-npm run build:ocr
 ```
 
 ## 📖 使用方法

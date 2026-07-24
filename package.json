@@ -12,22 +12,19 @@
   "scripts": {
     "build": "npm run -w @track-to-inventory/web build",
     "dev": "npm run -w @track-to-inventory/web dev",
-    "dev:ocr": "npm run -w @track-to-inventory/ocr-api dev",
     "config:link": "npm run -w @track-to-inventory/web config:link",
     "generate": "npm run -w @track-to-inventory/web generate",
     "deploy": "npm run -w @track-to-inventory/web deploy",
     "config:use": "npm run -w @track-to-inventory/web config:use",
     "env": "npm run -w @track-to-inventory/web env",
     "start": "npm run -w @track-to-inventory/web start",
-    "start:ocr": "npm run -w @track-to-inventory/ocr-api start",
     "docker-start": "npm run -w @track-to-inventory/web docker-start",
     "setup": "npm run -w @track-to-inventory/web setup",
     "lint": "npm run -w @track-to-inventory/web lint",
     "shopify": "npm run -w @track-to-inventory/web shopify",
     "prisma": "npm run -w @track-to-inventory/web prisma",
     "graphql-codegen": "npm run -w @track-to-inventory/web graphql-codegen",
-    "vite": "npm run -w @track-to-inventory/web vite",
-    "build:ocr": "npm run -w @track-to-inventory/ocr-api build"
+    "vite": "npm run -w @track-to-inventory/web vite"
   },
   "trustedDependencies": [
     "@shopify/plugin-cloudflare"
