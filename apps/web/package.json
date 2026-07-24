@@ -33,6 +33,7 @@
     "test:session:l41": "npm run d1:migrate:local && npx tsx scripts/session-l41-seed-tests.mts",
     "test:session:l42": "npm run d1:migrate:local && npx tsx scripts/session-l42-shadow-tests.mts",
     "test:session:l43": "npm run d1:migrate:local && npx tsx scripts/session-l43-dual-write-tests.mts",
+    "test:session:l43b": "npx tsx scripts/session-l43b-error-classify-tests.mts",
     "seed:d1:sessions:dry": "npx tsx --env-file=.env.local scripts/seed-sessions-to-d1.mts --dry-run --remote",
     "seed:d1:sessions:apply": "npx tsx --env-file=.env.local scripts/seed-sessions-to-d1.mts --apply --remote"
   },

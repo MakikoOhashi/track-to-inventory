@@ -7,6 +7,11 @@
  * Uses UpstashSessionStorage.storeSession once (Redis primary + dual-write mirror).
  * Aborts if the session is online / has Redis TTL (would change expiry semantics).
  * Not imported by the Worker. Do not leave --apply running unattended.
+ *
+ * L4.3b finding: getPlatformProxy({ remoteBindings: true }) alone does NOT make
+ * TTI_DB remote. wrangler requires d1_databases[].remote === true; otherwise the
+ * proxy is a local empty D1 (no shopify_sessions) and dual-write logs write_error.
+ * Do not re-apply until a Worker-path or correctly remote-bound path is approved.
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";

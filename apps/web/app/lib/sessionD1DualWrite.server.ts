@@ -11,7 +11,7 @@
 import type { Session } from "@shopify/shopify-api";
 import { getOptionalTtiDb } from "~/lib/cloudflareBindings.server";
 import { createShopifySessionRepository } from "~/lib/d1/shopifySessions.server";
-import { classifyD1Error } from "~/lib/d1/errors.server";
+import { classifyD1Error, safeErrorName } from "~/lib/d1/errors.server";
 import { isSessionD1DualWriteActive } from "~/lib/sessionD1Mode.server";
 import { hashSessionId } from "~/lib/sessionD1Shadow.server";
 
@@ -52,6 +52,8 @@ function logDualWrite(entry: {
   shop: string;
   latency_ms: number;
   error_class?: string;
+  error_name?: string;
+  failure_stage?: string;
   applied?: boolean;
 }): void {
   try {
@@ -86,6 +88,8 @@ export async function mirrorSessionStoreToD1(session: Session): Promise<void> {
       shop,
       latency_ms: 0,
       error_class: "binding_missing",
+      error_name: "BindingMissing",
+      failure_stage: "binding",
     });
     return;
   }
@@ -114,6 +118,8 @@ export async function mirrorSessionStoreToD1(session: Session): Promise<void> {
         shop,
         latency_ms: SESSION_D1_WRITE_TIMEOUT_MS,
         error_class: "timeout",
+        error_name: safeErrorName(error),
+        failure_stage: "timeout",
       });
       return;
     }
@@ -125,6 +131,8 @@ export async function mirrorSessionStoreToD1(session: Session): Promise<void> {
       shop,
       latency_ms: Date.now() - started,
       error_class: classified.classification,
+      error_name: safeErrorName(error),
+      failure_stage: classified.failureStage,
     });
   }
 }
@@ -151,6 +159,8 @@ export async function mirrorSessionDeleteToD1(params: {
       shop,
       latency_ms: 0,
       error_class: "binding_missing",
+      error_name: "BindingMissing",
+      failure_stage: "binding",
     });
     return;
   }
@@ -179,6 +189,8 @@ export async function mirrorSessionDeleteToD1(params: {
         shop,
         latency_ms: SESSION_D1_WRITE_TIMEOUT_MS,
         error_class: "timeout",
+        error_name: safeErrorName(error),
+        failure_stage: "timeout",
       });
       return;
     }
@@ -190,6 +202,8 @@ export async function mirrorSessionDeleteToD1(params: {
       shop,
       latency_ms: Date.now() - started,
       error_class: classified.classification,
+      error_name: safeErrorName(error),
+      failure_stage: classified.failureStage,
     });
   }
 }
