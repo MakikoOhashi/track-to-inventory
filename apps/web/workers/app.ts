@@ -38,6 +38,7 @@ function applyCloudflareEnvToProcess(env: Env) {
     "NOTION_CLIENT_SECRET",
     "NOTION_REDIRECT_URI",
     "TOKEN_ENCRYPTION_KEY",
+    "INVSYNC_LEDGER_MODE",
   ] as const;
 
   for (const key of envKeys) {

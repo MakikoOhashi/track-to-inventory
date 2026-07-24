@@ -11,7 +11,8 @@
   "vars": {
     "SHOPIFY_APP_URL": "https://track-to-inventory-web.makiron19831014.workers.dev",
     "SCOPES": "read_locations,read_products,write_inventory,write_products",
-    "SHOPIFY_SESSION_STORAGE": "upstash"
+    "SHOPIFY_SESSION_STORAGE": "upstash",
+    "INVSYNC_LEDGER_MODE": "shadow"
   },
   "observability": {
     "enabled": true

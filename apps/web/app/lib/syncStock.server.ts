@@ -629,6 +629,14 @@ export async function syncShipmentStock(params: {
     }
 
     const ledgerId = claim.row.id;
+    const ledgerOwner = {
+      id: ledgerId,
+      claimToken: claim.row.claim_token ?? null,
+      shopId: shop,
+      siNumber,
+      itemKey,
+      idempotencyKey,
+    };
     let step = "variantQuery";
 
     try {
@@ -654,7 +662,7 @@ export async function syncShipmentStock(params: {
       const variantResult = await adminGraphql(admin, variantQuery, { id: variantId });
       if (variantResult.transportError) {
         await finalizeLedgerFailure({
-          id: ledgerId,
+          ...ledgerOwner,
           status: "failed_retryable",
           errorCode: "VARIANT_TRANSPORT",
           errorMessage: variantResult.transportError,
@@ -677,7 +685,7 @@ export async function syncShipmentStock(params: {
       const variantErrorCheck = hasErrors(variantData);
       if (!variantResult.ok || variantErrorCheck.hasGraphQLErrors) {
         await finalizeLedgerFailure({
-          id: ledgerId,
+          ...ledgerOwner,
           status: "failed_retryable",
           errorCode: "VARIANT_GRAPHQL",
           errorMessage: "バリアントGraphQLエラー",
@@ -700,7 +708,7 @@ export async function syncShipmentStock(params: {
       const variant = variantData?.data?.productVariant;
       if (!variant) {
         await finalizeLedgerFailure({
-          id: ledgerId,
+          ...ledgerOwner,
           status: "failed_terminal",
           errorCode: "VARIANT_NOT_FOUND",
           errorMessage: "バリアントが見つかりません",
@@ -722,7 +730,7 @@ export async function syncShipmentStock(params: {
       const inventoryItemId = variant.inventoryItem?.id as string | undefined;
       if (!inventoryItemId) {
         await finalizeLedgerFailure({
-          id: ledgerId,
+          ...ledgerOwner,
           status: "failed_terminal",
           errorCode: "NO_INVENTORY_ITEM",
           errorMessage: "inventory_item_idが取得できませんでした",
@@ -774,7 +782,7 @@ export async function syncShipmentStock(params: {
         let recorded = false;
         try {
           recorded = await finalizeLedgerSuccess({
-            id: ledgerId,
+            ...ledgerOwner,
             inventoryItemId,
             locationId,
             shopifyAdjustmentId: adjust.adjustmentId,
@@ -787,7 +795,7 @@ export async function syncShipmentStock(params: {
           // Shopify likely succeeded; do not allow normal retry to call Shopify again.
           try {
             await finalizeLedgerFailure({
-              id: ledgerId,
+              ...ledgerOwner,
               status: "ambiguous",
               errorCode: "SUCCESS_RECORD_FAILED",
               errorMessage:
@@ -854,7 +862,7 @@ export async function syncShipmentStock(params: {
 
       if (adjust.outcome === "ambiguous") {
         await finalizeLedgerFailure({
-          id: ledgerId,
+          ...ledgerOwner,
           status: "ambiguous",
           errorCode: "AMBIGUOUS_OUTCOME",
           errorMessage: adjust.errorMessage || "Shopify outcome unknown",
@@ -899,7 +907,7 @@ export async function syncShipmentStock(params: {
           : "failed_retryable";
 
       await finalizeLedgerFailure({
-        id: ledgerId,
+        ...ledgerOwner,
         status: failureStatus,
         errorCode: adjust.outcome.toUpperCase(),
         errorMessage: adjust.errorMessage || "在庫調整に失敗しました",
@@ -926,7 +934,7 @@ export async function syncShipmentStock(params: {
       const message = error instanceof Error ? error.message : String(error);
       try {
         await finalizeLedgerFailure({
-          id: ledgerId,
+          ...ledgerOwner,
           status: "ambiguous",
           errorCode: "EXCEPTION",
           errorMessage: message,
