@@ -1,13 +1,17 @@
 import { Session } from "@shopify/shopify-api";
 import type { SessionStorage } from "@shopify/shopify-app-session-storage";
 import { Redis } from "@upstash/redis";
-import { getJsonPreferNew, smembersPreferNew } from "~/lib/redisCompat.server";
+import { smembersPreferNew } from "~/lib/redisCompat.server";
 import {
   shopifySessionKey,
   shopifySessionKeyLegacy,
   shopifyShopSessionsKey,
   shopifyShopSessionsKeyLegacy,
 } from "~/lib/redisKeys.server";
+import {
+  scheduleSessionD1Shadow,
+  type RedisSessionNamespace,
+} from "~/lib/sessionD1Shadow.server";
 
 type StoredSessionPayload = {
   entries: [string, string | number | boolean][];
@@ -40,9 +44,10 @@ function sortSessionsByExpiryDesc(a: Session, b: Session) {
 }
 
 /**
- * Shopify SessionStorage backed only by Upstash Redis.
+ * Shopify SessionStorage backed by Upstash Redis (authority).
  * Keys: tti:shopify:session:* / tti:shopify:shop-sessions:*
  * Legacy shopify:* is read-fallback; writes go to tti: only.
+ * Stage L4.2: loadSession may shadow-compare D1 (never returns D1 / never rescues).
  */
 class UpstashSessionStorage implements SessionStorage {
   private redis = getRedisClient();
@@ -68,30 +73,69 @@ class UpstashSessionStorage implements SessionStorage {
     return true;
   }
 
-  async loadSession(id: string): Promise<Session | undefined> {
-    const payload = await getJsonPreferNew<StoredSessionPayload>(
-      this.redis,
-      shopifySessionKey(id),
-      shopifySessionKeyLegacy(id),
-    );
-    if (!payload?.entries) return undefined;
+  /**
+   * Redis-only load (no D1 shadow). Used by findSessionsByShop —
+   * find path is out of L4.2 shadow scope (and may SREM orphans).
+   */
+  private async loadSessionFromRedis(id: string): Promise<{
+    session: Session | undefined;
+    namespace: RedisSessionNamespace;
+  }> {
+    const newKey = shopifySessionKey(id);
+    const legacyKey = shopifySessionKeyLegacy(id);
 
-    return Session.fromPropertyArray(payload.entries, true);
+    const neu = (await this.redis.get(newKey)) as StoredSessionPayload | null;
+    if (neu?.entries) {
+      return {
+        session: Session.fromPropertyArray(neu.entries, true),
+        namespace: "tti",
+      };
+    }
+
+    const legacy = (await this.redis.get(legacyKey)) as StoredSessionPayload | null;
+    if (legacy?.entries) {
+      return {
+        session: Session.fromPropertyArray(legacy.entries, true),
+        namespace: "legacy",
+      };
+    }
+
+    return { session: undefined, namespace: "miss" };
+  }
+
+  async loadSession(id: string): Promise<Session | undefined> {
+    const { session, namespace } = await this.loadSessionFromRedis(id);
+
+    // Shadow never alters return value; exceptions must not escape.
+    try {
+      scheduleSessionD1Shadow({
+        sessionId: id,
+        redisSession: session,
+        primaryNamespace: namespace,
+      });
+    } catch {
+      // ignore scheduler failures
+    }
+
+    return session;
   }
 
   async deleteSession(id: string): Promise<boolean> {
-    const existing = await getJsonPreferNew<StoredSessionPayload>(
-      this.redis,
-      shopifySessionKey(id),
-      shopifySessionKeyLegacy(id),
-    );
+    const newKey = shopifySessionKey(id);
+    const legacyKey = shopifySessionKeyLegacy(id);
+    const neu = (await this.redis.get(newKey)) as StoredSessionPayload | null;
+    const legacy =
+      neu == null
+        ? ((await this.redis.get(legacyKey)) as StoredSessionPayload | null)
+        : null;
+    const shop = neu?.shop || legacy?.shop;
 
-    await this.redis.del(shopifySessionKey(id));
-    await this.redis.del(shopifySessionKeyLegacy(id));
+    await this.redis.del(newKey);
+    await this.redis.del(legacyKey);
 
-    if (existing?.shop) {
-      await this.redis.srem(shopifyShopSessionsKey(existing.shop), id);
-      await this.redis.srem(shopifyShopSessionsKeyLegacy(existing.shop), id);
+    if (shop) {
+      await this.redis.srem(shopifyShopSessionsKey(shop), id);
+      await this.redis.srem(shopifyShopSessionsKeyLegacy(shop), id);
     }
 
     return true;
@@ -114,7 +158,8 @@ class UpstashSessionStorage implements SessionStorage {
 
     const sessions = await Promise.all(
       ids.map(async (id) => {
-        const session = await this.loadSession(id);
+        // No D1 shadow on find path (L4.2 scope)
+        const { session } = await this.loadSessionFromRedis(id);
         if (!session) {
           await this.redis.srem(shopifyShopSessionsKey(shop), id);
           await this.redis.srem(shopifyShopSessionsKeyLegacy(shop), id);

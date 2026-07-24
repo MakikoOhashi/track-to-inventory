@@ -1,6 +1,6 @@
 /**
  * Request-scoped Cloudflare bindings (nodejs_compat AsyncLocalStorage).
- * Used so D1 can be read from syncLedger without threading Env through every call.
+ * Used so D1 can be read from syncLedger / session shadow without threading Env.
  */
 import { AsyncLocalStorage } from "node:async_hooks";
 
@@ -20,6 +20,10 @@ export function runWithCloudflareEnv<T>(
 
 export function getCloudflareEnv(): Env | undefined {
   return storage.getStore()?.env;
+}
+
+export function getCloudflareCtx(): ExecutionContext | undefined {
+  return storage.getStore()?.ctx;
 }
 
 /** Best-effort D1 access; missing binding → undefined (shadow must no-op). */

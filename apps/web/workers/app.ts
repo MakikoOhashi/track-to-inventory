@@ -41,6 +41,7 @@ function applyCloudflareEnvToProcess(env: Env) {
     "TOKEN_ENCRYPTION_KEY",
     "INVSYNC_LEDGER_MODE",
     "D1_LEDGER_MODE",
+    "SESSION_D1_MODE",
   ] as const;
 
   for (const key of envKeys) {
