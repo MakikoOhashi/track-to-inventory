@@ -154,6 +154,10 @@ async function main() {
       () => {
         const fromAls = getOptionalTtiDb();
         assert.ok(fromAls, "request context must expose TTI_DB");
+        // Worker entry + server bundle share one ALS via globalThis
+        const shared = (globalThis as { __tti_cloudflare_request_als__?: { getStore?: () => unknown } })
+          .__tti_cloudflare_request_als__;
+        assert.ok(shared?.getStore?.(), "globalThis ALS singleton must hold store");
         return fromAls;
       },
     );
