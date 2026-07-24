@@ -56,7 +56,8 @@ export function inferFailureStage(message: string): D1FailureStage {
   if (
     lower.includes("d1_dual_write_timeout") ||
     lower.includes("d1_shadow_timeout") ||
-    lower.includes("d1_primary_timeout")
+    lower.includes("d1_primary_timeout") ||
+    lower.includes("d1_only_timeout")
   ) {
     return "timeout";
   }

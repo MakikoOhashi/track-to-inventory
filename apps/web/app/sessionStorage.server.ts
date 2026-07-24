@@ -1,136 +1,81 @@
 import { Session } from "@shopify/shopify-api";
 import type { SessionStorage } from "@shopify/shopify-app-session-storage";
-import { Redis } from "@upstash/redis";
-import { smembersPreferNew } from "~/lib/redisCompat.server";
 import {
-  shopifySessionKey,
-  shopifySessionKeyLegacy,
-  shopifyShopSessionsKey,
-  shopifyShopSessionsKeyLegacy,
-} from "~/lib/redisKeys.server";
+  createRedisSessionFallbackAdapter,
+  type RedisSessionFallbackAdapter,
+} from "~/lib/redisSessionFallback.server";
 import {
   scheduleSessionD1Shadow,
-  type RedisSessionNamespace,
 } from "~/lib/sessionD1Shadow.server";
 import {
   mirrorSessionDeleteToD1,
   mirrorSessionStoreToD1,
 } from "~/lib/sessionD1DualWrite.server";
-import { isSessionD1PrimaryActive } from "~/lib/sessionD1Mode.server";
+import {
+  isSessionD1OnlyActive,
+  isSessionD1PrimaryActive,
+} from "~/lib/sessionD1Mode.server";
 import { loadSessionD1Primary } from "~/lib/sessionD1Primary.server";
-
-type StoredSessionPayload = {
-  entries: [string, string | number | boolean][];
-  shop: string;
-  expiresAt?: number;
-};
-
-function getRedisClient() {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-  if (!url || !token) {
-    throw new Error("Upstash Redis environment variables are required");
-  }
-
-  return new Redis({ url, token });
-}
-
-function getOnlineExpiresInSeconds(session: Session) {
-  if (!session.isOnline || !session.expires) return undefined;
-
-  const seconds = Math.floor((session.expires.getTime() - Date.now()) / 1000);
-  return Math.max(seconds, 1);
-}
-
-function sortSessionsByExpiryDesc(a: Session, b: Session) {
-  const aTime = a.expires?.getTime() ?? Number.MAX_SAFE_INTEGER;
-  const bTime = b.expires?.getTime() ?? Number.MAX_SAFE_INTEGER;
-  return bTime - aTime;
-}
+import {
+  deleteSessionD1Only,
+  findSessionsByShopD1Only,
+  loadSessionD1Only,
+  storeSessionD1Only,
+} from "~/lib/sessionD1Only.server";
 
 /**
- * Shopify SessionStorage backed by Upstash Redis (authority for writes).
- * Keys: tti:shopify:session:* / tti:shopify:shop-sessions:*
- * Legacy shopify:* is read-fallback; writes go to tti: only.
- * Stage L4.2: loadSession may shadow-compare D1 (never returns D1 / never rescues).
- * Stage L4.3: store/delete may mirror to D1 after Redis success (dual_write mode).
- * Stage L4.4a: d1_primary load reads D1 first with Redis fallback (no read-repair).
+ * Shopify SessionStorage (Stage L4.5).
+ *
+ * Modes:
+ * - d1_only: D1 sole authority (no Redis contact; Redis env optional)
+ * - d1_primary / dual_write / shadow / off: Redis via RedisSessionFallbackAdapter
+ *   (+ D1 shadow / dual-write / primary fallback as before)
+ *
+ * Redis SDK / session keys live only in redisSessionFallback.server.ts.
  */
-class UpstashSessionStorage implements SessionStorage {
-  private redis = getRedisClient();
+class ShopifySessionStorage implements SessionStorage {
+  private redisAdapter: RedisSessionFallbackAdapter | null = null;
+
+  private redis(): RedisSessionFallbackAdapter {
+    if (!this.redisAdapter) {
+      this.redisAdapter = createRedisSessionFallbackAdapter();
+    }
+    return this.redisAdapter;
+  }
 
   async storeSession(session: Session): Promise<boolean> {
-    const payload: StoredSessionPayload = {
-      entries: session.toPropertyArray(true),
-      shop: session.shop,
-      expiresAt: session.expires?.getTime(),
-    };
-
-    const sessionKey = shopifySessionKey(session.id);
-    const shopSetKey = shopifyShopSessionsKey(session.shop);
-    const onlineTtl = getOnlineExpiresInSeconds(session);
-
-    if (onlineTtl) {
-      await this.redis.setex(sessionKey, onlineTtl, payload);
-    } else {
-      await this.redis.set(sessionKey, payload);
+    if (isSessionD1OnlyActive()) {
+      return storeSessionD1Only({ session });
     }
 
-    await this.redis.sadd(shopSetKey, session.id);
+    const ok = await this.redis().store(session);
+    if (!ok) return false;
 
     // D1 mirror only after Redis success; failures must not change Redis result.
     try {
       await mirrorSessionStoreToD1(session);
     } catch {
-      // ignore — Redis remains authority
+      // ignore — Redis remains authority in non-d1_only modes
     }
 
     return true;
   }
 
-  /**
-   * Redis-only load (no D1 shadow / primary). Used by findSessionsByShop and
-   * as d1_primary fallback — find path is out of L4.2/L4.4a shadow/primary scope.
-   */
-  private async loadSessionFromRedis(id: string): Promise<{
-    session: Session | undefined;
-    namespace: RedisSessionNamespace;
-  }> {
-    const newKey = shopifySessionKey(id);
-    const legacyKey = shopifySessionKeyLegacy(id);
-
-    const neu = (await this.redis.get(newKey)) as StoredSessionPayload | null;
-    if (neu?.entries) {
-      return {
-        session: Session.fromPropertyArray(neu.entries, true),
-        namespace: "tti",
-      };
-    }
-
-    const legacy = (await this.redis.get(legacyKey)) as StoredSessionPayload | null;
-    if (legacy?.entries) {
-      return {
-        session: Session.fromPropertyArray(legacy.entries, true),
-        namespace: "legacy",
-      };
-    }
-
-    return { session: undefined, namespace: "miss" };
-  }
-
   async loadSession(id: string): Promise<Session | undefined> {
+    if (isSessionD1OnlyActive()) {
+      return loadSessionD1Only({ sessionId: id });
+    }
+
     if (isSessionD1PrimaryActive()) {
       const result = await loadSessionD1Primary({
         sessionId: id,
-        loadFromRedis: () => this.loadSessionFromRedis(id),
+        loadFromRedis: () => this.redis().load(id),
       });
       return result.session;
     }
 
-    const { session, namespace } = await this.loadSessionFromRedis(id);
+    const { session, namespace } = await this.redis().load(id);
 
-    // Shadow never alters return value; exceptions must not escape.
     try {
       scheduleSessionD1Shadow({
         sessionId: id,
@@ -145,24 +90,12 @@ class UpstashSessionStorage implements SessionStorage {
   }
 
   async deleteSession(id: string): Promise<boolean> {
-    const newKey = shopifySessionKey(id);
-    const legacyKey = shopifySessionKeyLegacy(id);
-    const neu = (await this.redis.get(newKey)) as StoredSessionPayload | null;
-    const legacy =
-      neu == null
-        ? ((await this.redis.get(legacyKey)) as StoredSessionPayload | null)
-        : null;
-    const shop = neu?.shop || legacy?.shop;
-
-    await this.redis.del(newKey);
-    await this.redis.del(legacyKey);
-
-    if (shop) {
-      await this.redis.srem(shopifyShopSessionsKey(shop), id);
-      await this.redis.srem(shopifyShopSessionsKeyLegacy(shop), id);
+    if (isSessionD1OnlyActive()) {
+      return deleteSessionD1Only({ sessionId: id });
     }
 
-    // D1 soft-delete only after Redis success; never alter logout result.
+    const { shop } = await this.redis().delete(id);
+
     try {
       await mirrorSessionDeleteToD1({ sessionId: id, shop });
     } catch {
@@ -178,34 +111,13 @@ class UpstashSessionStorage implements SessionStorage {
   }
 
   async findSessionsByShop(shop: string): Promise<Session[]> {
-    const ids = await smembersPreferNew(
-      this.redis,
-      shopifyShopSessionsKey(shop),
-      shopifyShopSessionsKeyLegacy(shop),
-    );
-    if (!Array.isArray(ids) || ids.length === 0) {
-      return [];
+    if (isSessionD1OnlyActive()) {
+      return findSessionsByShopD1Only({ shop });
     }
-
-    const sessions = await Promise.all(
-      ids.map(async (id) => {
-        // No D1 primary/shadow on find path (L4.2 / L4.4a scope)
-        const { session } = await this.loadSessionFromRedis(id);
-        if (!session) {
-          await this.redis.srem(shopifyShopSessionsKey(shop), id);
-          await this.redis.srem(shopifyShopSessionsKeyLegacy(shop), id);
-        }
-        return session;
-      }),
-    );
-
-    return sessions
-      .filter((session): session is Session => Boolean(session))
-      .sort(sortSessionsByExpiryDesc)
-      .slice(0, 25);
+    return this.redis().findByShop(shop);
   }
 }
 
-const sessionStorage = new UpstashSessionStorage();
+const sessionStorage = new ShopifySessionStorage();
 
 export default sessionStorage;

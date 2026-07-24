@@ -54,6 +54,7 @@ async function main() {
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "dual_write" }), "dual_write");
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "shadow" }), "shadow");
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "d1_primary" }), "d1_primary");
+  assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "d1_only" }), "d1_only");
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "primary" }), "off");
   assert.equal(SESSION_D1_WRITE_TIMEOUT_MS, 500);
 
@@ -71,6 +72,10 @@ async function main() {
 
   process.env.SESSION_D1_MODE = "d1_primary";
   assert.equal(isSessionD1DualWriteActive(), true);
+  assert.equal(isSessionD1ShadowActive(), false);
+
+  process.env.SESSION_D1_MODE = "d1_only";
+  assert.equal(isSessionD1DualWriteActive(), false);
   assert.equal(isSessionD1ShadowActive(), false);
 
   const session = makeOffline();

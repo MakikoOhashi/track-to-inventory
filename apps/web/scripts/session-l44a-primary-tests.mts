@@ -118,6 +118,7 @@ function wrapWriteCountingDb(db: D1Database, counter: { writes: number }): D1Dat
 async function main() {
   assert.equal(SESSION_D1_PRIMARY_TIMEOUT_MS, 500);
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "d1_primary" }), "d1_primary");
+  assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "d1_only" }), "d1_only");
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "primary" }), "off");
   assert.equal(L44B_ROLLBACK_MODE, "dual_write");
   assert.ok(l44bHardGateIds().includes("fingerprint_match"));
@@ -127,6 +128,12 @@ async function main() {
   assert.equal(isSessionD1PrimaryActive(), true);
   assert.equal(isSessionD1DualWriteActive(), true);
   assert.equal(isSessionD1ShadowActive(), false);
+
+  process.env.SESSION_D1_MODE = "d1_only";
+  assert.equal(isSessionD1DualWriteActive(), false);
+  assert.equal(isSessionD1ShadowActive(), false);
+  process.env.SESSION_D1_MODE = "d1_primary";
+  assert.equal(isSessionD1PrimaryActive(), true);
 
   const session = makeOffline();
   const redisLive = makeOffline();

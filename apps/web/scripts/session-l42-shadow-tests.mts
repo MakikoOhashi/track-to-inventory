@@ -47,6 +47,7 @@ async function main() {
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "dual_write" }), "dual_write");
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "dual-write" }), "dual_write");
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "d1_primary" }), "d1_primary");
+  assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "d1_only" }), "d1_only");
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "primary" }), "off");
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "nope" }), "off");
   assert.equal(SESSION_D1_SHADOW_TIMEOUT_MS, 500);
