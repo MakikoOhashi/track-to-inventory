@@ -1,17 +1,15 @@
-import { Outlet, useLoaderData, useLocation, useRouteError } from "react-router";
+import { Outlet, useLoaderData, useLocation, useRouteError, data as json } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider as ShopifyAppProvider } from "@shopify/shopify-app-react-router/react";
 import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import polarisTranslations from "@shopify/polaris/locales/en.json";
-import { data as json } from "react-router";
 import { i18n as i18nServer } from "../utils/i18n.server";
 
 // i18nをimport
 import { I18nextProvider } from "react-i18next";
 import i18n from "../i18n";
 import { useEffect, useState } from "react";
-import AuthContextProbe from "../components/AuthContextProbe";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
@@ -124,16 +122,11 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    fetch("/api/ocr-health").catch(() => {});
-  }, []);
-
   return (
     <I18nextProvider i18n={i18n}>
       <PolarisAppProvider i18n={polarisTranslations}>
         <ShopifyAppProvider embedded apiKey={apiKey}>
           {navReady ? navigation : null}
-          <AuthContextProbe />
           <Outlet />
         </ShopifyAppProvider>
       </PolarisAppProvider>

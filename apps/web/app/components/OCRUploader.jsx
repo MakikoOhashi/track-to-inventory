@@ -1,5 +1,5 @@
 //app/components/OCRUploader.jsx
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   DropZone,
@@ -12,9 +12,12 @@ import {
   Link,
 } from "@shopify/polaris";
 import { useTranslation } from "react-i18next";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import { shopifyAuthenticatedFetch } from "~/lib/shopifyAuthenticatedFetch.client";
 
 export default function OCRUploader({ shopId, onSaveSuccess }) {
   const { t, i18n } = useTranslation("common");
+  const shopify = useAppBridge();
   const [file, setFile] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
   const [ocrText, setOcrText] = useState("");
@@ -36,7 +39,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   const [usageInfo, setUsageInfo] = useState(null); // 使用状況情報を保存
   const [showManualForm, setShowManualForm] = useState(false);
   const demoImageUrl = "/instruction_demo.png";
-  const ocrWarmUpStartedRef = useRef(false);
 
   const getLocalizedError = useCallback((value) => {
     if (!value) return "";
@@ -64,22 +66,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     fetchUsageInfo();
   }, []);
 
-  const warmOcrBackendOnce = useCallback(async () => {
-    if (ocrWarmUpStartedRef.current) return;
-    ocrWarmUpStartedRef.current = true;
-
-    try {
-      const res = await fetch("/api/ocr-health", {
-        method: "GET",
-      });
-
-      if (!res.ok) {
-      }
-    } catch (error) {
-      ocrWarmUpStartedRef.current = false;
-    }
-  }, []);
-
     // 使用状況を取得する関数
     const fetchUsageInfo = async () => {
       try {
@@ -100,60 +86,34 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       }
     };
 
-    // OCR使用制限をチェックする関数
-    const checkOCRLimit = async () => {
-      try {
-        const query = shopId ? `?shop_id=${encodeURIComponent(shopId)}` : "";
-        const res = await fetch(`/api/check-ocr-limit${query}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
-        
-        if (res.status === 401) {
-          let data;
-          try {
-            data = await res.json();
-          } catch {
-            data = {};
-          }
-          throw new Error(getLocalizedError(data.error) || t("ocrUploader.authFailed"));
-        }
-        
-        if (res.status === 429) {
-            let data;
-          try {
-            data = await res.json();
-          } catch {
-            data = {};
-          }
-          throw new Error(getLocalizedError(data.error) || t("ocrUploader.freePlanRestriction"));
-        }
-        
-        if (!res.ok) {
-          let data;
-        try {
-          data = await res.json();
-        } catch {
-          data = {};
-        }
-        throw new Error(getLocalizedError(data.error) || t("ocrUploader.apiLogicFail"));
-      }
-        
-        return true;
-      } catch (error) {
-        throw error;
-      }
-    };
-
-  const requestBackendOcr = useCallback(
-  async (uploadedFile) => {
-    try {
+  const requestDocumentParse = useCallback(
+    async (uploadedFile) => {
       const formData = new FormData();
       formData.append("file", uploadedFile);
-      const res = await fetch("/api/ocr-text", {
+      const res = await shopifyAuthenticatedFetch(shopify, "/api/document-parse", {
         method: "POST",
         body: formData,
       });
+
+      if (res.status === 401 || res.status === 403) {
+        let data = {};
+        try {
+          data = await res.json();
+        } catch {
+          // ignore
+        }
+        throw new Error(getLocalizedError(data.error) || t("ocrUploader.authFailed"));
+      }
+
+      if (res.status === 429) {
+        let data = {};
+        try {
+          data = await res.json();
+        } catch {
+          // ignore
+        }
+        throw new Error(getLocalizedError(data.error) || t("ocrUploader.freePlanRestriction"));
+      }
 
       if (!res.ok) {
         let msg = t("ocrUploader.ocrFailed");
@@ -166,23 +126,9 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         throw new Error(msg);
       }
 
-      const data = await res.json();
-
-      if (data.previewUrl) {
-        setImageUrl(data.previewUrl);
-      } else if (uploadedFile.type.startsWith("image/")) {
-        setImageUrl(URL.createObjectURL(uploadedFile));
-      } else {
-        setImageUrl("");
-      }
-
-      return data.text || "";
-    } catch (error) {
-      setOcrError(error.message || t("ocrUploader.ocrFailed"));
-      return "";
-    }
-  },
-  [t]
+      return res.json();
+    },
+    [getLocalizedError, shopify, t],
   );
 
   // 画像アップロードハンドラー
@@ -204,35 +150,68 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   []
   );
 
-  // OCR実行
+  // 1ファイル解析（Workers + Gemini。Render非経由）
   const handleOcr = useCallback(async () => {
     if (!file) return;
     setLoading(true);
     setOcrError("");
     try {
-      await checkOCRLimit();
-
-      let text = "";
       if (
-        file.type === "application/pdf" ||
-        file.name?.toLowerCase().endsWith(".pdf") ||
-        file.type.startsWith("image/") ||
-        file.type === "text/plain"
+        !(
+          file.type === "application/pdf" ||
+          file.name?.toLowerCase().endsWith(".pdf") ||
+          file.type.startsWith("image/") ||
+          file.type === "text/plain"
+        )
       ) {
-        text = await requestBackendOcr(file);
-      } else {
         setOcrError(t("ocrUploader.unsupportedFileType"));
         return;
       }
+
+      const data = await requestDocumentParse(file);
+
+      if (data.previewUrl) {
+        setImageUrl(data.previewUrl);
+      } else if (file.type.startsWith("image/")) {
+        setImageUrl(URL.createObjectURL(file));
+      } else {
+        setImageUrl("");
+      }
+
+      const text = typeof data.text === "string" ? data.text : "";
       setOcrText(text);
       setOcrTextEdited(text);
-      setFields(extractFields(text));
+
+      let parsedFields = null;
+      if (typeof data.result === "string" && data.result.trim()) {
+        try {
+          parsedFields = JSON.parse(data.result);
+        } catch {
+          parsedFields = null;
+        }
+      }
+
+      if (parsedFields && typeof parsedFields === "object") {
+        setFields({
+          si_number: parsedFields.si_number || "",
+          supplier_name: parsedFields.supplier_name || "",
+          transport_type: parsedFields.transport_type || "",
+          items: Array.isArray(parsedFields.items) ? parsedFields.items : [],
+        });
+        setAiResult(parsedFields);
+      } else {
+        setFields(extractFields(text));
+      }
     } catch (error) {
-      setOcrError(error.message || t("ocrUploader.ocrFailed"));
+      if (error?.message === "SESSION_TOKEN_UNAVAILABLE") {
+        setOcrError(t("ocrUploader.authFailed"));
+      } else {
+        setOcrError(error.message || t("ocrUploader.ocrFailed"));
+      }
     } finally {
       setLoading(false);
     }
-  }, [file, requestBackendOcr, t]);
+  }, [file, requestDocumentParse, t]);
    const handleOpenManualForm = () => {
     setShowManualForm(true);
     // フィールドをクリア（必要に応じて）
@@ -580,9 +559,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       {/* public/instruction_demo.png へのリンク。public/はURLに含めず、/instruction_demo.png でOK */}
       <a
         href={demoImageUrl}
-        onPointerEnter={warmOcrBackendOnce}
-        onFocus={warmOcrBackendOnce}
-        onClick={warmOcrBackendOnce}
         target="_blank"
         rel="noopener noreferrer"
         style={{
@@ -599,8 +575,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
         <div style={{ marginTop: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
-          onPointerEnter={warmOcrBackendOnce}
-          onFocus={warmOcrBackendOnce}
           onClick={handleOcr} 
           disabled={
             loading || 
@@ -737,8 +711,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
               <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Button
-                onPointerEnter={warmOcrBackendOnce}
-                onFocus={warmOcrBackendOnce}
                 onClick={handleAiAssist}
                 disabled={aiLoading}
               >
@@ -764,8 +736,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Button
                   primary
-                  onPointerEnter={warmOcrBackendOnce}
-                  onFocus={warmOcrBackendOnce}
                   onClick={handleSaveToSupabase}
                   disabled={!fields.si_number}
                 >

@@ -1,10 +1,5 @@
 import { GEMINI_MODEL } from "../config/gemini";
 
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  throw new Error("GEMINI_API_KEY is not set in environment variables.");
-}
-
 type GeminiResponse = {
   candidates?: Array<{
     content?: {
@@ -18,6 +13,14 @@ type GeminiResponse = {
     status?: string;
   };
 };
+
+function getGeminiApiKey() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not set in environment variables.");
+  }
+  return apiKey;
+}
 
 function extractText(response: GeminiResponse): string {
   const text =
@@ -33,7 +36,8 @@ function extractText(response: GeminiResponse): string {
   return text;
 }
 
-export async function generateGeminiContent(prompt: string): Promise<string> {
+async function postGenerateContent(body: Record<string, unknown>): Promise<string> {
+  const apiKey = getGeminiApiKey();
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(apiKey)}`,
     {
@@ -41,17 +45,7 @@ export async function generateGeminiContent(prompt: string): Promise<string> {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }],
-          },
-        ],
-        generationConfig: {
-          responseMimeType: "application/json",
-        },
-      }),
+      body: JSON.stringify(body),
     },
   );
 
@@ -63,4 +57,44 @@ export async function generateGeminiContent(prompt: string): Promise<string> {
   }
 
   return extractText(payload);
+}
+
+export async function generateGeminiContent(prompt: string): Promise<string> {
+  return postGenerateContent({
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: prompt }],
+      },
+    ],
+    generationConfig: {
+      responseMimeType: "application/json",
+    },
+  });
+}
+
+export async function generateGeminiMultimodalContent(params: {
+  prompt: string;
+  mimeType: string;
+  base64Data: string;
+}): Promise<string> {
+  return postGenerateContent({
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: params.prompt },
+          {
+            inlineData: {
+              mimeType: params.mimeType,
+              data: params.base64Data,
+            },
+          },
+        ],
+      },
+    ],
+    generationConfig: {
+      responseMimeType: "application/json",
+    },
+  });
 }
