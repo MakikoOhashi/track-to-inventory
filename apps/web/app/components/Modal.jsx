@@ -12,7 +12,9 @@ import {
   Text,
   Banner
 } from '@shopify/polaris';
+import { useAppBridge } from '@shopify/app-bridge-react';
 import ShopifyVariantSelector from './ShopifyVariantSelector';
+import { shopifyAuthenticatedFetch } from '~/lib/shopifyAuthenticatedFetch.client';
 
 // ステータスの英語キーと日本語の変換マップ
 const statusJaToKey = {
@@ -36,6 +38,7 @@ const CustomModal = ({
   locale = "ja",
 }) => {
   const { t, i18n } = useTranslation();
+  const shopify = useAppBridge();
   const effectiveLocale = (locale || i18n.language || "ja").toLowerCase();
   
   // FILE_TYPESの定義を修正
@@ -129,32 +132,28 @@ const CustomModal = ({
     if (filePaths.length === 0) return;
 
     try {
-      
-      const res = await fetch('/api/get-file-url', {
+      const res = await shopifyAuthenticatedFetch(shopify, '/api/get-file-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           filePaths,
           siNumber: formData.si_number,
-          shop_id: shipment.shop_id || formData.shop_id,
-        })
+        }),
       });
-      
+
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
+        await res.json().catch(() => ({}));
         return;
       }
-      
+
       const json = await res.json();
       if (json.signedUrls) {
         setSignedUrlCache(prev => ({ ...prev, ...json.signedUrls }));
       }
-      
-      if (json.errors) {
-      }
     } catch (error) {
+      // token failure: do not fall back to query shop or Render
     }
-  }, [formData?.si_number, formData?.invoice_url, formData?.pl_url, formData?.si_url, formData?.other_url]);
+  }, [formData?.si_number, formData?.invoice_url, formData?.pl_url, formData?.si_url, formData?.other_url, shopify]);
 
   // フォームデータが変更された時に署名付きURLを再取得
   useEffect(() => {
@@ -188,34 +187,30 @@ const CustomModal = ({
 
     // キャッシュにない場合は個別取得
     try {
-
-      const res = await fetch('/api/get-file-url', {
+      const res = await shopifyAuthenticatedFetch(shopify, '/api/get-file-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           filePaths: [filePath],
           siNumber: formData?.si_number,
-          shop_id: shipment.shop_id || formData?.shop_id,
-        })
+        }),
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(`Failed to get signed URL: ${errorData.error || res.statusText}`);
       }
-      
+
       const json = await res.json();
       if (json.signedUrl) {
-        // キャッシュに保存
         setSignedUrlCache(prev => ({ ...prev, [filePath]: json.signedUrl }));
         return json.signedUrl;
-      } else {
-        return null;
       }
+      return null;
     } catch (error) {
       return null;
     }
-  }, [signedUrlCache, formData?.si_number]);
+  }, [signedUrlCache, formData?.si_number, shopify]);
 
   // ファイル表示ボタンのクリックハンドラー
   const handleFileView = async (filePath, fileType) => {
@@ -392,11 +387,11 @@ const CustomModal = ({
       uploadFormData.append('type', fileType);
       uploadFormData.append('locale', effectiveLocale);
 
-      const res = await fetch('/api/uploadShipmentFile', {
+      const res = await shopifyAuthenticatedFetch(shopify, '/api/uploadShipmentFile', {
         method: 'POST',
         body: uploadFormData,
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(getLocalizedApiError(errorData.error) || t('modal.messages.fileUploadFailed'));
@@ -445,6 +440,10 @@ const CustomModal = ({
       alert(t('modal.messages.fileUploadSuccess'));
 
     } catch (error) {
+      if (error?.message === 'SESSION_TOKEN_UNAVAILABLE') {
+        alert(getLocalizedApiError('AUTH_FAILED') || t('ocrUploader.authFailed'));
+        return;
+      }
       alert(getLocalizedApiError(error.message) || t('modal.messages.fileUploadFailed'));
     }
   };
