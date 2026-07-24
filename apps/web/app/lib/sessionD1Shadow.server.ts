@@ -13,8 +13,18 @@ import { createShopifySessionRepository } from "~/lib/d1/shopifySessions.server"
 import { classifyD1Error } from "~/lib/d1/errors.server";
 import { isSessionD1ShadowActive } from "~/lib/sessionD1Mode.server";
 
-/** D1 shadow budget — APAC D1 is typically <<50ms; cap auth-path impact. */
-export const SESSION_D1_SHADOW_TIMEOUT_MS = 200;
+/**
+ * D1 shadow compare budget (Stage L4.2b).
+ *
+ * History: L4.2a saw a first-read `d1_timeout` at 200ms (then warm match ~20ms).
+ * That is treated as measured first-read latency (Worker/D1/tail path), not a
+ * proven "D1 cold start" root cause.
+ *
+ * 500ms: absorbs that first-read spike without blocking Redis auth (shadow runs
+ * in waitUntil). Typical APAC D1 reads remain ≪50ms. Do not raise further on a
+ * single timeout — another hit at 500ms keeps L4.3 unapproved.
+ */
+export const SESSION_D1_SHADOW_TIMEOUT_MS = 500;
 
 export type SessionShadowCategory =
   | "match"

@@ -46,7 +46,7 @@ async function main() {
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "shadow" }), "shadow");
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "primary" }), "off");
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "nope" }), "off");
-  assert.equal(SESSION_D1_SHADOW_TIMEOUT_MS, 200);
+  assert.equal(SESSION_D1_SHADOW_TIMEOUT_MS, 500);
 
   const a = makeOffline();
   const b = makeOffline();
@@ -252,6 +252,37 @@ async function main() {
     });
     assert.equal(bindMiss, "d1_error");
 
+    // <500ms D1 → match (local D1 above already covered; assert budget)
+    assert.ok(SESSION_D1_SHADOW_TIMEOUT_MS === 500);
+
+    // >500ms D1 → d1_timeout; Redis session object unchanged
+    const redisBeforeTimeout = a;
+    function makeSlowDb(delayMs: number): D1Database {
+      return {
+        prepare() {
+          return {
+            bind() {
+              return {
+                async first() {
+                  await new Promise((r) => setTimeout(r, delayMs));
+                  return null;
+                },
+              };
+            },
+          };
+        },
+      } as unknown as D1Database;
+    }
+    const slowCat = await runSessionD1ShadowForTest({
+      db: makeSlowDb(SESSION_D1_SHADOW_TIMEOUT_MS + 80),
+      sessionId: a.id,
+      redisSession: redisBeforeTimeout,
+      primaryNamespace: "tti",
+    });
+    assert.equal(slowCat, "d1_timeout");
+    assert.equal(redisBeforeTimeout, a);
+    assert.equal(redisBeforeTimeout.shop, "l42-test.myshopify.com");
+
     // logging failure path — snap still safe
     assert.equal(hashSessionId(a.id).length, 16);
 
@@ -294,6 +325,8 @@ async function main() {
           "als_loss_explicit_db",
           "waitUntil_db_handoff",
           "binding_missing_no_waitUntil",
+          "timeout_500ms_budget",
+          "d1_timeout_over_budget",
           "shadow_off",
           "secret_redaction",
         ],
