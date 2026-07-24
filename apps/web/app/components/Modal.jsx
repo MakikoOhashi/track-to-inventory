@@ -245,27 +245,28 @@ const CustomModal = ({
   }
 
   // --- Shopify同期アクション ---
+  // Inventory sync uses DELTA adjust (item.quantity added to available).
+  // Re-running the same sync will add again — UI disables while in flight.
   const handleSyncShopify = async () => {
+    if (syncing) return;
     setSyncing(true);
     try {
-      // variant_idが設定されているアイテムのみをフィルタリング
       const itemsWithVariantId = (shipment.items || []).filter(item => item.variant_id);
-      
+
       if (itemsWithVariantId.length === 0) {
         throw new Error(t('modal.messages.syncGeneralFailed'));
       }
 
-      // 1. Shopify同期API呼び出し
-      const res = await fetch('/api/sync-stock', {
+      const res = await shopifyAuthenticatedFetch(shopify, '/api/sync-stock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: itemsWithVariantId,
-          shop_id: shipment.shop_id || formData.shop_id,
+          siNumber: shipment.si_number || formData.si_number,
           locale: effectiveLocale,
-        })
+        }),
       });
-      
+
       if (!res.ok) {
         const errorText = await res.text();
         let errorMessage = errorText;
@@ -277,22 +278,20 @@ const CustomModal = ({
         }
         throw new Error(`同期に失敗しました: HTTP ${res.status} - ${errorMessage}`);
       }
-      
+
       const json = await res.json();
       if (json.error) throw new Error(json.error);
 
-      // 結果の確認
       if (json.results && json.results.length > 0) {
         const failedItems = json.results.filter(result => result.error);
         if (failedItems.length > 0) {
-          const errorMessages = failedItems.map(item => 
+          const errorMessages = failedItems.map(item =>
             `${item.variant_id}: ${getLocalizedApiError(item.error)}`
           ).join('\n');
           throw new Error(`一部の商品の同期に失敗しました:\n${errorMessages}`);
         }
       }
 
-      // 2. ステータスを「同期済み」に更新
       const updateRes = await fetch('/api/updateShipment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -304,12 +303,15 @@ const CustomModal = ({
       if (!updateRes.ok) throw new Error(t('modal.messages.statusUpdateFailed'));
       setFormData(prev => ({ ...prev, status: "synced" }));
       alert(t('modal.messages.syncSuccess'));
-      // 3. モーダル閉じる or 親にデータ更新通知
       setSyncing(false);
       if (onUpdated) onUpdated();
       onClose();
     } catch (e) {
       setSyncing(false);
+      if (e?.message === 'SESSION_TOKEN_UNAVAILABLE') {
+        alert(getLocalizedApiError('AUTH_FAILED') || t('ocrUploader.authFailed'));
+        return;
+      }
       alert(getLocalizedApiError(e.message) || t('modal.messages.syncGeneralFailed'));
     }
   };
