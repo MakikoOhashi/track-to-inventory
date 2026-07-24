@@ -1,5 +1,7 @@
 import { redis, UserPlan } from "./redis.server";
 import { GraphqlClient, Session } from "@shopify/shopify-api";
+import { getStringPreferNew } from "./redisCompat.server";
+import { planKey, planKeyLegacy } from "./redisKeys.server";
 
 const planNameMap: Record<string, UserPlan> = {
   "Basic Plan": "basic",
@@ -20,7 +22,13 @@ export async function getCurrentPlan(session: Session): Promise<UserPlan> {
   const skipBilling = process.env.DISABLE_BILLING === "true";
 
   if (skipBilling) {
-    return (await redis.get<UserPlan>(`plan:${session.shop}`)) ?? "free";
+    return (
+      ((await getStringPreferNew(
+        redis,
+        planKey(session.shop),
+        planKeyLegacy(session.shop),
+      )) as UserPlan | null) ?? "free"
+    );
   }
 
   try {
@@ -54,20 +62,20 @@ export async function getCurrentPlan(session: Session): Promise<UserPlan> {
 
     const subs = response.body?.data?.currentAppInstallation?.activeSubscriptions;
     if (!Array.isArray(subs)) {
-      await redis.set(`plan:${session.shop}`, "free");
+      await redis.set(planKey(session.shop), "free");
       return "free";
     }
 
     // Pro優先→Basic→Free
     if (subs.some((s: any) => planNameMap[s.name] === "pro" && s.status === "ACTIVE")) {
-      await redis.set(`plan:${session.shop}`, "pro");
+      await redis.set(planKey(session.shop), "pro");
       return "pro";
     }
     if (subs.some((s: any) => planNameMap[s.name] === "basic" && s.status === "ACTIVE")) {
-      await redis.set(`plan:${session.shop}`, "basic");
+      await redis.set(planKey(session.shop), "basic");
       return "basic";
     }
-    await redis.set(`plan:${session.shop}`, "free");
+    await redis.set(planKey(session.shop), "free");
     return "free";
   } catch (error) {
     // エラーが発生した場合はデフォルトでfreeプランを返す

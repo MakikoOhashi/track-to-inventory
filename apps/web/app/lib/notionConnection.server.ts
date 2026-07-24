@@ -4,16 +4,22 @@ import {
   encryptUtf8,
   type EncryptedBlob,
 } from "~/lib/tokenEncryption.server";
+import {
+  getJsonPreferNew,
+} from "~/lib/redisCompat.server";
+import {
+  notionConnectionKey,
+  notionConnectionKeyLegacy,
+  notionOAuthStateKey,
+  notionOAuthStateKeyLegacy,
+  notionProvisionLockKey,
+  notionProvisionLockKeyLegacy,
+} from "~/lib/redisKeys.server";
 import { normalizeShopDomain } from "~/utils/shopDomain";
 
 /**
- * Notion connection storage — separate namespace from Shopify sessions.
+ * Notion connection storage — tti:notion:* (legacy notion:* read-fallback).
  * No TTL on connection records (must not share online-session TTLs).
- *
- * Keys:
- *   notion:connection:{shopDomain}
- *   notion:oauth-state:{state}   (short TTL)
- *   notion:provision-lock:{shopDomain}  (short NX lock)
  */
 
 export const NOTION_CONNECTION_SCHEMA_VERSION = 1;
@@ -58,33 +64,22 @@ function redis(): Redis {
   return new Redis({ url, token });
 }
 
-function connectionKey(shop: string): string {
-  return `notion:connection:${shop}`;
-}
-
-function oauthStateKey(state: string): string {
-  return `notion:oauth-state:${state}`;
-}
-
-function provisionLockKey(shop: string): string {
-  return `notion:provision-lock:${shop}`;
-}
-
 export async function saveNotionOAuthState(
   state: string,
   payload: NotionOAuthState,
 ): Promise<void> {
-  // 10 minutes — must not be used for long-lived connection storage
-  await redis().set(oauthStateKey(state), payload, { ex: 600 });
+  await redis().set(notionOAuthStateKey(state), payload, { ex: 600 });
 }
 
 export async function consumeNotionOAuthState(
   state: string,
 ): Promise<NotionOAuthState | null> {
-  const key = oauthStateKey(state);
   const r = redis();
-  const value = (await r.get(key)) as NotionOAuthState | null;
-  await r.del(key);
+  const newKey = notionOAuthStateKey(state);
+  const legacyKey = notionOAuthStateKeyLegacy(state);
+  const value = await getJsonPreferNew<NotionOAuthState>(r, newKey, legacyKey);
+  await r.del(newKey);
+  await r.del(legacyKey);
   if (!value || typeof value.shop !== "string") return null;
   const shop = normalizeShopDomain(value.shop);
   if (!shop) return null;
@@ -96,7 +91,11 @@ export async function getNotionConnection(
 ): Promise<NotionConnectionRecord | null> {
   const shop = normalizeShopDomain(shopId);
   if (!shop) return null;
-  const value = (await redis().get(connectionKey(shop))) as NotionConnectionRecord | null;
+  const value = await getJsonPreferNew<NotionConnectionRecord>(
+    redis(),
+    notionConnectionKey(shop),
+    notionConnectionKeyLegacy(shop),
+  );
   if (!value || value.shop_id !== shop) return null;
   return value;
 }
@@ -106,14 +105,15 @@ export async function saveNotionConnection(
 ): Promise<void> {
   const shop = normalizeShopDomain(record.shop_id);
   if (!shop) throw new Error("Invalid shop_id");
-  // Explicitly no TTL — durable connection metadata
-  await redis().set(connectionKey(shop), { ...record, shop_id: shop });
+  await redis().set(notionConnectionKey(shop), { ...record, shop_id: shop });
 }
 
 export async function deleteNotionConnection(shopId: string): Promise<void> {
   const shop = normalizeShopDomain(shopId);
   if (!shop) return;
-  await redis().del(connectionKey(shop));
+  const r = redis();
+  await r.del(notionConnectionKey(shop));
+  await r.del(notionConnectionKeyLegacy(shop));
 }
 
 export async function getNotionAccessToken(shopId: string): Promise<string | null> {
@@ -186,12 +186,17 @@ export function toPublicNotionConnection(conn: NotionConnectionRecord | null) {
 export async function acquireProvisionLock(shopId: string): Promise<boolean> {
   const shop = normalizeShopDomain(shopId);
   if (!shop) return false;
-  const result = await redis().set(provisionLockKey(shop), "1", { nx: true, ex: 90 });
+  const result = await redis().set(notionProvisionLockKey(shop), "1", {
+    nx: true,
+    ex: 90,
+  });
   return result === "OK";
 }
 
 export async function releaseProvisionLock(shopId: string): Promise<void> {
   const shop = normalizeShopDomain(shopId);
   if (!shop) return;
-  await redis().del(provisionLockKey(shop));
+  const r = redis();
+  await r.del(notionProvisionLockKey(shop));
+  await r.del(notionProvisionLockKeyLegacy(shop));
 }

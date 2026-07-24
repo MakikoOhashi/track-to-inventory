@@ -1,15 +1,19 @@
 import { Session } from "@shopify/shopify-api";
 import type { SessionStorage } from "@shopify/shopify-app-session-storage";
 import { Redis } from "@upstash/redis";
+import { getJsonPreferNew, smembersPreferNew } from "~/lib/redisCompat.server";
+import {
+  shopifySessionKey,
+  shopifySessionKeyLegacy,
+  shopifyShopSessionsKey,
+  shopifyShopSessionsKeyLegacy,
+} from "~/lib/redisKeys.server";
 
 type StoredSessionPayload = {
   entries: [string, string | number | boolean][];
   shop: string;
   expiresAt?: number;
 };
-
-const SESSION_KEY_PREFIX = "shopify:session";
-const SHOP_SET_KEY_PREFIX = "shopify:shop-sessions";
 
 function getRedisClient() {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -20,14 +24,6 @@ function getRedisClient() {
   }
 
   return new Redis({ url, token });
-}
-
-function getSessionKey(id: string) {
-  return `${SESSION_KEY_PREFIX}:${id}`;
-}
-
-function getShopSetKey(shop: string) {
-  return `${SHOP_SET_KEY_PREFIX}:${shop}`;
 }
 
 function getOnlineExpiresInSeconds(session: Session) {
@@ -45,8 +41,8 @@ function sortSessionsByExpiryDesc(a: Session, b: Session) {
 
 /**
  * Shopify SessionStorage backed only by Upstash Redis.
- * Offline sessions never get a TTL. Online sessions may expire with the session.
- * Does not write to Prisma / Supabase TrackToInventorySession.
+ * Keys: tti:shopify:session:* / tti:shopify:shop-sessions:*
+ * Legacy shopify:* is read-fallback; writes go to tti: only.
  */
 class UpstashSessionStorage implements SessionStorage {
   private redis = getRedisClient();
@@ -58,37 +54,44 @@ class UpstashSessionStorage implements SessionStorage {
       expiresAt: session.expires?.getTime(),
     };
 
-    const sessionKey = getSessionKey(session.id);
-    const shopSetKey = getShopSetKey(session.shop);
+    const sessionKey = shopifySessionKey(session.id);
+    const shopSetKey = shopifyShopSessionsKey(session.shop);
     const onlineTtl = getOnlineExpiresInSeconds(session);
 
     if (onlineTtl) {
       await this.redis.setex(sessionKey, onlineTtl, payload);
     } else {
-      // Offline (and online without expires): persist without TTL.
       await this.redis.set(sessionKey, payload);
     }
 
-    // Keep the shop index without TTL so offline session ids are not dropped
-    // when a short-lived online session is stored for the same shop.
     await this.redis.sadd(shopSetKey, session.id);
     return true;
   }
 
   async loadSession(id: string): Promise<Session | undefined> {
-    const payload = await this.redis.get<StoredSessionPayload>(getSessionKey(id));
+    const payload = await getJsonPreferNew<StoredSessionPayload>(
+      this.redis,
+      shopifySessionKey(id),
+      shopifySessionKeyLegacy(id),
+    );
     if (!payload?.entries) return undefined;
 
     return Session.fromPropertyArray(payload.entries, true);
   }
 
   async deleteSession(id: string): Promise<boolean> {
-    const existing = await this.redis.get<StoredSessionPayload>(getSessionKey(id));
+    const existing = await getJsonPreferNew<StoredSessionPayload>(
+      this.redis,
+      shopifySessionKey(id),
+      shopifySessionKeyLegacy(id),
+    );
 
-    await this.redis.del(getSessionKey(id));
+    await this.redis.del(shopifySessionKey(id));
+    await this.redis.del(shopifySessionKeyLegacy(id));
 
     if (existing?.shop) {
-      await this.redis.srem(getShopSetKey(existing.shop), id);
+      await this.redis.srem(shopifyShopSessionsKey(existing.shop), id);
+      await this.redis.srem(shopifyShopSessionsKeyLegacy(existing.shop), id);
     }
 
     return true;
@@ -100,7 +103,11 @@ class UpstashSessionStorage implements SessionStorage {
   }
 
   async findSessionsByShop(shop: string): Promise<Session[]> {
-    const ids = (await this.redis.smembers<string[]>(getShopSetKey(shop))) ?? [];
+    const ids = await smembersPreferNew(
+      this.redis,
+      shopifyShopSessionsKey(shop),
+      shopifyShopSessionsKeyLegacy(shop),
+    );
     if (!Array.isArray(ids) || ids.length === 0) {
       return [];
     }
@@ -109,7 +116,8 @@ class UpstashSessionStorage implements SessionStorage {
       ids.map(async (id) => {
         const session = await this.loadSession(id);
         if (!session) {
-          await this.redis.srem(getShopSetKey(shop), id);
+          await this.redis.srem(shopifyShopSessionsKey(shop), id);
+          await this.redis.srem(shopifyShopSessionsKeyLegacy(shop), id);
         }
         return session;
       }),

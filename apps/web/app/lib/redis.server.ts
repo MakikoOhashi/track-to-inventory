@@ -2,6 +2,20 @@
 import { Redis } from '@upstash/redis'
 import { createClient } from '@supabase/supabase-js'
 import { authenticate } from "~/shopify.server"
+import {
+  getStringPreferNew,
+  incrHydrateFromLegacy,
+} from "~/lib/redisCompat.server"
+import {
+  aiUsageKey,
+  aiUsageKeyLegacy,
+  deleteUsageKey,
+  deleteUsageKeyLegacy,
+  ocrUsageKey,
+  ocrUsageKeyLegacy,
+  planKey,
+  planKeyLegacy,
+} from "~/lib/redisKeys.server"
 
 // Redisクライアント初期化
 export const redis = new Redis({
@@ -58,15 +72,15 @@ export async function getStoreInfo(storeId: string) {
  * ユーザーのプランを設定
  */
 export async function setUserPlan(userId: string, plan: UserPlan): Promise<void> {
-  await redis.set(`plan:${userId}`, plan)
+  await redis.set(planKey(userId), plan)
 }
 
 /**
  * ユーザーのプランを取得
  */
 export async function getUserPlan(userId: string): Promise<UserPlan> {
-  const plan = await redis.get<UserPlan>(`plan:${userId}`)
-  return plan || 'free'
+  const plan = await getStringPreferNew(redis, planKey(userId), planKeyLegacy(userId))
+  return (plan as UserPlan) || 'free'
 }
 
 // ===== 月次管理 =====
@@ -90,13 +104,15 @@ export async function checkAndIncrementAI(userId: string): Promise<void> {
     return
   }
   
-  const currentCount = await redis.get<number>(`ai:${userId}:${month}`) ?? 0
+  const currentCount = Number(
+    (await getStringPreferNew(redis, aiUsageKey(userId, month), aiUsageKeyLegacy(userId, month))) ?? 0,
+  )
   
   if (currentCount >= limit) {
     throw new Error("AI_LIMIT_EXCEEDED")
   }
   
-  await redis.incr(`ai:${userId}:${month}`)
+  await incrHydrateFromLegacy(redis, aiUsageKey(userId, month), aiUsageKeyLegacy(userId, month))
 }
 
 // ===== OCR使用回数制限 =====
@@ -113,13 +129,15 @@ export async function checkAndIncrementOCR(userId: string): Promise<void> {
     return
   }
   
-  const currentCount = await redis.get<number>(`ocr:${userId}:${month}`) ?? 0
+  const currentCount = Number(
+    (await getStringPreferNew(redis, ocrUsageKey(userId, month), ocrUsageKeyLegacy(userId, month))) ?? 0,
+  )
   
   if (currentCount >= limit) {
     throw new Error("OCR_LIMIT_EXCEEDED")
   }
   
-  await redis.incr(`ocr:${userId}:${month}`)
+  await incrHydrateFromLegacy(redis, ocrUsageKey(userId, month), ocrUsageKeyLegacy(userId, month))
 }
 
 // ===== 使用状況取得 =====
@@ -134,8 +152,12 @@ export async function getUserUsage(userId: string) {
   
   // 現在の使用回数を取得
   const [aiCount, ocrCount] = await Promise.all([
-    redis.get<number>(`ai:${userId}:${month}`).then(count => count ?? 0),
-    redis.get<number>(`ocr:${userId}:${month}`).then(count => count ?? 0),
+    getStringPreferNew(redis, aiUsageKey(userId, month), aiUsageKeyLegacy(userId, month)).then(
+      (count) => Number(count ?? 0),
+    ),
+    getStringPreferNew(redis, ocrUsageKey(userId, month), ocrUsageKeyLegacy(userId, month)).then(
+      (count) => Number(count ?? 0),
+    ),
   ])
 
   // SupabaseでSI登録件数取得
@@ -250,7 +272,13 @@ function getErrorMessage(error: unknown): string {
  */
 export async function checkDeleteLimit(shopId: string, limit: number) {
   const month = getCurrentMonth()
-  const currentCount = await redis.get<number>(`delete:${shopId}:${month}`) ?? 0
+  const currentCount = Number(
+    (await getStringPreferNew(
+      redis,
+      deleteUsageKey(shopId, month),
+      deleteUsageKeyLegacy(shopId, month),
+    )) ?? 0,
+  )
   
   if (currentCount >= limit) {
     throw new Error("DELETE_LIMIT_EXCEEDED")
@@ -262,5 +290,9 @@ export async function checkDeleteLimit(shopId: string, limit: number) {
  */
 export async function incrementDeleteCount(shopId: string) {
   const month = getCurrentMonth()
-  await redis.incr(`delete:${shopId}:${month}`)
+  await incrHydrateFromLegacy(
+    redis,
+    deleteUsageKey(shopId, month),
+    deleteUsageKeyLegacy(shopId, month),
+  )
 }

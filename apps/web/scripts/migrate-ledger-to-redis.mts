@@ -23,7 +23,7 @@ function buildLedgerRedisKey(params: {
   idempotencyKey: string;
 }): string {
   return [
-    "invsync:ledger",
+    "tti:invsync:ledger",
     encodeURIComponent(params.shopId),
     encodeURIComponent(params.siNumber),
     params.itemKey,
@@ -32,7 +32,7 @@ function buildLedgerRedisKey(params: {
 }
 
 function buildLedgerSiIndexKey(shopId: string, siNumber: string): string {
-  return `invsync:si:${encodeURIComponent(shopId)}:${encodeURIComponent(siNumber)}`;
+  return `tti:invsync:si:${encodeURIComponent(shopId)}:${encodeURIComponent(siNumber)}`;
 }
 
 function rowToFields(row: any): Record<string, string> {

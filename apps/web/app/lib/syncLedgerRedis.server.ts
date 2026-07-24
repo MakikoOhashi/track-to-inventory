@@ -1,6 +1,6 @@
 /**
- * Redis inventory sync ledger (Stage K3).
- * Namespace: invsync:* — never share TTL with shopify:session:* or notion:*.
+ * Redis inventory sync ledger (Stage K3 / K3.6).
+ * Namespace: tti:invsync:* (legacy invsync:* read-fallback until old keys retired).
  *
  * Stale processing policy (Stage I preserved):
  * - claim never auto-reclaims processing rows
@@ -14,10 +14,18 @@ import type {
   LedgerRow,
   LedgerStatus,
 } from "~/lib/syncLedger.server";
+import {
+  hgetallPreferNew,
+  smembersPreferNew,
+} from "~/lib/redisCompat.server";
+import {
+  invsyncLedgerKey,
+  invsyncLedgerKeyLegacy,
+  invsyncSiIndexKey,
+  invsyncSiIndexKeyLegacy,
+} from "~/lib/redisKeys.server";
 
 export const INVSYNC_MIGRATION_VERSION = "k3-v1";
-export const LEDGER_KEY_PREFIX = "invsync:ledger:";
-export const LEDGER_SI_PREFIX = "invsync:si:";
 
 function redisClient(): Redis {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -34,18 +42,11 @@ export function buildLedgerRedisKey(params: {
   itemKey: string;
   idempotencyKey: string;
 }): string {
-  // encodeURIComponent keeps ':' / spaces in SI from breaking key segments
-  return [
-    "invsync:ledger",
-    encodeURIComponent(params.shopId),
-    encodeURIComponent(params.siNumber),
-    params.itemKey,
-    params.idempotencyKey,
-  ].join(":");
+  return invsyncLedgerKey(params);
 }
 
 export function buildLedgerSiIndexKey(shopId: string, siNumber: string): string {
-  return `invsync:si:${encodeURIComponent(shopId)}:${encodeURIComponent(siNumber)}`;
+  return invsyncSiIndexKey(shopId, siNumber);
 }
 
 function rowFromHash(map: Record<string, string>): LedgerRow {
@@ -349,8 +350,21 @@ export async function claimInventorySyncLedgerRedis(params: {
   idempotencyKey: string;
 }): Promise<ClaimResult> {
   const r = redisClient();
-  const key = buildLedgerRedisKey(params);
-  const siKey = buildLedgerSiIndexKey(params.shopId, params.siNumber);
+  const key = invsyncLedgerKey(params);
+  const legacyKey = invsyncLedgerKeyLegacy(params);
+  // Hydrate new key from legacy succeeded/etc. before claim so shadow stays consistent
+  const existingNew = await r.exists(key);
+  if (!existingNew) {
+    const legacy = await r.hgetall(legacyKey);
+    if (legacy && Object.keys(legacy as object).length > 0) {
+      await r.hset(key, legacy as Record<string, unknown>);
+      const legacySi = invsyncSiIndexKeyLegacy(params.shopId, params.siNumber);
+      const siKeyNew = invsyncSiIndexKey(params.shopId, params.siNumber);
+      await r.sadd(siKeyNew, key);
+      void legacySi;
+    }
+  }
+  const siKey = invsyncSiIndexKey(params.shopId, params.siNumber);
   const nowIso = new Date().toISOString();
   const newId = crypto.randomUUID();
   const claimToken = crypto.randomUUID();
@@ -400,10 +414,13 @@ export async function simulateClaimInventorySyncLedgerRedis(params: {
   idempotencyKey: string;
 }): Promise<ClaimResult & { missing?: boolean }> {
   const r = redisClient();
-  const key = buildLedgerRedisKey(params);
+  const key = invsyncLedgerKey(params);
+  const legacyKey = invsyncLedgerKeyLegacy(params);
+  // Simulate against new key if present, else legacy (read-only)
+  const prefer = (await r.exists(key)) ? key : legacyKey;
   let raw: unknown;
   try {
-    raw = await r.eval(SIMULATE_CLAIM_LUA, [key], []);
+    raw = await r.eval(SIMULATE_CLAIM_LUA, [prefer], []);
   } catch (error) {
     throw new Error(
       `Redis ledger simulate failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -435,7 +452,7 @@ export async function finalizeLedgerRedis(params: {
     return { ok: false, reason: "MISSING_TOKEN" };
   }
   const r = redisClient();
-  const key = buildLedgerRedisKey(params);
+  const key = invsyncLedgerKey(params);
   const nowIso = new Date().toISOString();
 
   let raw: unknown;
@@ -469,13 +486,6 @@ export async function markStaleProcessingRedis(row: LedgerRow): Promise<LedgerRo
     // Migrated succeeded rows have no claim_token; stale path needs token from live claim
   }
   if (row.status !== "processing" || !row.started_at) return row;
-
-  const key = buildLedgerRedisKey({
-    shopId: row.shop_id,
-    siNumber: row.si_number,
-    itemKey: row.item_key,
-    idempotencyKey: row.idempotency_key,
-  });
 
   // Use claim_token when present; otherwise refuse reclaim and leave unchanged
   // (fail-closed: cannot safely CAS without owner)
@@ -519,10 +529,11 @@ export async function getLedgerHash(
   },
 ): Promise<Record<string, string> | null> {
   const r = redisClient();
-  const key = buildLedgerRedisKey(params);
-  const map = (await r.hgetall(key)) as Record<string, string> | null;
-  if (!map || Object.keys(map).length === 0) return null;
-  return map;
+  return hgetallPreferNew(
+    r,
+    invsyncLedgerKey(params),
+    invsyncLedgerKeyLegacy(params),
+  );
 }
 
 export async function listLedgerForShipmentRedis(params: {
@@ -530,12 +541,16 @@ export async function listLedgerForShipmentRedis(params: {
   siNumber: string;
 }): Promise<LedgerRow[]> {
   const r = redisClient();
-  const siKey = buildLedgerSiIndexKey(params.shopId, params.siNumber);
-  const keys = (await r.smembers(siKey)) as string[];
+  const keys = await smembersPreferNew(
+    r,
+    invsyncSiIndexKey(params.shopId, params.siNumber),
+    invsyncSiIndexKeyLegacy(params.shopId, params.siNumber),
+  );
   if (!keys.length) return [];
 
   const rows: LedgerRow[] = [];
   for (const key of keys) {
+    // Members may be legacy or new ledger keys during migration
     const map = (await r.hgetall(key)) as Record<string, string> | null;
     if (!map || !map.status) continue;
     const row = rowFromHash(map);
@@ -551,13 +566,13 @@ export async function putLedgerHashIfCompatible(
   fields: Record<string, string>,
   opts: { overwriteIdentical: boolean },
 ): Promise<"inserted" | "skipped_identical" | "conflict"> {
-  const key = buildLedgerRedisKey({
+  const key = invsyncLedgerKey({
     shopId: fields.shop_id,
     siNumber: fields.si_number,
     itemKey: fields.item_key,
     idempotencyKey: fields.idempotency_key,
   });
-  const siKey = buildLedgerSiIndexKey(fields.shop_id, fields.si_number);
+  const siKey = invsyncSiIndexKey(fields.shop_id, fields.si_number);
   const r = redisClient();
   const existing = (await r.hgetall(key)) as Record<string, string> | null;
 
