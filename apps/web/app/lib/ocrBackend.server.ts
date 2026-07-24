@@ -1,8 +1,6 @@
 import type {
   GetFileUrlsInput,
   GetFileUrlsResult,
-  OcrTextResult,
-  PdfToImageResult,
   UploadShipmentFileInput,
   UploadShipmentFileResult,
 } from "@track-to-inventory/shared";
@@ -36,20 +34,6 @@ async function parseOcrApiError(response: Response, fallbackMessage: string) {
   }
 
   return fallbackMessage;
-}
-
-export async function warmOcrBackend() {
-  ensureExternalOcrConfig();
-
-  const response = await fetch(`${OCR_API_BASE_URL}/health`, {
-    method: "GET",
-  });
-
-  if (!response.ok) {
-    throw new Error(await parseOcrApiError(response, "OCR API health check failed"));
-  }
-
-  return response.json();
 }
 
 async function postMultipartToOcrApi<T>(path: string, formData: FormData, fallbackMessage: string) {
@@ -88,26 +72,6 @@ async function postJsonToOcrApi<T>(
   }
 
   return (await response.json()) as T;
-}
-
-export async function convertPdfToImage(request: Request): Promise<PdfToImageResult> {
-  const formData = await request.formData();
-  return postMultipartToOcrApi<PdfToImageResult>(
-    "/pdf-to-image",
-    formData,
-    "Failed to convert PDF to image",
-  );
-}
-
-export async function extractOcrText(file: File): Promise<OcrTextResult> {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  return postMultipartToOcrApi<OcrTextResult>(
-    "/ocr-text",
-    formData,
-    "OCR failed",
-  );
 }
 
 export async function uploadShipmentFile(

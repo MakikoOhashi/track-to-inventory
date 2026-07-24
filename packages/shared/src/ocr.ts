@@ -1,12 +1,3 @@
-export type PdfToImageResult = {
-  url: string;
-};
-
-export type OcrTextResult = {
-  text: string;
-  previewUrl?: string;
-};
-
 export type UploadShipmentFileInput = {
   siNumber: string;
   type: string;
