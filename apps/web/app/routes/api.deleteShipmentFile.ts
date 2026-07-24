@@ -1,131 +1,142 @@
-import { data as json } from "react-router";
+import { data as json, type ActionFunctionArgs } from "react-router";
+import { requireAdminShop } from "~/lib/requireAdminShop.server";
+import {
+  ALLOWED_SHIPMENT_FILE_TYPES,
+  SHIPMENT_FILES_BUCKET,
+  buildLegacyShipmentFilePath,
+  buildShopScopedShipmentFilePath,
+  resolveStorageObjectPath,
+} from "~/lib/shipmentFileStorage.server";
 import { createSupabaseAdminClient } from "~/lib/supabase.server";
+import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
 
-const supabase = createSupabaseAdminClient();
+const COMMON_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "pdf", "txt"] as const;
 
-function isJapaneseRequest(request: Request) {
-  const acceptLanguage = request.headers.get("accept-language") || "";
-  return acceptLanguage.toLowerCase().includes("ja");
-}
+/**
+ * Delete a shipment file from Storage + clear DB column.
+ * Shop comes only from authenticate.admin. Removes shop-scoped objects and
+ * uniquely referenced legacy keys when present.
+ */
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const locale = resolveRequestLocale(request);
+  const ja = isJapaneseRequest(request, locale);
 
-function getMessages(request: Request) {
-  const url = new URL(request.url);
-  const locale = (url.searchParams.get("locale") || request.headers.get("x-app-locale") || "").toLowerCase();
-  const ja = locale.startsWith("ja") || (!locale && isJapaneseRequest(request));
-  return {
-    methodNotAllowed: ja ? "Method not allowed" : "Method not allowed",
-    shopIdRequired: ja ? "shop_idが必要です" : "shop_id is required",
-    invalidParams: ja ? "SI番号とファイルタイプが必須です" : "SI number and file type are required",
-    fileDeleteFailed: ja ? "ファイルの削除に失敗しました" : "Failed to delete file",
-    invalidFileType: ja ? "無効なファイルタイプです" : "Invalid file type",
-    dbUpdateFailed: ja ? "データベースの更新に失敗しました" : "Failed to update database",
-    serverError: ja
-      ? "サーバーエラーが発生しました。しばらく時間をおいて再度お試しください。"
-      : "A server error occurred. Please try again later.",
-    success: ja ? "ファイルを正常に削除しました" : "File deleted successfully",
-  };
-}
-
-export const action = async ({ request }: any) => {
-  const messages = getMessages(request);
   if (request.method !== "DELETE") {
-    return json({ error: messages.methodNotAllowed }, { status: 405 });
+    return json({ error: "Method not allowed" }, { status: 405 });
   }
 
+  const auth = await requireAdminShop(request);
+  if (!auth.ok) {
+    return json(
+      { error: ja ? "認証に失敗しました" : "Authentication failed" },
+      { status: auth.status },
+    );
+  }
+
+  let body: FormData | Record<string, unknown>;
   try {
-    const url = new URL(request.url);
-    const body = await request.formData().catch(async () => {
-      const jsonBody = await request.json().catch(() => ({}));
-      return jsonBody;
-    });
-    const formLocale = (body.get?.("locale") as string | null)?.toLowerCase() || (body.locale as string | undefined)?.toLowerCase() || "";
-    const requestLocale = (url.searchParams.get("locale") || request.headers.get("x-app-locale") || formLocale || "").toLowerCase();
-    const ja = requestLocale.startsWith("ja") || (!requestLocale && isJapaneseRequest(request));
-    const messages = {
-      methodNotAllowed: ja ? "Method not allowed" : "Method not allowed",
-      shopIdRequired: ja ? "shop_idが必要です" : "shop_id is required",
-      invalidParams: ja ? "SI番号とファイルタイプが必須です" : "SI number and file type are required",
-      fileDeleteFailed: ja ? "ファイルの削除に失敗しました" : "Failed to delete file",
-      invalidFileType: ja ? "無効なファイルタイプです" : "Invalid file type",
-      dbUpdateFailed: ja ? "データベースの更新に失敗しました" : "Failed to update database",
-      serverError: ja
-        ? "サーバーエラーが発生しました。しばらく時間をおいて再度お試しください。"
-        : "A server error occurred. Please try again later.",
-      success: ja ? "ファイルを正常に削除しました" : "File deleted successfully",
-    };
-
-    const shopId =
-      url.searchParams.get("shop_id") ||
-      url.searchParams.get("shop") ||
-      body.get?.("shop_id") ||
-      body.get?.("shopId") ||
-      body.shop_id ||
-      body.shopId ||
-      "";
-
-    if (!shopId) {
-      return json({
-        error: messages.shopIdRequired
-      }, { status: 401 });
+    body = await request.formData();
+  } catch {
+    try {
+      body = (await request.json()) as Record<string, unknown>;
+    } catch {
+      body = {};
     }
-
-    const siNumber = body.get?.("siNumber") as string || body.siNumber;
-    const fileType = body.get?.("fileType") as string || body.fileType;
-
-    if (!siNumber || !fileType) {
-      return json({ error: messages.invalidParams }, { status: 400 });
   }
 
-    // ファイルパスを構築
-    const filePath = `${siNumber}/${fileType}`;
-
-    // Supabase Storageからファイルを削除
-    const { error: storageError } = await supabase.storage
-    .from("shipment-files")
-    .remove([filePath]);
-
-    if (storageError) {
-      return json({ error: messages.fileDeleteFailed }, { status: 500 });
+  const getField = (key: string) => {
+    if (body instanceof FormData) {
+      const value = body.get(key);
+      return typeof value === "string" ? value : "";
     }
+    const value = body[key];
+    return typeof value === "string" ? value : "";
+  };
 
-    // データベースからファイルURLを削除
-    const updateData: any = {
-      si_number: siNumber,
-      shop_id: shopId,
-    };
+  const siNumber = getField("siNumber");
+  const fileType = getField("fileType");
 
-    // ファイルタイプに応じてURLをnullに設定
-    switch (fileType) {
-      case "invoice":
-        updateData.invoice_url = null;
-        break;
-      case "pl":
-        updateData.pl_url = null;
-        break;
-      case "si":
-        updateData.si_url = null;
-        break;
-      case "other":
-        updateData.other_url = null;
-        break;
-      default:
-        return json({ error: messages.invalidFileType }, { status: 400 });
-    }
-
-    const { error: dbError } = await supabase
-      .from("shipments")
-      .upsert(updateData, {
-        onConflict: "si_number,shop_id",
-      });
-
-    if (dbError) {
-      return json({ error: messages.dbUpdateFailed }, { status: 500 });
+  if (!siNumber || !fileType) {
+    return json(
+      {
+        error: ja
+          ? "SI番号とファイルタイプが必須です"
+          : "SI number and file type are required",
+      },
+      { status: 400 },
+    );
   }
 
-    return json({ success: true, message: messages.success });
-  } catch (error) {
-    return json({ 
-      error: getMessages(request).serverError
-    }, { status: 500 });
+  if (!(ALLOWED_SHIPMENT_FILE_TYPES as readonly string[]).includes(fileType)) {
+    return json(
+      { error: ja ? "無効なファイルタイプです" : "Invalid file type" },
+      { status: 400 },
+    );
   }
+
+  const supabase = createSupabaseAdminClient();
+  const { data: shipment, error: loadError } = await supabase
+    .from("shipments")
+    .select("invoice_url, pl_url, si_url, other_url")
+    .eq("si_number", siNumber)
+    .eq("shop_id", auth.shop)
+    .maybeSingle();
+
+  if (loadError) {
+    return json(
+      { error: ja ? "データベースの更新に失敗しました" : "Failed to update database" },
+      { status: 500 },
+    );
+  }
+
+  if (!shipment) {
+    return json(
+      { error: ja ? "出荷データが見つかりません" : "Shipment not found" },
+      { status: 404 },
+    );
+  }
+
+  const columnKey = `${fileType}_url` as "invoice_url" | "pl_url" | "si_url" | "other_url";
+  const dbPath = resolveStorageObjectPath(shipment[columnKey] || "");
+
+  const candidates = new Set<string>();
+  if (dbPath) candidates.add(dbPath);
+
+  for (const ext of COMMON_EXTS) {
+    candidates.add(buildShopScopedShipmentFilePath(auth.shop, siNumber, fileType, ext));
+    candidates.add(buildLegacyShipmentFilePath(siNumber, fileType, ext));
+  }
+
+  const { error: storageError } = await supabase.storage
+    .from(SHIPMENT_FILES_BUCKET)
+    .remove([...candidates]);
+
+  if (storageError) {
+    return json(
+      { error: ja ? "ファイルの削除に失敗しました" : "Failed to delete file" },
+      { status: 500 },
+    );
+  }
+
+  const updateData: Record<string, string | null> = {
+    si_number: siNumber,
+    shop_id: auth.shop,
+    [columnKey]: null,
+  };
+
+  const { error: dbError } = await supabase.from("shipments").upsert(updateData, {
+    onConflict: "si_number,shop_id",
+  });
+
+  if (dbError) {
+    return json(
+      { error: ja ? "データベースの更新に失敗しました" : "Failed to update database" },
+      { status: 500 },
+    );
+  }
+
+  return json({
+    success: true,
+    message: ja ? "ファイルを正常に削除しました" : "File deleted successfully",
+  });
 };

@@ -399,9 +399,9 @@ const CustomModal = ({
       
       const data = await res.json();
       
-      // 署名付きURLをデータベースに保存
+      // Store Storage object key (shop-scoped). Signed URLs are issued on demand.
       const updatedFormData = { ...formData };
-      updatedFormData[`${fileType}_url`] = data.signedUrl; // 署名付きURLを保存
+      updatedFormData[`${fileType}_url`] = data.filePath;
       
       // created_at, updated_atフィールドを除外してデータベースを更新
       const { created_at, updated_at, ...cleanFormData } = updatedFormData;
@@ -457,23 +457,22 @@ const CustomModal = ({
       formData.append('siNumber', shipment.si_number);
       formData.append('fileType', type);
       formData.append('locale', effectiveLocale);
-    
-      // shopパラメータをURLに追加（認証fallback用）
-      const url = new URL('/api/deleteShipmentFile', window.location.origin);
-      url.searchParams.append('shop_id', shipment.shop_id);
-      url.searchParams.append('locale', effectiveLocale);
-      
-      const res = await fetch(url.toString(), {
+
+      const res = await shopifyAuthenticatedFetch(shopify, '/api/deleteShipmentFile', {
         method: 'DELETE',
         body: formData,
       });
-      
+
       const json = await res.json().catch(() => ({}));
       if (json.error) throw new Error(getLocalizedApiError(json.error));
-      
+
       alert(t('modal.messages.deleteFileSuccess'));
       if (onUpdated) onUpdated();
     } catch (e) {
+      if (e?.message === 'SESSION_TOKEN_UNAVAILABLE') {
+        alert(getLocalizedApiError('AUTH_FAILED') || t('ocrUploader.authFailed'));
+        return;
+      }
       alert(getLocalizedApiError(e.message) || t('modal.messages.deleteFileFailed'));
     } finally {
       setDeleting(false);

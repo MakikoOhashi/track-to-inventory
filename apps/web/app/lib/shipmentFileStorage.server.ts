@@ -5,15 +5,16 @@ import type {
   UploadShipmentFileResult,
 } from "@track-to-inventory/shared";
 import {
-  buildShipmentFilePath,
   hasInvalidPathSegment,
   isUnsafeStoragePath,
   normalizeFilePaths,
   validateUploadFile,
 } from "@track-to-inventory/shared/ocr-runtime";
 import { createSupabaseAdminClient } from "~/lib/supabase.server";
+import { normalizeShopDomain } from "~/utils/shopDomain";
 
 export const SHIPMENT_FILES_BUCKET = "shipment-files";
+export const SHOPS_PATH_PREFIX = "shops";
 
 /** Matches Render upload signed-URL TTL. */
 export const UPLOAD_SIGNED_URL_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -51,8 +52,83 @@ export type ShipmentFileStorage = {
   ) => Promise<GetFileUrlsResult>;
 };
 
+type ShipmentFileColumns = {
+  invoice_url: string | null;
+  pl_url: string | null;
+  si_url: string | null;
+  other_url: string | null;
+};
+
 function isAllowedFileType(type: string): type is ShipmentFileType {
   return (ALLOWED_SHIPMENT_FILE_TYPES as readonly string[]).includes(type);
+}
+
+/**
+ * Build a path-safe shop scope from an already-authenticated shop domain.
+ * Never accepts body/query shop strings.
+ */
+export function shopStorageScope(shop: string): string {
+  const normalized = normalizeShopDomain(shop);
+  if (!normalized || hasInvalidPathSegment(normalized)) {
+    throw new ShipmentFileStorageError("INVALID_SHOP", "不正なファイルパスです", 400);
+  }
+  return normalized;
+}
+
+/** New uploads only: shops/{shop}/{siNumber}/{type}.{ext} */
+export function buildShopScopedShipmentFilePath(
+  shop: string,
+  siNumber: string,
+  type: string,
+  fileExt: string,
+): string {
+  const scope = shopStorageScope(shop);
+  if (!siNumber || hasInvalidPathSegment(siNumber) || hasInvalidPathSegment(type) || hasInvalidPathSegment(fileExt)) {
+    throw new ShipmentFileStorageError("INVALID_PATH", "不正なファイルパスです", 400);
+  }
+  return `${SHOPS_PATH_PREFIX}/${scope}/${siNumber}/${type}.${fileExt}`;
+}
+
+/** Legacy (pre-F.1) path: {siNumber}/{type}.{ext} */
+export function buildLegacyShipmentFilePath(siNumber: string, type: string, fileExt: string): string {
+  if (!siNumber || hasInvalidPathSegment(siNumber) || hasInvalidPathSegment(type) || hasInvalidPathSegment(fileExt)) {
+    throw new ShipmentFileStorageError("INVALID_PATH", "不正なファイルパスです", 400);
+  }
+  return `${siNumber}/${type}.${fileExt}`;
+}
+
+export function isShopScopedObjectPath(objectPath: string): boolean {
+  return objectPath.startsWith(`${SHOPS_PATH_PREFIX}/`);
+}
+
+export function shopScopeFromObjectPath(objectPath: string): string | null {
+  if (!isShopScopedObjectPath(objectPath)) return null;
+  const parts = objectPath.split("/");
+  // shops / {shop} / {si} / file
+  if (parts.length < 4) return null;
+  return parts[1] || null;
+}
+
+export function pathBelongsToShopScope(objectPath: string, shop: string): boolean {
+  const scope = shopStorageScope(shop);
+  return objectPath.startsWith(`${SHOPS_PATH_PREFIX}/${scope}/`);
+}
+
+export function pathBelongsToSi(objectPath: string, siNumber: string, shop?: string): boolean {
+  if (shop && isShopScopedObjectPath(objectPath)) {
+    const scope = shopStorageScope(shop);
+    const prefix = `${SHOPS_PATH_PREFIX}/${scope}/${siNumber}/`;
+    return objectPath.startsWith(prefix);
+  }
+
+  if (isShopScopedObjectPath(objectPath)) {
+    // Scoped path without matching shop context is not "this SI" for callers.
+    const parts = objectPath.split("/");
+    return parts.length >= 4 && parts[2] === siNumber;
+  }
+
+  const prefix = `${siNumber}/`;
+  return objectPath === siNumber || objectPath.startsWith(prefix);
 }
 
 /**
@@ -93,16 +169,136 @@ export function resolveStorageObjectPath(rawPath: string): string | null {
     return null;
   }
 
-  if (isUnsafeStoragePath(candidate)) {
+  // Reject encoded / raw traversal after decode.
+  if (
+    isUnsafeStoragePath(candidate) ||
+    candidate.includes("%2e%2e") ||
+    candidate.includes("%2E%2E") ||
+    candidate.includes("%2f") ||
+    candidate.includes("%2F")
+  ) {
     return null;
   }
 
   return candidate;
 }
 
-function pathBelongsToSi(objectPath: string, siNumber: string): boolean {
-  const prefix = `${siNumber}/`;
-  return objectPath === siNumber || objectPath.startsWith(prefix);
+function dbValueReferencesObjectPath(dbValue: string | null | undefined, objectPath: string): boolean {
+  if (!dbValue || typeof dbValue !== "string") return false;
+  if (dbValue === objectPath) return true;
+
+  const resolved = resolveStorageObjectPath(dbValue);
+  return resolved === objectPath;
+}
+
+function shipmentReferencesObjectPath(columns: ShipmentFileColumns, objectPath: string): boolean {
+  return (
+    dbValueReferencesObjectPath(columns.invoice_url, objectPath) ||
+    dbValueReferencesObjectPath(columns.pl_url, objectPath) ||
+    dbValueReferencesObjectPath(columns.si_url, objectPath) ||
+    dbValueReferencesObjectPath(columns.other_url, objectPath)
+  );
+}
+
+async function countShopsWithSi(siNumber: string): Promise<number> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("shipments")
+    .select("shop_id")
+    .eq("si_number", siNumber);
+
+  if (error) {
+    throw new ShipmentFileStorageError("DB_ERROR", "データベースエラー", 500);
+  }
+
+  const shops = new Set((data || []).map((row) => row.shop_id).filter(Boolean));
+  return shops.size;
+}
+
+async function loadShipmentFileColumns(siNumber: string, shop: string): Promise<ShipmentFileColumns> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("shipments")
+    .select("invoice_url, pl_url, si_url, other_url")
+    .eq("si_number", siNumber)
+    .eq("shop_id", shop)
+    .maybeSingle();
+
+  if (error) {
+    throw new ShipmentFileStorageError("DB_ERROR", "データベースエラー", 500);
+  }
+
+  if (!data) {
+    throw new ShipmentFileStorageError("NOT_FOUND", "ファイルが見つかりません", 404);
+  }
+
+  return data as ShipmentFileColumns;
+}
+
+async function createSignedUrlForPath(
+  objectPath: string,
+  ttlSeconds: number,
+): Promise<string> {
+  const supabase = createSupabaseAdminClient();
+  const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+    .from(SHIPMENT_FILES_BUCKET)
+    .createSignedUrl(objectPath, ttlSeconds);
+
+  if (signedUrlError || !signedUrlData?.signedUrl) {
+    throw new ShipmentFileStorageError(
+      "SIGNED_URL_FAILED",
+      signedUrlError
+        ? `署名付きURL生成エラー: ${signedUrlError.message}`
+        : "署名付きURLが生成されませんでした",
+      500,
+    );
+  }
+
+  return signedUrlData.signedUrl;
+}
+
+/**
+ * Decide which Storage object to sign for a requested path.
+ * New shop-scoped paths are preferred; legacy paths only when uniquely attributable.
+ */
+export async function resolveReadableObjectPath(params: {
+  rawPath: string;
+  siNumber: string;
+  shop: string;
+  columns: ShipmentFileColumns;
+  shopsWithSameSi: number;
+}): Promise<{ objectPath: string } | { denyReason: string }> {
+  const { rawPath, siNumber, shop, columns, shopsWithSameSi } = params;
+  const objectPath = resolveStorageObjectPath(rawPath);
+  if (!objectPath) {
+    return { denyReason: `不正なファイルパス: ${rawPath}` };
+  }
+
+  // Prefer / only allow this shop's scoped prefix.
+  if (isShopScopedObjectPath(objectPath)) {
+    if (!pathBelongsToShopScope(objectPath, shop)) {
+      return { denyReason: `アクセス権限がありません: ${rawPath}` };
+    }
+    if (!pathBelongsToSi(objectPath, siNumber, shop)) {
+      return { denyReason: `アクセス権限がありません: ${rawPath}` };
+    }
+    return { objectPath };
+  }
+
+  // Legacy path: require unique SI attribution + DB reference on this shipment.
+  if (!pathBelongsToSi(objectPath, siNumber)) {
+    return { denyReason: `アクセス権限がありません: ${rawPath}` };
+  }
+
+  if (shopsWithSameSi !== 1) {
+    return { denyReason: `アクセス権限がありません: ${rawPath}` };
+  }
+
+  if (!shipmentReferencesObjectPath(columns, objectPath)) {
+    return { denyReason: `アクセス権限がありません: ${rawPath}` };
+  }
+
+  return { objectPath };
 }
 
 function createSupabaseShipmentFileStorage(): ShipmentFileStorage {
@@ -140,6 +336,8 @@ function createSupabaseShipmentFileStorage(): ShipmentFileStorage {
         throw new ShipmentFileStorageError("INVALID_PATH", "不正なファイルパスです", 400);
       }
 
+      // Ensure shop is a validated domain before any Storage write.
+      shopStorageScope(shop);
       await this.assertShipmentOwnedByShop(siNumber, shop);
 
       let fileExt: string;
@@ -159,7 +357,7 @@ function createSupabaseShipmentFileStorage(): ShipmentFileStorage {
         throw new ShipmentFileStorageError("VALIDATION", message, 400);
       }
 
-      const filePath = buildShipmentFilePath(siNumber, type, fileExt);
+      const filePath = buildShopScopedShipmentFilePath(shop, siNumber, type, fileExt);
       const fileBytes = new Uint8Array(await file.arrayBuffer());
       const supabase = createSupabaseAdminClient();
 
@@ -178,23 +376,11 @@ function createSupabaseShipmentFileStorage(): ShipmentFileStorage {
         );
       }
 
-      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-        .from(SHIPMENT_FILES_BUCKET)
-        .createSignedUrl(filePath, UPLOAD_SIGNED_URL_TTL_SECONDS);
-
-      if (signedUrlError || !signedUrlData?.signedUrl) {
-        throw new ShipmentFileStorageError(
-          "SIGNED_URL_FAILED",
-          signedUrlError
-            ? `署名付きURL生成エラー: ${signedUrlError.message}`
-            : "署名付きURLが生成されませんでした",
-          500,
-        );
-      }
+      const signedUrl = await createSignedUrlForPath(filePath, UPLOAD_SIGNED_URL_TTL_SECONDS);
 
       return {
         filePath,
-        signedUrl: signedUrlData.signedUrl,
+        signedUrl,
         message: "ファイルが正常にアップロードされました",
       };
     },
@@ -213,39 +399,44 @@ function createSupabaseShipmentFileStorage(): ShipmentFileStorage {
         throw new ShipmentFileStorageError("SI_REQUIRED", "SI番号が必要です", 400);
       }
 
+      shopStorageScope(shop);
       await this.assertShipmentOwnedByShop(siNumber, shop);
 
-      const supabase = createSupabaseAdminClient();
+      const [columns, shopsWithSameSi] = await Promise.all([
+        loadShipmentFileColumns(siNumber, shop),
+        countShopsWithSi(siNumber),
+      ]);
+
       const signedUrls: Record<string, string> = {};
       const errors: string[] = [];
 
       for (const rawPath of paths) {
-        const objectPath = resolveStorageObjectPath(rawPath);
-        if (!objectPath) {
-          errors.push(`不正なファイルパス: ${rawPath}`);
+        const resolved = await resolveReadableObjectPath({
+          rawPath,
+          siNumber,
+          shop,
+          columns,
+          shopsWithSameSi,
+        });
+
+        if ("denyReason" in resolved) {
+          errors.push(resolved.denyReason);
           continue;
         }
 
-        if (!pathBelongsToSi(objectPath, siNumber)) {
-          errors.push(`アクセス権限がありません: ${rawPath}`);
-          continue;
-        }
-
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-          .from(SHIPMENT_FILES_BUCKET)
-          .createSignedUrl(objectPath, GET_SIGNED_URL_TTL_SECONDS);
-
-        if (signedUrlError || !signedUrlData?.signedUrl) {
-          errors.push(
-            `${objectPath}: ${signedUrlError?.message ?? "署名付きURLが生成されませんでした"}`,
+        try {
+          const signedUrl = await createSignedUrlForPath(
+            resolved.objectPath,
+            GET_SIGNED_URL_TTL_SECONDS,
           );
-          continue;
-        }
-
-        // Key by the raw path the UI sent so Modal cache lookups keep working.
-        signedUrls[rawPath] = signedUrlData.signedUrl;
-        if (rawPath !== objectPath) {
-          signedUrls[objectPath] = signedUrlData.signedUrl;
+          signedUrls[rawPath] = signedUrl;
+          if (rawPath !== resolved.objectPath) {
+            signedUrls[resolved.objectPath] = signedUrl;
+          }
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "署名付きURLが生成されませんでした";
+          errors.push(`${resolved.objectPath}: ${message}`);
         }
       }
 
