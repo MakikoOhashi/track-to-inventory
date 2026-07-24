@@ -1,16 +1,57 @@
-import { data as json, type ActionFunctionArgs } from "react-router";
+import { data as json, type ActionFunctionArgs, type LoaderFunctionArgs } from "react-router";
+import { listLedgerForShipment } from "~/lib/syncLedger.server";
 import { SyncStockError, syncShipmentStock } from "~/lib/syncStock.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
 import { authenticate } from "~/shopify.server";
 import { normalizeShopDomain } from "~/utils/shopDomain";
 
 /**
- * Stage G: sync stock on Workers (no Render).
+ * Stage I: re-run-safe DELTA sync with inventory_sync_ledger + Shopify @idempotent.
  * Shop is taken only from authenticate.admin session.
  *
- * Inventory update mode (unchanged from Render): DELTA adjust via
- * inventoryAdjustQuantities; fallback set to current+delta.
+ * GET ?siNumber= — read-only ledger rows for investigation (no secrets).
  */
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const locale = resolveRequestLocale(request);
+  const ja = isJapaneseRequest(request, locale);
+
+  let shop: string;
+  try {
+    const auth = await authenticate.admin(request);
+    shop = normalizeShopDomain(auth.session.shop);
+    if (!shop) {
+      return json(
+        { error: ja ? "認証に失敗しました" : "Authentication failed" },
+        { status: 401 },
+      );
+    }
+  } catch {
+    return json(
+      { error: ja ? "認証に失敗しました" : "Authentication failed" },
+      { status: 401 },
+    );
+  }
+
+  const url = new URL(request.url);
+  const siNumber = url.searchParams.get("siNumber") || url.searchParams.get("si_number") || "";
+  if (!siNumber) {
+    return json(
+      { error: ja ? "SI番号が必要です" : "SI number is required" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const rows = await listLedgerForShipment({ shopId: shop, siNumber });
+    return json({ shop, si_number: siNumber, ledger: rows });
+  } catch {
+    return json(
+      { error: ja ? "ledgerの取得に失敗しました" : "Failed to load ledger" },
+      { status: 500 },
+    );
+  }
+};
+
 export const action = async ({ request }: ActionFunctionArgs) => {
   const locale = resolveRequestLocale(request);
   const ja = isJapaneseRequest(request, locale);
@@ -82,7 +123,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       admin,
       shop,
       siNumber,
-      items: items as Array<{ variant_id?: string; quantity?: unknown }>,
+      items: items as Array<{
+        sync_item_id?: string;
+        variant_id?: string;
+        quantity?: unknown;
+      }>,
     });
     return json(result);
   } catch (error) {

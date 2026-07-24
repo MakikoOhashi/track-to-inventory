@@ -147,6 +147,10 @@
       "syncFailed": "同期に失敗しました",
       "statusUpdateFailed": "ステータス更新に失敗しました",
       "syncGeneralFailed": "同期処理でエラーが発生しました",
+      "syncPartialFailed": "一部の商品の同期に失敗しました",
+      "syncManualReviewRequired": "結果確認が必要です。通常の同期では再送できません。",
+      "syncInProgress": "同期処理が進行中です。完了するまでお待ちください。",
+      "syncAlreadySynced": "既に同期済みのため、在庫は変更していません。",
       "fileUploadSuccess": "ファイルが正常にアップロードされました",
       "fileUploadFailed": "ファイルアップロードに失敗しました",
       "alreadySynced": "既に同期済みです",
@@ -161,7 +165,7 @@
         "variantId": "商品にShopify variant IDが正しく設定されていること"
       },
       "warning": "これらの設定が正しくない場合、在庫同期が失敗する可能性があります。",
-      "important": "必ず全ての商品にバリアントを割り当てて保存してから同期ボタンを押してください。同期後、再同期することはできません。"
+      "important": "同じ内容の再同期は在庫を重複加算しません。数量変更後の新規同期のみ加算されます。結果不明（要確認）の明細は通常ボタンから再送できません。"
     }
   },
   "ocrUploader": {

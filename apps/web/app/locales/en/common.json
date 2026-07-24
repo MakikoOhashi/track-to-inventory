@@ -147,6 +147,10 @@
       "syncFailed": "Sync failed",
       "statusUpdateFailed": "Status update failed",
       "syncGeneralFailed": "Sync operation failed",
+      "syncPartialFailed": "Some items failed to sync",
+      "syncManualReviewRequired": "Manual review required. Normal sync cannot resend these items.",
+      "syncInProgress": "Sync is already in progress. Please wait.",
+      "syncAlreadySynced": "Already synced — inventory was not changed.",
       "deleteGeneralFailed": "Delete failed",
       "fileUploadSuccess": "File uploaded successfully",
       "fileUploadFailed": "File upload failed",
@@ -162,7 +166,7 @@
         "variantId": "Ensure Shopify variant ID is correctly set for the product"
       },
       "warning": "If these settings are not correct, inventory sync may fail.",
-      "important": "Please make sure to assign a variant to every item and save before pressing the sync button. You cannot re-sync after synchronization."
+      "important": "Re-running the same sync does not double-count inventory. Only a quantity change creates a new sync. Items needing review cannot be resent from the normal sync button."
     }
   },
   "ocrUploader": {

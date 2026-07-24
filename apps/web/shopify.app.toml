@@ -11,7 +11,7 @@ app_url = "https://track-to-inventory-web.makiron19831014.workers.dev"
 automatically_update_urls_on_dev = false
 
 [webhooks]
-api_version = "2024-10"
+api_version = "2026-01"
 
   [[webhooks.subscriptions]]
   topics = [ "app/uninstalled" ]

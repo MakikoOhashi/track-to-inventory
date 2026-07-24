@@ -245,8 +245,8 @@ const CustomModal = ({
   }
 
   // --- Shopify同期アクション ---
-  // Inventory sync uses DELTA adjust (item.quantity added to available).
-  // Re-running the same sync will add again — UI disables while in flight.
+  // Stage I: DELTA sync is ledger-guarded. Same content re-run → already-synced.
+  // ambiguous / in-progress are never shown as success; no force re-run button.
   const handleSyncShopify = async () => {
     if (syncing) return;
     setSyncing(true);
@@ -282,27 +282,57 @@ const CustomModal = ({
       const json = await res.json();
       if (json.error) throw new Error(json.error);
 
-      if (json.results && json.results.length > 0) {
-        const failedItems = json.results.filter(result => result.error);
-        if (failedItems.length > 0) {
-          const errorMessages = failedItems.map(item =>
-            `${item.variant_id}: ${getLocalizedApiError(item.error)}`
-          ).join('\n');
-          throw new Error(`一部の商品の同期に失敗しました:\n${errorMessages}`);
-        }
+      const results = Array.isArray(json.results) ? json.results : [];
+      const statusOf = (r) => r.sync_status || (r.error ? 'retryable-failure' : 'synced');
+
+      const manualReview = results.filter((r) => statusOf(r) === 'manual-review-required');
+      const inProgress = results.filter((r) => statusOf(r) === 'in-progress');
+      const terminal = results.filter((r) => statusOf(r) === 'terminal-failure');
+      const retryable = results.filter((r) => statusOf(r) === 'retryable-failure');
+      const okStatuses = new Set(['synced', 'already-synced']);
+      const allOk = results.length > 0 && results.every((r) => okStatuses.has(statusOf(r)));
+      const anyFreshSync = results.some((r) => statusOf(r) === 'synced');
+      const allAlready = results.length > 0 && results.every((r) => statusOf(r) === 'already-synced');
+
+      if (manualReview.length > 0) {
+        const detail = manualReview.map((item) =>
+          `${item.variant_id}: ${getLocalizedApiError(item.error) || t('modal.messages.syncManualReviewRequired')}`
+        ).join('\n');
+        throw new Error(`${t('modal.messages.syncManualReviewRequired')}\n${detail}`);
       }
 
-      const updateRes = await fetch('/api/updateShipment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          shipment: { ...formData, status: "synced" },
-          shop_id: shipment.shop_id || formData.shop_id,
-        }),
-      });
-      if (!updateRes.ok) throw new Error(t('modal.messages.statusUpdateFailed'));
-      setFormData(prev => ({ ...prev, status: "synced" }));
-      alert(t('modal.messages.syncSuccess'));
+      if (inProgress.length > 0) {
+        throw new Error(t('modal.messages.syncInProgress'));
+      }
+
+      if (terminal.length > 0 || retryable.length > 0) {
+        const failedItems = [...terminal, ...retryable];
+        const errorMessages = failedItems.map(item =>
+          `${item.variant_id}: ${getLocalizedApiError(item.error)}`
+        ).join('\n');
+        throw new Error(`${t('modal.messages.syncPartialFailed')}:\n${errorMessages}`);
+      }
+
+      if (!allOk) {
+        throw new Error(t('modal.messages.syncGeneralFailed'));
+      }
+
+      // Only mark shipment synced when every line is synced/already-synced
+      // and at least one succeeded or all were already synced.
+      if (anyFreshSync || allAlready) {
+        const updateRes = await fetch('/api/updateShipment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            shipment: { ...formData, status: "synced" },
+            shop_id: shipment.shop_id || formData.shop_id,
+          }),
+        });
+        if (!updateRes.ok) throw new Error(t('modal.messages.statusUpdateFailed'));
+        setFormData(prev => ({ ...prev, status: "synced" }));
+      }
+
+      alert(allAlready ? t('modal.messages.syncAlreadySynced') : t('modal.messages.syncSuccess'));
       setSyncing(false);
       if (onUpdated) onUpdated();
       onClose();
