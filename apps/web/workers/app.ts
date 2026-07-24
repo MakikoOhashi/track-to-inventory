@@ -34,6 +34,10 @@ function applyCloudflareEnvToProcess(env: Env) {
     "RESEND_API_KEY",
     "RECAPTCHA_SITE_KEY",
     "RECAPTCHA_SECRET_KEY",
+    "NOTION_CLIENT_ID",
+    "NOTION_CLIENT_SECRET",
+    "NOTION_REDIRECT_URI",
+    "TOKEN_ENCRYPTION_KEY",
   ] as const;
 
   for (const key of envKeys) {

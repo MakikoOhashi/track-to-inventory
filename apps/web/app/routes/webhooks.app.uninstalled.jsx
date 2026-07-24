@@ -1,6 +1,7 @@
 import { authenticate } from "~/shopify.server";
 import sessionStorage from "../sessionStorage.server";
 import { createSupabaseAdminClient } from "~/lib/supabase.server";
+import { deleteNotionConnection } from "~/lib/notionConnection.server";
 
 export const action = async ({ request }) => {
   const supabase = createSupabaseAdminClient();
@@ -11,6 +12,12 @@ export const action = async ({ request }) => {
     const sessions = await sessionStorage.findSessionsByShop(shop);
     if (sessions.length > 0) {
       await sessionStorage.deleteSessions(sessions.map((storedSession) => storedSession.id));
+    }
+    // Notion connection (encrypted token + DB ids) — separate Redis namespace
+    try {
+      await deleteNotionConnection(shop);
+    } catch {
+      // fail closed for uninstall response; do not block webhook ack
     }
   }
 

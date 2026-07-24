@@ -76,6 +76,9 @@ export default function App() {
       <a href={linkWithContext("/app/contact")} onClick={scrollToTop}>
         Contact
       </a>
+      <a href={linkWithContext("/app/notion")} onClick={scrollToTop}>
+        Notion
+      </a>
     </div>
   ) : (
     <s-app-nav>
@@ -84,6 +87,7 @@ export default function App() {
       </s-link>
       <s-link href={linkWithContext("/app/pricing")}>Pricing</s-link>
       <s-link href={linkWithContext("/app/contact")}>Contact</s-link>
+      <s-link href={linkWithContext("/app/notion")}>Notion</s-link>
     </s-app-nav>
   );
 
