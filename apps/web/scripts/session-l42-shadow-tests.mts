@@ -5,7 +5,10 @@
 import assert from "node:assert/strict";
 import { Session } from "@shopify/shopify-api";
 import { getPlatformProxy } from "wrangler";
-import { runWithCloudflareEnv } from "../app/lib/cloudflareBindings.server.ts";
+import {
+  getOptionalTtiDb,
+  runWithCloudflareEnv,
+} from "../app/lib/cloudflareBindings.server.ts";
 import { createShopifySessionRepository } from "../app/lib/d1/shopifySessions.server.ts";
 import {
   getSessionD1Mode,
@@ -17,6 +20,7 @@ import {
   hashSessionId,
   resetSessionShadowMatchLogCount,
   runSessionD1ShadowForTest,
+  scheduleSessionD1Shadow,
   snapFromSession,
   SESSION_D1_SHADOW_TIMEOUT_MS,
 } from "../app/lib/sessionD1Shadow.server.ts";
@@ -112,11 +116,12 @@ async function main() {
 
   assertSafe(snapFromSession(a));
 
-  // off → skipped
+  // off → skipped (no D1 call even when db is provided)
   process.env.SESSION_D1_MODE = "off";
   assert.equal(isSessionD1ShadowActive(), false);
   assert.equal(
     await runSessionD1ShadowForTest({
+      db: {} as D1Database,
       sessionId: a.id,
       redisSession: a,
       primaryNamespace: "tti",
@@ -134,76 +139,138 @@ async function main() {
     const repo = createShopifySessionRepository(db);
     await repo.storeSession(a);
 
-    // match
-    const matchCat = await runWithCloudflareEnv(
+    // match with explicit db
+    const matchCat = await runSessionD1ShadowForTest({
+      db,
+      sessionId: a.id,
+      redisSession: a,
+      primaryNamespace: "tti",
+    });
+    assert.equal(matchCat, "match");
+
+    // ALS-loss: capture db in request context, compare outside ALS → still match
+    const capturedDb = await runWithCloudflareEnv(
       { env: { TTI_DB: db } as Env, ctx: {} as ExecutionContext },
-      () =>
-        runSessionD1ShadowForTest({
+      () => {
+        const fromAls = getOptionalTtiDb();
+        assert.ok(fromAls, "request context must expose TTI_DB");
+        return fromAls;
+      },
+    );
+    assert.equal(getOptionalTtiDb(), undefined, "ALS must be empty outside request");
+    const alsLossMatch = await compareSessionToD1({
+      db: capturedDb,
+      sessionId: a.id,
+      redisSession: a,
+      primaryNamespace: "tti",
+    });
+    assert.equal(alsLossMatch, "match");
+
+    // schedule: request ALS has binding → waitUntil receives explicit db work
+    let waitUntilWork: Promise<unknown> | undefined;
+    await runWithCloudflareEnv(
+      {
+        env: { TTI_DB: db } as Env,
+        ctx: {
+          waitUntil(p: Promise<unknown>) {
+            waitUntilWork = p;
+          },
+          passThroughOnException() {},
+        } as ExecutionContext,
+      },
+      () => {
+        scheduleSessionD1Shadow({
           sessionId: a.id,
           redisSession: a,
           primaryNamespace: "tti",
-        }),
+        });
+      },
     );
-    assert.equal(matchCat, "match");
+    assert.ok(waitUntilWork, "waitUntil must be registered when binding present");
+    await waitUntilWork;
+
+    // schedule: binding missing in request → no waitUntil, Redis path unchanged
+    let waitUntilCalled = false;
+    await runWithCloudflareEnv(
+      {
+        env: {} as Env,
+        ctx: {
+          waitUntil() {
+            waitUntilCalled = true;
+          },
+          passThroughOnException() {},
+        } as ExecutionContext,
+      },
+      () => {
+        scheduleSessionD1Shadow({
+          sessionId: a.id,
+          redisSession: a,
+          primaryNamespace: "tti",
+        });
+      },
+    );
+    assert.equal(waitUntilCalled, false);
 
     // missing in d1
-    const miss = await runWithCloudflareEnv(
-      { env: { TTI_DB: db } as Env, ctx: {} as ExecutionContext },
-      () =>
-        runSessionD1ShadowForTest({
-          sessionId: "offline_missing.myshopify.com",
-          redisSession: makeOffline("missing.myshopify.com"),
-          primaryNamespace: "tti",
-        }),
-    );
+    const miss = await runSessionD1ShadowForTest({
+      db,
+      sessionId: "offline_missing.myshopify.com",
+      redisSession: makeOffline("missing.myshopify.com"),
+      primaryNamespace: "tti",
+    });
     assert.equal(miss, "missing_in_d1");
 
     // token mismatch on D1
     await repo.storeSession(tokenDiff);
-    const tok = await runWithCloudflareEnv(
-      { env: { TTI_DB: db } as Env, ctx: {} as ExecutionContext },
-      () =>
-        runSessionD1ShadowForTest({
-          sessionId: a.id,
-          redisSession: a,
-          primaryNamespace: "tti",
-        }),
-    );
+    const tok = await runSessionD1ShadowForTest({
+      db,
+      sessionId: a.id,
+      redisSession: a,
+      primaryNamespace: "tti",
+    });
     assert.equal(tok, "token_mismatch");
 
     // Redis miss + D1 hit → missing_in_redis, caller would still return undefined
     await repo.storeSession(a);
-    const redisMiss = await runWithCloudflareEnv(
-      { env: { TTI_DB: db } as Env, ctx: {} as ExecutionContext },
-      () =>
-        compareSessionToD1({
-          sessionId: a.id,
-          redisSession: undefined,
-          primaryNamespace: "miss",
-        }),
-    );
+    const redisMiss = await compareSessionToD1({
+      db,
+      sessionId: a.id,
+      redisSession: undefined,
+      primaryNamespace: "miss",
+    });
     assert.equal(redisMiss, "missing_in_redis");
 
-    // binding missing
-    const bindMiss = await runWithCloudflareEnv(
-      { env: {} as Env, ctx: {} as ExecutionContext },
-      () =>
-        runSessionD1ShadowForTest({
-          sessionId: a.id,
-          redisSession: a,
-          primaryNamespace: "tti",
-        }),
-    );
+    // binding missing (no db arg)
+    const bindMiss = await runSessionD1ShadowForTest({
+      sessionId: a.id,
+      redisSession: a,
+      primaryNamespace: "tti",
+    });
     assert.equal(bindMiss, "d1_error");
 
     // logging failure path — snap still safe
     assert.equal(hashSessionId(a.id).length, 16);
 
-    await db.prepare("DELETE FROM shopify_sessions WHERE shop = ?").bind(a.shop).run();
-    await db
-      .prepare("DELETE FROM shopify_sessions WHERE shop = ?")
-      .bind("missing.myshopify.com")
-      .run();
+    // Local D1 can briefly SQLITE_BUSY after waitUntil; retry cleanup.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        await db
+          .prepare("DELETE FROM shopify_sessions WHERE shop = ?")
+          .bind(a.shop)
+          .run();
+        await db
+          .prepare("DELETE FROM shopify_sessions WHERE shop = ?")
+          .bind("missing.myshopify.com")
+          .run();
+        break;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!/SQLITE_BUSY|database is locked/i.test(message) || attempt === 4) {
+          throw error;
+        }
+        await new Promise((r) => setTimeout(r, 50 * (attempt + 1)));
+      }
+    }
 
     console.log(
       JSON.stringify({
@@ -220,6 +287,9 @@ async function main() {
           "missing_in_d1",
           "missing_in_redis",
           "binding_missing",
+          "als_loss_explicit_db",
+          "waitUntil_db_handoff",
+          "binding_missing_no_waitUntil",
           "shadow_off",
           "secret_redaction",
         ],

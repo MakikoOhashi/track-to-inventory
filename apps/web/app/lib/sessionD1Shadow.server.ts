@@ -188,6 +188,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 export async function compareSessionToD1(params: {
+  db: D1Database;
   sessionId: string;
   redisSession: Session | undefined;
   primaryNamespace: RedisSessionNamespace;
@@ -202,24 +203,10 @@ export async function compareSessionToD1(params: {
     params.redisSession?.id || params.sessionId,
   );
 
-  const db = getOptionalTtiDb();
-  if (!db) {
-    logSessionD1ShadowDiff({
-      correlation_id: correlationId,
-      session_id_hash: idHash,
-      shop: redisSnap?.shop || "",
-      primary_namespace: params.primaryNamespace,
-      category: "d1_error",
-      latency_ms: Date.now() - started,
-      error_class: "binding_missing",
-      redis_online: redisSnap?.is_online ?? null,
-      redis_has_expires: redisSnap?.has_expires ?? null,
-    });
-    return "d1_error";
-  }
-
+  // db must be passed from request context — never re-read ALS here
+  // (waitUntil callbacks lose AsyncLocalStorage).
   try {
-    const repo = createShopifySessionRepository(db);
+    const repo = createShopifySessionRepository(params.db);
     let d1Session: Session | undefined;
     try {
       d1Session = await repo.loadSession(params.sessionId);
@@ -292,8 +279,8 @@ export async function compareSessionToD1(params: {
 }
 
 /**
- * Fire shadow compare without failing / delaying Redis auth when waitUntil exists.
- * Always attaches .catch so promises are not left unhandled.
+ * Capture D1 + ctx in request scope, then run compare inside waitUntil
+ * with an explicit db argument (ALS is unreliable after waitUntil).
  */
 export function scheduleSessionD1Shadow(params: {
   sessionId: string;
@@ -302,32 +289,66 @@ export function scheduleSessionD1Shadow(params: {
 }): void {
   if (!isSessionD1ShadowActive()) return;
 
+  const idHash = hashSessionId(params.sessionId);
+  const redisOnline = params.redisSession
+    ? Boolean(params.redisSession.isOnline)
+    : null;
+  const redisHasExpires = Boolean(params.redisSession?.expires);
+  const shop = params.redisSession?.shop || "";
+
+  // Resolve binding NOW while request ALS is valid.
+  const db = getOptionalTtiDb();
+  if (!db) {
+    logSessionD1ShadowDiff({
+      correlation_id: crypto.randomUUID(),
+      session_id_hash: idHash,
+      shop,
+      primary_namespace: params.primaryNamespace,
+      category: "d1_error",
+      latency_ms: 0,
+      error_class: "binding_missing",
+      redis_online: redisOnline,
+      redis_has_expires: redisHasExpires,
+    });
+    // Do not register incomplete waitUntil work.
+    return;
+  }
+
+  const ctx = getCloudflareCtx();
+
   const work = withTimeout(
-    compareSessionToD1(params),
+    compareSessionToD1({
+      db,
+      sessionId: params.sessionId,
+      redisSession: params.redisSession,
+      primaryNamespace: params.primaryNamespace,
+    }),
     SESSION_D1_SHADOW_TIMEOUT_MS,
   ).catch((error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
     if (message === "d1_shadow_timeout" || /timeout/i.test(message)) {
       logSessionD1ShadowDiff({
         correlation_id: crypto.randomUUID(),
-        session_id_hash: hashSessionId(params.sessionId),
-        shop: params.redisSession?.shop || "",
+        session_id_hash: idHash,
+        shop,
         primary_namespace: params.primaryNamespace,
         category: "d1_timeout",
         latency_ms: SESSION_D1_SHADOW_TIMEOUT_MS,
         error_class: "timeout",
-        redis_online: params.redisSession
-          ? Boolean(params.redisSession.isOnline)
-          : null,
-        redis_has_expires: Boolean(params.redisSession?.expires),
+        redis_online: redisOnline,
+        redis_has_expires: redisHasExpires,
       });
     }
   });
 
-  const ctx = getCloudflareCtx();
-  if (ctx && typeof ctx.waitUntil === "function") {
-    ctx.waitUntil(work);
-  } else {
+  try {
+    if (ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil(work);
+    } else {
+      void work;
+    }
+  } catch {
+    // waitUntil registration failure must not affect Redis auth
     void work;
   }
 }
@@ -336,16 +357,38 @@ export function resetSessionShadowMatchLogCount(): void {
   matchLogCount = 0;
 }
 
-/** Awaitable shadow for tests. */
+/** Awaitable shadow for tests — pass db explicitly (simulates waitUntil handoff). */
 export async function runSessionD1ShadowForTest(params: {
+  db?: D1Database;
   sessionId: string;
   redisSession: Session | undefined;
   primaryNamespace: RedisSessionNamespace;
 }): Promise<SessionShadowCategory | "skipped"> {
   if (!isSessionD1ShadowActive()) return "skipped";
+  if (!params.db) {
+    logSessionD1ShadowDiff({
+      correlation_id: crypto.randomUUID(),
+      session_id_hash: hashSessionId(params.sessionId),
+      shop: params.redisSession?.shop || "",
+      primary_namespace: params.primaryNamespace,
+      category: "d1_error",
+      latency_ms: 0,
+      error_class: "binding_missing",
+      redis_online: params.redisSession
+        ? Boolean(params.redisSession.isOnline)
+        : null,
+      redis_has_expires: Boolean(params.redisSession?.expires),
+    });
+    return "d1_error";
+  }
   try {
     return await withTimeout(
-      compareSessionToD1(params),
+      compareSessionToD1({
+        db: params.db,
+        sessionId: params.sessionId,
+        redisSession: params.redisSession,
+        primaryNamespace: params.primaryNamespace,
+      }),
       SESSION_D1_SHADOW_TIMEOUT_MS,
     );
   } catch (error) {
