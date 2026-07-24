@@ -12,6 +12,10 @@ import {
   scheduleSessionD1Shadow,
   type RedisSessionNamespace,
 } from "~/lib/sessionD1Shadow.server";
+import {
+  mirrorSessionDeleteToD1,
+  mirrorSessionStoreToD1,
+} from "~/lib/sessionD1DualWrite.server";
 
 type StoredSessionPayload = {
   entries: [string, string | number | boolean][];
@@ -48,6 +52,7 @@ function sortSessionsByExpiryDesc(a: Session, b: Session) {
  * Keys: tti:shopify:session:* / tti:shopify:shop-sessions:*
  * Legacy shopify:* is read-fallback; writes go to tti: only.
  * Stage L4.2: loadSession may shadow-compare D1 (never returns D1 / never rescues).
+ * Stage L4.3: store/delete may mirror to D1 after Redis success (dual_write mode).
  */
 class UpstashSessionStorage implements SessionStorage {
   private redis = getRedisClient();
@@ -70,6 +75,14 @@ class UpstashSessionStorage implements SessionStorage {
     }
 
     await this.redis.sadd(shopSetKey, session.id);
+
+    // D1 mirror only after Redis success; failures must not change Redis result.
+    try {
+      await mirrorSessionStoreToD1(session);
+    } catch {
+      // ignore — Redis remains authority
+    }
+
     return true;
   }
 
@@ -136,6 +149,13 @@ class UpstashSessionStorage implements SessionStorage {
     if (shop) {
       await this.redis.srem(shopifyShopSessionsKey(shop), id);
       await this.redis.srem(shopifyShopSessionsKeyLegacy(shop), id);
+    }
+
+    // D1 soft-delete only after Redis success; never alter logout result.
+    try {
+      await mirrorSessionDeleteToD1({ sessionId: id, shop });
+    } catch {
+      // ignore — Redis remains authority
     }
 
     return true;

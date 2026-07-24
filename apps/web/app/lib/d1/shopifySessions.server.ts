@@ -1,7 +1,10 @@
 /**
- * Shopify session repository for D1 (Stage L1).
+ * Shopify session repository for D1 (Stage L1 / L4.3).
  * Payload shape matches Redis SessionStorage (toPropertyArray / fromPropertyArray).
- * Not wired into production session path yet (no dual-write / fallback).
+ *
+ * L4.3 dual-write:
+ * - store uses idempotent upsert gated by updated_at (stale writers no-op)
+ * - delete soft-deletes (tombstone) so a delayed store cannot resurrect the row
  */
 
 import { Session } from "@shopify/shopify-api";
@@ -13,6 +16,9 @@ import type {
 } from "./types.server";
 
 type SessionRaw = Record<string, unknown>;
+
+const DELETED_PAYLOAD_JSON = '{"deleted":true,"entries":[]}';
+export const SESSION_MIGRATION_SOURCE_DELETED = "deleted";
 
 function mapSessionRow(raw: SessionRaw | null | undefined): ShopifySessionRow | undefined {
   if (!raw) return undefined;
@@ -29,6 +35,18 @@ function mapSessionRow(raw: SessionRaw | null | undefined): ShopifySessionRow | 
     created_at: String(raw.created_at ?? ""),
     updated_at: String(raw.updated_at ?? ""),
   };
+}
+
+export function isDeletedSessionRow(
+  row: Pick<ShopifySessionRow, "migration_source" | "payload_json">,
+): boolean {
+  if (row.migration_source === SESSION_MIGRATION_SOURCE_DELETED) return true;
+  try {
+    const parsed = JSON.parse(row.payload_json) as { deleted?: boolean };
+    return parsed?.deleted === true;
+  } catch {
+    return false;
+  }
 }
 
 /** Same shape as Redis UpstashSessionStorage payload. */
@@ -53,26 +71,45 @@ function isExpired(expiresAt: string | null, nowMs: number): boolean {
   return t <= nowMs;
 }
 
+export type SessionWriteOptions = {
+  /** ISO timestamp; defaults to now. Used for ordering vs concurrent delete/store. */
+  updatedAt?: string;
+};
+
+export type SessionDeleteOptions = {
+  shop?: string;
+  updatedAt?: string;
+};
+
 export type ShopifySessionRepository = {
-  storeSession: (session: Session) => Promise<boolean>;
+  storeSession: (
+    session: Session,
+    options?: SessionWriteOptions,
+  ) => Promise<boolean>;
   loadSession: (id: string) => Promise<Session | undefined>;
-  deleteSession: (id: string) => Promise<boolean>;
+  deleteSession: (
+    id: string,
+    options?: SessionDeleteOptions,
+  ) => Promise<boolean>;
   findSessionsByShop: (shop: string) => Promise<Session[]>;
 };
 
 export function createShopifySessionRepository(
   db: D1Database,
 ): ShopifySessionRepository {
-  async function storeSession(session: Session): Promise<boolean> {
+  async function storeSession(
+    session: Session,
+    options?: SessionWriteOptions,
+  ): Promise<boolean> {
     const payload = serializeSessionPayload(session);
-    const ts = nowIso();
+    const ts = options?.updatedAt || nowIso();
     const expiresAt =
       session.isOnline && session.expires
         ? session.expires.toISOString()
         : null;
 
     try {
-      await db
+      const result = await db
         .prepare(
           `INSERT INTO shopify_sessions (
              id, shop, payload_json, is_online, expires_at,
@@ -85,7 +122,8 @@ export function createShopifySessionRepository(
              expires_at = excluded.expires_at,
              migration_source = excluded.migration_source,
              migration_version = excluded.migration_version,
-             updated_at = excluded.updated_at`,
+             updated_at = excluded.updated_at
+           WHERE excluded.updated_at >= shopify_sessions.updated_at`,
         )
         .bind(
           session.id,
@@ -98,7 +136,8 @@ export function createShopifySessionRepository(
           ts,
         )
         .run();
-      return true;
+      // meta.changes === 0 means a newer row (e.g. tombstone) rejected this store
+      return (result.meta?.changes ?? 1) > 0;
     } catch (error) {
       throw classifyD1Error(error);
     }
@@ -112,6 +151,7 @@ export function createShopifySessionRepository(
         .first<SessionRaw>();
       const row = mapSessionRow(raw ?? undefined);
       if (!row) return undefined;
+      if (isDeletedSessionRow(row)) return undefined;
 
       if (isExpired(row.expires_at, Date.now())) {
         return undefined;
@@ -125,13 +165,43 @@ export function createShopifySessionRepository(
     }
   }
 
-  async function deleteSession(id: string): Promise<boolean> {
+  /**
+   * Soft-delete (tombstone). Keeps the PK so a stale dual-write store with an
+   * older updated_at cannot INSERT a resurrected live session.
+   */
+  async function deleteSession(
+    id: string,
+    options?: SessionDeleteOptions,
+  ): Promise<boolean> {
+    const ts = options?.updatedAt || nowIso();
+    const shop = options?.shop || "";
     try {
-      await db
-        .prepare(`DELETE FROM shopify_sessions WHERE id = ?`)
-        .bind(id)
+      const result = await db
+        .prepare(
+          `INSERT INTO shopify_sessions (
+             id, shop, payload_json, is_online, expires_at,
+             migration_source, migration_version, created_at, updated_at
+           ) VALUES (?, ?, ?, 0, NULL, ?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET
+             payload_json = excluded.payload_json,
+             is_online = 0,
+             expires_at = NULL,
+             migration_source = excluded.migration_source,
+             migration_version = excluded.migration_version,
+             updated_at = excluded.updated_at
+           WHERE excluded.updated_at >= shopify_sessions.updated_at`,
+        )
+        .bind(
+          id,
+          shop,
+          DELETED_PAYLOAD_JSON,
+          SESSION_MIGRATION_SOURCE_DELETED,
+          D1_MIGRATION_VERSION,
+          ts,
+          ts,
+        )
         .run();
-      return true;
+      return (result.meta?.changes ?? 1) > 0;
     } catch (error) {
       throw classifyD1Error(error);
     }
@@ -143,11 +213,12 @@ export function createShopifySessionRepository(
         .prepare(
           `SELECT * FROM shopify_sessions
            WHERE shop = ?
+             AND IFNULL(migration_source, '') != ?
            ORDER BY
              CASE WHEN expires_at IS NULL THEN 1 ELSE 0 END DESC,
              expires_at DESC`,
         )
-        .bind(shop)
+        .bind(shop, SESSION_MIGRATION_SOURCE_DELETED)
         .all<SessionRaw>();
 
       const now = Date.now();
@@ -155,6 +226,7 @@ export function createShopifySessionRepository(
       for (const raw of result.results ?? []) {
         const row = mapSessionRow(raw);
         if (!row) continue;
+        if (isDeletedSessionRow(row)) continue;
         if (isExpired(row.expires_at, now)) continue;
         try {
           const payload = JSON.parse(row.payload_json) as ShopifySessionPayload;

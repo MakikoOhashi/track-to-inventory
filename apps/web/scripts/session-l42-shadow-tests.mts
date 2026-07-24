@@ -44,9 +44,16 @@ function assertSafe(obj: unknown) {
 
 async function main() {
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "shadow" }), "shadow");
+  assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "dual_write" }), "dual_write");
+  assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "dual-write" }), "dual_write");
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "primary" }), "off");
   assert.equal(getSessionD1Mode({ SESSION_D1_MODE: "nope" }), "off");
   assert.equal(SESSION_D1_SHADOW_TIMEOUT_MS, 500);
+
+  process.env.SESSION_D1_MODE = "dual_write";
+  assert.equal(isSessionD1ShadowActive(), true);
+  process.env.SESSION_D1_MODE = "shadow";
+  assert.equal(isSessionD1ShadowActive(), true);
 
   const a = makeOffline();
   const b = makeOffline();
