@@ -1,8 +1,6 @@
-import { redis, UserPlan } from "./redis.server";
 import { GraphqlClient, Session } from "@shopify/shopify-api";
-import { getStringPreferNew } from "./redisCompat.server";
-import { planKey, planKeyLegacy } from "./redisKeys.server";
-import { persistUserPlan } from "./usageGateway.server";
+import type { UserPlan } from "~/lib/d1/planLimits.server";
+import { getPlanViaGateway, persistUserPlan } from "./usageGateway.server";
 
 const planNameMap: Record<string, UserPlan> = {
   "Basic Plan": "basic",
@@ -23,29 +21,25 @@ export async function getCurrentPlan(session: Session): Promise<UserPlan> {
   const skipBilling = process.env.DISABLE_BILLING === "true";
 
   if (skipBilling) {
-    return (
-      ((await getStringPreferNew(
-        redis,
-        planKey(session.shop),
-        planKeyLegacy(session.shop),
-      )) as UserPlan | null) ?? "free"
-    );
+    try {
+      return await getPlanViaGateway(session.shop);
+    } catch {
+      return "free";
+    }
   }
 
   try {
-    // sessionの整合性チェック
     if (!session || !session.shop || !session.accessToken) {
       throw new Error("Invalid Shopify session");
     }
 
-    // scopeが設定されていない場合は環境変数から取得してsessionに追加
     if (!session.scope) {
       (session as any).scope = process.env.SCOPES || "";
     }
 
     const client = new GraphqlClient({
       session,
-      apiVersion: "2024-01" as any
+      apiVersion: "2024-01" as any,
     });
 
     const query = `
@@ -64,7 +58,6 @@ export async function getCurrentPlan(session: Session): Promise<UserPlan> {
     const subs = response.body?.data?.currentAppInstallation?.activeSubscriptions;
     let plan: UserPlan = "free";
     if (Array.isArray(subs)) {
-      // Pro優先→Basic→Free
       if (subs.some((s: any) => planNameMap[s.name] === "pro" && s.status === "ACTIVE")) {
         plan = "pro";
       } else if (subs.some((s: any) => planNameMap[s.name] === "basic" && s.status === "ACTIVE")) {
@@ -72,11 +65,9 @@ export async function getCurrentPlan(session: Session): Promise<UserPlan> {
       }
     }
 
-    // Redis (+ D1 mirror when USAGE_D1_MODE=shadow/d1_only)
     await persistUserPlan(session.shop, plan, "shopify_billing");
     return plan;
-  } catch (error) {
-    // エラーが発生した場合はデフォルトでfreeプランを返す
+  } catch {
     return "free";
   }
 }

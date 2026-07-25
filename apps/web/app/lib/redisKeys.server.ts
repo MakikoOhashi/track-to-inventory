@@ -123,7 +123,7 @@ export function shopifyShopSessionsKeyLegacy(shop: string): string {
   return `shopify:shop-sessions:${shop}`;
 }
 
-// --- Usage / plan ---
+// --- Usage / plan (legacy keys; runtime uses D1 as of L5.5 — helpers kept for cleanup scripts) ---
 
 export function planKey(userId: string): string {
   return `${TTI_PREFIX}:plan:${userId}`;

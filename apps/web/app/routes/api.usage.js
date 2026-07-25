@@ -30,7 +30,7 @@ export async function loader({ request }) {
       }, { status: 400 });
     }
     
-    // ストアIDを直接渡して使用状況を取得（USAGE_D1_MODE に従う）
+    // ストアIDを直接渡して使用状況を取得（D1）
     const usage = await getUsageForDisplay(shopId);
     
     return json({ 

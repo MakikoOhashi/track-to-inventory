@@ -1,55 +1,48 @@
 /**
- * Usage / plan gateway (Stage L5.3).
+ * Usage / plan gateway (Stage L5.5).
  *
- * Routes call this instead of redis.server usage helpers directly.
- * Mode via USAGE_D1_MODE: redis | shadow | d1_only.
+ * D1 is the sole authority for OCR / AI / delete / plan.
+ * No Redis contact. No USAGE_D1_MODE flag.
  *
- * shadow: Redis remains authority for authorize + returned values;
- *         D1 gets the same reserve/refund/plan writes; diffs are logged.
- * d1_only: D1 alone; Redis not contacted for usage/plan.
+ * SI registration limits still use Supabase counts + D1 plan.
  */
 
 import { randomUUID } from "node:crypto";
-import {
-  getCloudflareCtx,
-  getOptionalTtiDb,
-} from "~/lib/cloudflareBindings.server";
+import { getOptionalTtiDb } from "~/lib/cloudflareBindings.server";
 import { classifyD1Error, safeErrorName } from "~/lib/d1/errors.server";
 import {
   createShopPlanRepository,
   createUsageQuotaRepository,
-  limitFor,
   normalizeUserPlan,
   utcPeriodYm,
   type UsageKind,
   type UserPlan,
 } from "~/lib/d1/index.server";
-import {
-  checkAndIncrementAI,
-  checkAndIncrementOCR,
-  checkDeleteLimit,
-  getUserPlan,
-  getUserUsage,
-  incrementDeleteCount,
-  setUserPlan,
-} from "~/lib/redis.server";
-import {
-  getUsageD1Mode,
-  isUsageD1OnlyActive,
-  isUsageD1ShadowActive,
-  isUsageD1WriteActive,
-} from "~/lib/usageD1Mode.server";
 
 export type UsageReserveKind = "ocr" | "ai";
 
 export type ReserveUsageGatewayResult = {
   operationId: string;
-  source: "redis" | "d1" | "shadow";
+  source: "d1";
 };
 
-type UsageDisplay = Awaited<ReturnType<typeof getUserUsage>>;
+export type UsageDisplay = {
+  plan: UserPlan;
+  month: string;
+  usage: {
+    ai: { current: number; limit: number; remaining: number };
+    ocr: { current: number; limit: number; remaining: number };
+    si: { current: number; limit: number; remaining: number };
+  };
+};
 
 const D1_TIMEOUT_MS = 800;
+
+const SI_LIMITS: Record<UserPlan, number> = {
+  free: 10,
+  basic: 100,
+  pro: Number.POSITIVE_INFINITY,
+};
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -71,7 +64,7 @@ function logUsage(entry: Record<string, unknown>): void {
   try {
     const line = JSON.stringify({
       ...entry,
-      usage_d1_mode: getUsageD1Mode(),
+      usage_authority: "d1",
       primary_namespace: "tti",
     });
     if (/shpat_|sk_live|eyJhbGci/i.test(line)) return;
@@ -150,316 +143,6 @@ async function d1UpsertPlan(
   );
 }
 
-/** Best-effort D1 mirror; never throws to shadow callers. */
-async function shadowD1Reserve(params: {
-  shopId: string;
-  kind: UsageKind;
-  operationId: string;
-}): Promise<void> {
-  const started = Date.now();
-  try {
-    if (!getOptionalTtiDb()) {
-      logUsage({
-        type: "usage_d1_shadow_write_error",
-        operation: "reserve",
-        kind: params.kind,
-        shop: params.shopId,
-        operation_id: params.operationId,
-        latency_ms: 0,
-        error_class: "binding_missing",
-      });
-      return;
-    }
-    // Redis already authorized — do not re-enforce plan limit on the mirror path
-    // (production counts may already exceed historical free limits).
-    const db = requireDb();
-    const repo = createUsageQuotaRepository(db);
-    const result = await withTimeout(
-      repo.reserve({
-        shopId: params.shopId,
-        kind: params.kind,
-        operationId: params.operationId,
-        limit: Number.POSITIVE_INFINITY,
-      }),
-      D1_TIMEOUT_MS,
-    );
-    if (!result.ok) {
-      logUsage({
-        type: "usage_d1_shadow_write_error",
-        operation: "reserve",
-        kind: params.kind,
-        shop: params.shopId,
-        operation_id: params.operationId,
-        latency_ms: Date.now() - started,
-        error_class: "reserve_rejected",
-        error_name: result.reason,
-      });
-      return;
-    }
-    logUsage({
-      type: "usage_d1_shadow_write_success",
-      operation: "reserve",
-      kind: params.kind,
-      shop: params.shopId,
-      operation_id: params.operationId,
-      latency_ms: Date.now() - started,
-      d1_count: result.count,
-    });
-  } catch (error) {
-    const classified = classifyD1Error(error);
-    logUsage({
-      type: "usage_d1_shadow_write_error",
-      operation: "reserve",
-      kind: params.kind,
-      shop: params.shopId,
-      operation_id: params.operationId,
-      latency_ms: Date.now() - started,
-      error_class: classified.classification,
-      error_name: safeErrorName(error),
-    });
-  }
-}
-
-async function shadowD1Refund(operationId: string, kind: UsageKind, shopId: string): Promise<void> {
-  const started = Date.now();
-  try {
-    if (!getOptionalTtiDb()) {
-      logUsage({
-        type: "usage_d1_shadow_write_error",
-        operation: "refund",
-        kind,
-        shop: shopId,
-        operation_id: operationId,
-        latency_ms: 0,
-        error_class: "binding_missing",
-      });
-      return;
-    }
-    await d1Refund(operationId);
-    logUsage({
-      type: "usage_d1_shadow_write_success",
-      operation: "refund",
-      kind,
-      shop: shopId,
-      operation_id: operationId,
-      latency_ms: Date.now() - started,
-    });
-  } catch (error) {
-    const classified = classifyD1Error(error);
-    logUsage({
-      type: "usage_d1_shadow_write_error",
-      operation: "refund",
-      kind,
-      shop: shopId,
-      operation_id: operationId,
-      latency_ms: Date.now() - started,
-      error_class: classified.classification,
-      error_name: safeErrorName(error),
-    });
-  }
-}
-
-/**
- * Authorize + count OCR/AI usage.
- * Returns operationId for later refund on processing failure.
- */
-export async function reserveOcrOrAiUsage(params: {
-  shopId: string;
-  kind: UsageReserveKind;
-  operationId?: string;
-}): Promise<ReserveUsageGatewayResult> {
-  const operationId = params.operationId || randomUUID();
-  const mode = getUsageD1Mode();
-
-  if (mode === "d1_only") {
-    await d1Reserve({
-      shopId: params.shopId,
-      kind: params.kind,
-      operationId,
-    });
-    return { operationId, source: "d1" };
-  }
-
-  // redis + shadow: Redis authorizes
-  if (params.kind === "ocr") {
-    await checkAndIncrementOCR(params.shopId);
-  } else {
-    await checkAndIncrementAI(params.shopId);
-  }
-
-  if (mode === "shadow") {
-    // Mirror only when Redis would have incremented (finite plan limit).
-    // Pro/unlimited Redis path no-ops the increment — skip D1 to avoid false diffs.
-    const plan = normalizeUserPlan(await getUserPlan(params.shopId));
-    const lim = limitFor(plan, params.kind);
-    if (Number.isFinite(lim)) {
-      await shadowD1Reserve({
-        shopId: params.shopId,
-        kind: params.kind,
-        operationId,
-      });
-    }
-  }
-
-  return { operationId, source: mode === "shadow" ? "shadow" : "redis" };
-}
-
-/**
- * Refund after OCR/AI processing failure.
- * redis mode: no-op (historical Redis path never refunded).
- * shadow / d1_only: D1 refund.
- */
-export async function refundOcrOrAiUsage(params: {
-  shopId: string;
-  kind: UsageReserveKind;
-  operationId: string;
-}): Promise<void> {
-  if (!params.operationId) return;
-  const mode = getUsageD1Mode();
-  if (mode === "redis") return;
-
-  if (mode === "d1_only") {
-    await d1Refund(params.operationId);
-    return;
-  }
-
-  await shadowD1Refund(params.operationId, params.kind, params.shopId);
-}
-
-/** Delete limit check — same timing as legacy (before mutation). */
-export async function checkDeleteUsageLimit(
-  shopId: string,
-  limit: number = 2,
-): Promise<void> {
-  if (isUsageD1OnlyActive()) {
-    const period = utcPeriodYm();
-    const count = await d1GetCount(shopId, "delete", period);
-    if (count >= limit) throw new Error("DELETE_LIMIT_EXCEEDED");
-    return;
-  }
-  await checkDeleteLimit(shopId, limit);
-}
-
-/**
- * Record delete usage after successful delete (same success condition as legacy).
- */
-export async function recordDeleteUsage(params: {
-  shopId: string;
-  operationId?: string;
-}): Promise<void> {
-  const operationId = params.operationId || randomUUID();
-  const mode = getUsageD1Mode();
-
-  if (mode === "d1_only") {
-    await d1Reserve({
-      shopId: params.shopId,
-      kind: "delete",
-      operationId,
-    });
-    return;
-  }
-
-  await incrementDeleteCount(params.shopId);
-
-  if (mode === "shadow") {
-    await shadowD1Reserve({
-      shopId: params.shopId,
-      kind: "delete",
-      operationId,
-    });
-  }
-}
-
-function scheduleShadowCompare(work: () => Promise<void>): void {
-  const ctx = getCloudflareCtx();
-  const run = async () => {
-    try {
-      await work();
-    } catch {
-      // never surface
-    }
-  };
-  if (ctx && typeof ctx.waitUntil === "function") {
-    ctx.waitUntil(run());
-    return;
-  }
-  void run();
-}
-
-async function compareUsageShadow(shopId: string, redisUsage: UsageDisplay): Promise<void> {
-  if (!getOptionalTtiDb()) return;
-  const period = utcPeriodYm();
-  const diffs: Array<Record<string, unknown>> = [];
-
-  try {
-    const d1Plan = await d1GetPlan(shopId);
-    if (d1Plan !== redisUsage.plan) {
-      diffs.push({ field: "plan", redis: redisUsage.plan, d1: d1Plan });
-    }
-    for (const kind of ["ocr", "ai"] as const) {
-      const d1c = await d1GetCount(shopId, kind, period);
-      const redisC = redisUsage.usage[kind].current;
-      if (d1c !== redisC) {
-        diffs.push({ field: kind, redis: redisC, d1: d1c, period_ym: period });
-      }
-    }
-    // delete is not in display payload; still compare for ops visibility
-    try {
-      const { getStringPreferNew } = await import("~/lib/redisCompat.server");
-      const { deleteUsageKey, deleteUsageKeyLegacy } = await import("~/lib/redisKeys.server");
-      const { redis } = await import("~/lib/redis.server");
-      const redisDelete = Number(
-        (await getStringPreferNew(
-          redis,
-          deleteUsageKey(shopId, period),
-          deleteUsageKeyLegacy(shopId, period),
-        )) ?? 0,
-      );
-      const d1Delete = await d1GetCount(shopId, "delete", period);
-      if (d1Delete !== redisDelete) {
-        diffs.push({
-          field: "delete",
-          redis: redisDelete,
-          d1: d1Delete,
-          period_ym: period,
-        });
-      }
-    } catch {
-      // delete compare is best-effort
-    }
-
-    if (diffs.length > 0) {
-      logUsage({
-        type: "usage_d1_shadow_diff",
-        shop: shopId,
-        period_ym: period,
-        diffs,
-        returned_source: "redis",
-      });
-    } else {
-      logUsage({
-        type: "usage_d1_shadow_match",
-        shop: shopId,
-        period_ym: period,
-        returned_source: "redis",
-      });
-    }
-  } catch (error) {
-    const classified = classifyD1Error(error);
-    logUsage({
-      type: "usage_d1_shadow_compare_error",
-      shop: shopId,
-      error_class: classified.classification,
-      error_name: safeErrorName(error),
-    });
-  }
-}
-
-/**
- * Usage display for /api/usage.
- * shadow/redis: Redis payload; shadow schedules D1 diff log.
- * d1_only: D1 snapshot + Supabase SI (via getUserUsage SI path reused carefully).
- */
 async function fetchSiCount(shopId: string): Promise<number> {
   try {
     const url = process.env.SUPABASE_URL;
@@ -478,117 +161,138 @@ async function fetchSiCount(shopId: string): Promise<number> {
   }
 }
 
-export async function getUsageForDisplay(shopId: string): Promise<UsageDisplay> {
-  if (isUsageD1OnlyActive()) {
-    const db = requireDb();
-    const repo = createUsageQuotaRepository(db);
-    const snap = await withTimeout(repo.getSnapshot(shopId), D1_TIMEOUT_MS);
-    const plan = snap.plan;
-    const siLimits: Record<UserPlan, number> = {
-      free: 10,
-      basic: 100,
-      pro: Number.POSITIVE_INFINITY,
-    };
-    const siLimit = siLimits[plan];
-    const siCurrent = await fetchSiCount(shopId);
-    return {
-      plan,
-      month: snap.period_ym,
-      usage: {
-        ai: {
-          current: snap.usage.ai.current,
-          limit: snap.usage.ai.limit,
-          remaining: snap.usage.ai.remaining,
-        },
-        ocr: {
-          current: snap.usage.ocr.current,
-          limit: snap.usage.ocr.limit,
-          remaining: snap.usage.ocr.remaining,
-        },
-        si: {
-          current: siCurrent,
-          limit: siLimit,
-          remaining:
-            siLimit === Number.POSITIVE_INFINITY
-              ? Number.POSITIVE_INFINITY
-              : siLimit - siCurrent,
-        },
-      },
-    };
-  }
+/**
+ * Authorize + count OCR/AI usage on D1.
+ * Returns operationId for later refund on processing failure.
+ */
+export async function reserveOcrOrAiUsage(params: {
+  shopId: string;
+  kind: UsageReserveKind;
+  operationId?: string;
+}): Promise<ReserveUsageGatewayResult> {
+  const operationId = params.operationId || randomUUID();
+  await d1Reserve({
+    shopId: params.shopId,
+    kind: params.kind,
+    operationId,
+  });
+  return { operationId, source: "d1" };
+}
 
-  const usage = await getUserUsage(shopId);
-  if (isUsageD1ShadowActive()) {
-    scheduleShadowCompare(() => compareUsageShadow(shopId, usage));
-  }
-  return usage;
+/** Refund after OCR/AI processing failure. */
+export async function refundOcrOrAiUsage(params: {
+  shopId: string;
+  kind: UsageReserveKind;
+  operationId: string;
+}): Promise<void> {
+  if (!params.operationId) return;
+  await d1Refund(params.operationId);
+}
+
+/** Delete limit check — before mutation (same timing as legacy). */
+export async function checkDeleteUsageLimit(
+  shopId: string,
+  limit: number = 2,
+): Promise<void> {
+  const period = utcPeriodYm();
+  const count = await d1GetCount(shopId, "delete", period);
+  if (count >= limit) throw new Error("DELETE_LIMIT_EXCEEDED");
 }
 
 /**
- * Persist plan after Shopify Billing confirmation.
- * redis: Redis only.
- * shadow: Redis + D1.
- * d1_only: D1 only (Redis untouched, not deleted).
+ * Record delete usage after successful delete (same success condition as legacy).
  */
+export async function recordDeleteUsage(params: {
+  shopId: string;
+  operationId?: string;
+}): Promise<void> {
+  const operationId = params.operationId || randomUUID();
+  await d1Reserve({
+    shopId: params.shopId,
+    kind: "delete",
+    operationId,
+  });
+}
+
+/** Usage display for /api/usage — D1 snapshot + Supabase SI. */
+export async function getUsageForDisplay(shopId: string): Promise<UsageDisplay> {
+  const db = requireDb();
+  const repo = createUsageQuotaRepository(db);
+  const snap = await withTimeout(repo.getSnapshot(shopId), D1_TIMEOUT_MS);
+  const plan = snap.plan;
+  const siLimit = SI_LIMITS[plan];
+  const siCurrent = await fetchSiCount(shopId);
+  return {
+    plan,
+    month: snap.period_ym,
+    usage: {
+      ai: {
+        current: snap.usage.ai.current,
+        limit: snap.usage.ai.limit,
+        remaining: snap.usage.ai.remaining,
+      },
+      ocr: {
+        current: snap.usage.ocr.current,
+        limit: snap.usage.ocr.limit,
+        remaining: snap.usage.ocr.remaining,
+      },
+      si: {
+        current: siCurrent,
+        limit: siLimit,
+        remaining:
+          siLimit === Number.POSITIVE_INFINITY
+            ? Number.POSITIVE_INFINITY
+            : siLimit - siCurrent,
+      },
+    },
+  };
+}
+
+/** Persist plan after Shopify Billing confirmation — D1 only. */
 export async function persistUserPlan(
   shopId: string,
   plan: UserPlan | string,
   source: string = "shopify_billing",
 ): Promise<void> {
   const normalized = normalizeUserPlan(plan);
-  const mode = getUsageD1Mode();
-
-  if (mode !== "d1_only") {
-    await setUserPlan(shopId, normalized);
-  }
-
-  if (isUsageD1WriteActive()) {
-    try {
-      await d1UpsertPlan(shopId, normalized, source);
-      logUsage({
-        type: "usage_d1_plan_write_success",
-        shop: shopId,
-        plan: normalized,
-        source,
-      });
-    } catch (error) {
-      if (mode === "d1_only") throw error;
-      const classified = classifyD1Error(error);
-      logUsage({
-        type: "usage_d1_plan_write_error",
-        shop: shopId,
-        plan: normalized,
-        source,
-        error_class: classified.classification,
-        error_name: safeErrorName(error),
-      });
-    }
+  try {
+    await d1UpsertPlan(shopId, normalized, source);
+    logUsage({
+      type: "usage_d1_plan_write_success",
+      shop: shopId,
+      plan: normalized,
+      source,
+    });
+  } catch (error) {
+    const classified = classifyD1Error(error);
+    logUsage({
+      type: "usage_d1_plan_write_error",
+      shop: shopId,
+      plan: normalized,
+      source,
+      error_class: classified.classification,
+      error_name: safeErrorName(error),
+    });
+    throw error;
   }
 }
 
-/** Plan read for callers that need it under the gateway. */
+/** Plan read from D1. */
 export async function getPlanViaGateway(shopId: string): Promise<UserPlan> {
-  if (isUsageD1OnlyActive()) {
-    return d1GetPlan(shopId);
+  return d1GetPlan(shopId);
+}
+
+/**
+ * SI registration limit check (Supabase count + D1 plan).
+ * Kept here so plan is never read from Redis.
+ */
+export async function checkSILimit(shopId: string): Promise<void> {
+  const plan = await getPlanViaGateway(shopId);
+  const limit = SI_LIMITS[plan];
+  if (!Number.isFinite(limit)) return;
+
+  const currentCount = await fetchSiCount(shopId);
+  if (currentCount >= limit) {
+    throw new Error("SI_LIMIT_EXCEEDED");
   }
-  const plan = await getUserPlan(shopId);
-  if (isUsageD1ShadowActive()) {
-    scheduleShadowCompare(async () => {
-      try {
-        if (!getOptionalTtiDb()) return;
-        const d1 = await d1GetPlan(shopId);
-        if (d1 !== plan) {
-          logUsage({
-            type: "usage_d1_shadow_diff",
-            shop: shopId,
-            diffs: [{ field: "plan", redis: plan, d1 }],
-            returned_source: "redis",
-          });
-        }
-      } catch {
-        // ignore
-      }
-    });
-  }
-  return plan;
 }

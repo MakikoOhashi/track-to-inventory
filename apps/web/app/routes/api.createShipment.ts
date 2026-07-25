@@ -1,5 +1,5 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
-import { checkSILimit } from "~/lib/redis.server";
+import { checkSILimit } from "~/lib/usageGateway.server";
 import { requireAdminShop } from "~/lib/requireAdminShop.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
 import { createSupabaseAdminClient } from "~/lib/supabase.server";
