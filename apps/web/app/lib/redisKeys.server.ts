@@ -105,7 +105,7 @@ export function notionProvisionLockKeyLegacy(shop: string): string {
   return `notion:provision-lock:${shop}`;
 }
 
-// --- Shopify sessions ---
+// --- Shopify sessions (legacy keys; runtime uses D1 as of L6.0 — helpers kept for cleanup scripts) ---
 
 export function shopifySessionKey(sessionId: string): string {
   return `${TTI_PREFIX}:shopify:session:${sessionId}`;

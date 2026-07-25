@@ -1,10 +1,11 @@
 /**
- * D1-only Shopify session authority (Stage L4.5).
+ * D1-only Shopify session authority (Stage L6.0).
  *
- * Active when SESSION_D1_MODE=d1_only.
- * Never contacts Redis. No automatic Redis fallback (ops must change mode).
+ * D1 is the fixed session authority. Never contacts Redis. There is no mode
+ * flag or Redis fallback anymore (the Redis compat path was removed in L6.0).
  */
 
+import { createHash } from "node:crypto";
 import type { Session } from "@shopify/shopify-api";
 import { getOptionalTtiDb } from "~/lib/cloudflareBindings.server";
 import { createShopifySessionRepository } from "~/lib/d1/shopifySessions.server";
@@ -14,8 +15,11 @@ import {
   type D1FailureStage,
   safeErrorName,
 } from "~/lib/d1/errors.server";
-import { isSessionD1OnlyActive } from "~/lib/sessionD1Mode.server";
-import { hashSessionId } from "~/lib/sessionD1Shadow.server";
+
+/** Stable, non-reversible id hash for logs (never log the raw session id). */
+export function hashSessionId(id: string): string {
+  return createHash("sha256").update(id).digest("hex").slice(0, 16);
+}
 
 /** Align with primary/shadow/write budgets (L4.2b measured up to ~454ms). */
 export const SESSION_D1_ONLY_TIMEOUT_MS = 500;
@@ -131,8 +135,6 @@ export async function loadSessionD1Only(params: {
   db?: D1Database;
   timeoutMs?: number;
 }): Promise<Session | undefined> {
-  if (!isSessionD1OnlyActive()) return undefined;
-
   const started = Date.now();
   const idHash = hashSessionId(params.sessionId);
   const timeoutMs = params.timeoutMs ?? SESSION_D1_ONLY_TIMEOUT_MS;
@@ -223,8 +225,6 @@ export async function storeSessionD1Only(params: {
   db?: D1Database;
   timeoutMs?: number;
 }): Promise<boolean> {
-  if (!isSessionD1OnlyActive()) return false;
-
   const started = Date.now();
   const idHash = hashSessionId(params.session.id);
   const timeoutMs = params.timeoutMs ?? SESSION_D1_ONLY_TIMEOUT_MS;
@@ -289,8 +289,6 @@ export async function deleteSessionD1Only(params: {
   db?: D1Database;
   timeoutMs?: number;
 }): Promise<boolean> {
-  if (!isSessionD1OnlyActive()) return false;
-
   const started = Date.now();
   const idHash = hashSessionId(params.sessionId);
   const timeoutMs = params.timeoutMs ?? SESSION_D1_ONLY_TIMEOUT_MS;
@@ -349,7 +347,6 @@ export async function findSessionsByShopD1Only(params: {
   db?: D1Database;
   timeoutMs?: number;
 }): Promise<Session[]> {
-  if (!isSessionD1OnlyActive()) return [];
   try {
     const db = requireDb(params.db);
     const repo = createShopifySessionRepository(db);

@@ -24,7 +24,6 @@ function applyCloudflareEnvToProcess(env: Env) {
     "SHOPIFY_API_SECRET",
     "SHOPIFY_APP_URL",
     "SCOPES",
-    "SHOPIFY_SESSION_STORAGE",
     "DATABASE_URL",
     "UPSTASH_REDIS_REST_URL",
     "UPSTASH_REDIS_REST_TOKEN",
@@ -41,7 +40,6 @@ function applyCloudflareEnvToProcess(env: Env) {
     "TOKEN_ENCRYPTION_KEY",
     "INVSYNC_LEDGER_MODE",
     "D1_LEDGER_MODE",
-    "SESSION_D1_MODE",
   ] as const;
 
   for (const key of envKeys) {

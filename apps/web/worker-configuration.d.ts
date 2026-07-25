@@ -10,10 +10,8 @@ declare namespace Cloudflare {
 		ASSETS: Fetcher;
 		SHOPIFY_APP_URL: "https://track-to-inventory-web.makiron19831014.workers.dev";
 		SCOPES: "read_locations,read_products,write_inventory,write_products";
-		SHOPIFY_SESSION_STORAGE: "upstash";
 		INVSYNC_LEDGER_MODE: "shadow";
 		D1_LEDGER_MODE: "shadow";
-		SESSION_D1_MODE: "shadow";
 		OCR_API_BASE_URL: string;
 		OCR_API_SHARED_SECRET: string;
 	}
@@ -23,7 +21,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "SHOPIFY_APP_URL" | "SCOPES" | "SHOPIFY_SESSION_STORAGE" | "INVSYNC_LEDGER_MODE" | "D1_LEDGER_MODE" | "SESSION_D1_MODE" | "OCR_API_BASE_URL" | "OCR_API_SHARED_SECRET">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "SHOPIFY_APP_URL" | "SCOPES" | "INVSYNC_LEDGER_MODE" | "D1_LEDGER_MODE" | "OCR_API_BASE_URL" | "OCR_API_SHARED_SECRET">> {}
 }
 
 // Begin runtime types

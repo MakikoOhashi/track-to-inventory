@@ -9,6 +9,7 @@ Inbound Tracking（旧称: Track to Inventory）は、Shopifyストアの入荷�
 ## 🆕 Recent Updates
 
 - **Usage / plan を Cloudflare D1 へ移行**（Stage L5）: OCR・AI・delete の月次利用量と Shopify Billing 由来の plan の正本は D1。旧 Redis usage/plan 経路とキーは撤去済み（`USAGE_D1_MODE` 廃止・D1 固定）
+- **Shopify session を Cloudflare D1 へ固定**（Stage L6.0）: `SESSION_D1_MODE` と Redis session 互換経路を撤去。セッション正本は D1 固定。旧 Redis session キー自体は未削除（別 Stage）
 - Cloudflare Workers をフロント本体として安定化し、Shopify Embedded App としての起動導線を整理
 - App Bridge の初期化を見直し、埋め込みナビゲーション表示を改善
 - 初回の全画面 `Loading...` を短縮し、トップ画面の表示体感を改善
@@ -77,13 +78,13 @@ track-to-inventory/
 
 #### 1. **認証システム**
 - `apps/web/app/shopify.server.ts`: Shopify OAuth認証とセッション管理
-- セッション正本: Cloudflare D1（`SESSION_D1_MODE=d1_only`）。Upstash Redis には互換経路が残るが、本番セッションの読書きは D1
+- セッション正本: Cloudflare D1（`SESSION_D1_MODE` 廃止・D1 固定。旧 Redis session 互換経路は撤去済み）
 - セキュアなHMAC検証とShopify API統合
 
 #### 2. **データモデル**
 - **Supabase (PostgreSQL)**: shipments 等の業務データとファイル Storage
 - **Cloudflare D1**: Shopify セッション、利用量・plan、在庫同期 ledger の shadow 比較用テーブル
-- **Upstash Redis**: inventory sync ledger / Notion 接続など（**usage・plan の正本ではない**。旧 `tti:plan|ocr|ai|delete:` および legacy キーは削除済み）
+- **Upstash Redis**: inventory sync ledger / Notion 接続など（**session・usage・plan の正本ではない**。旧 usage/plan キーは削除済み。旧 session キーは別 Stage で削除予定）
 - **データフロー**: Shopify Admin → Cloudflare Workers → Supabase / D1（＋必要に応じて Redis）
 
 ##### Usage / plan（D1 正本）
@@ -98,6 +99,7 @@ track-to-inventory/
 - **kind**: `ocr` / `ai` / `delete`
 - 本番 D1 には `0001_init_schema.sql` に加え **`0002_usage_operations.sql` 適用済み**
 - かつての `USAGE_D1_MODE`（redis / shadow / d1_only）は **廃止**。実行時は D1 固定（feature flag なし）
+- かつての `SESSION_D1_MODE`（off / shadow / dual_write / d1_primary / d1_only）も **廃止**。Shopify session も D1 固定
 
 #### 3. **APIエンドポイント**
 - `apps/web/app/routes/api.shipments.ts`: 入荷情報のCRUD操作
@@ -137,7 +139,7 @@ track-to-inventory/
 Shopify Admin → Cloudflare Workers (apps/web)
                     ├─ Supabase … shipments / files
                     ├─ D1 ……… sessions / usage+plan / ledger tables
-                    └─ Redis …… inventory sync ledger, Notion 等（usage/plan 以外）
+                    └─ Redis …… inventory sync ledger, Notion 等（session / usage / plan 以外）
 ```
 
 #### 3. **デプロイ方針**
@@ -243,15 +245,13 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 # Gemini API
 GEMINI_API_KEY=your_gemini_api_key
 
-# Upstash Redis（session 互換 / inventory sync ledger / Notion 等）
-# ※ OCR・AI・delete 利用量と plan の正本は D1。USAGE_D1_MODE は廃止済み
+# Upstash Redis（inventory sync ledger / Notion 等）
+# ※ session / usage / plan の正本は D1。SESSION_D1_MODE / USAGE_D1_MODE は廃止済み
 UPSTASH_REDIS_REST_URL=your_upstash_redis_url
 UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token
 
 # D1 関連（Wrangler vars / Worker バインディング TTI_DB）
-# SESSION_D1_MODE: off | shadow | dual_write | d1_primary | d1_only
-# 本番セッションは d1_only。usage/plan に mode flag は無し（常に D1）
-SESSION_D1_MODE=d1_only
+# session・usage/plan は D1 固定（mode flag なし）
 INVSYNC_LEDGER_MODE=shadow
 D1_LEDGER_MODE=shadow
 
@@ -353,7 +353,7 @@ npm run build
 ### Cloudflare Workers
 
 1. `apps/web` でビルド（Wrangler は build 生成の config redirect を使うため、vars 変更後は rebuild してから deploy）
-2. シークレット / vars（`SESSION_D1_MODE` 等）を確認
+2. シークレット / vars（`INVSYNC_LEDGER_MODE` 等）を確認
 3. デプロイ
 
 ```bash
@@ -438,7 +438,7 @@ It provides powerful features for tracking shipping instructions (SI), managing 
 - **UI**: Shopify Polaris
 - **App data**: Supabase (PostgreSQL)
 - **Sessions / usage & plan**: Cloudflare D1 (`shop_plans`, `usage_counters`, `usage_operations`; `period_ym` = UTC `YYYY-MM`)
-- **Auxiliary store**: Upstash Redis (inventory sync ledger, Notion, etc. — **not** usage/plan)
+- **Auxiliary store**: Upstash Redis (inventory sync ledger, Notion, etc. — **not** session / usage / plan)
 - **OCR / AI**: Gemini API
 - **Internationalization**: react-i18next
 
