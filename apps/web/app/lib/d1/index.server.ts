@@ -32,3 +32,19 @@ export {
   deserializeSessionPayload,
 } from "./shopifySessions.server";
 export type { ShopifySessionRepository } from "./shopifySessions.server";
+export {
+  PLAN_LIMITS,
+  limitFor,
+  normalizeUserPlan,
+  utcPeriodYm,
+} from "./planLimits.server";
+export type { UserPlan, UsageKind } from "./planLimits.server";
+export { createShopPlanRepository } from "./shopPlans.server";
+export type { ShopPlanRepository, ShopPlanRow } from "./shopPlans.server";
+export { createUsageQuotaRepository } from "./usageQuota.server";
+export type {
+  UsageQuotaRepository,
+  ReserveUsageResult,
+  RefundUsageResult,
+  UsageSnapshot,
+} from "./usageQuota.server";

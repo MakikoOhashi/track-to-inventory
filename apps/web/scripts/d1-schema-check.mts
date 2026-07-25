@@ -23,6 +23,7 @@ const EXPECTED_TABLES = [
   "shopify_sessions",
   "shop_plans",
   "usage_counters",
+  "usage_operations",
   "notion_connections",
   "notion_oauth_states",
   "notion_provision_locks",
