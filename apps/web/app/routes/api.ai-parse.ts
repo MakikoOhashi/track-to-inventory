@@ -1,8 +1,11 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
 import { generateGeminiContent } from "~/lib/geminiClient";
-import { checkAndIncrementAI } from "~/lib/redis.server";
 import { authenticate } from "~/shopify.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
+import {
+  refundOcrOrAiUsage,
+  reserveOcrOrAiUsage,
+} from "~/lib/usageGateway.server";
 
 type Fields = { [key: string]: string | string[] };
 type RequestBody = { text: string; fields: Fields };
@@ -34,20 +37,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ result: "{}" });
   }
   
-  // 🔥 AI使用制限チェック（ここで回数制限＆カウント増加）
+  // AI使用制限チェック（ここで回数制限＆カウント増加）
+  let shopId = "";
+  let operationId: string | undefined;
   try {
     const url = new URL(request.url);
     const shopIdFromQuery = url.searchParams.get("shop_id") || "";
-    let shopId = shopIdFromQuery;
+    shopId = shopIdFromQuery;
 
     if (!shopId) {
       // query がない場合だけ Shopify 認証にフォールバック
       const { session } = await authenticate.admin(request);
       shopId = session.shop;
-    } else {
     }
 
-    await checkAndIncrementAI(shopId);
+    const reserved = await reserveOcrOrAiUsage({ shopId, kind: "ai" });
+    operationId = reserved.operationId;
   } catch (error) {
     // 認証エラーの場合は401を返す
     const errorMessage =
@@ -134,6 +139,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ result: "{}" });
     }
   } catch (e: any) {
+    if (operationId && shopId) {
+      await refundOcrOrAiUsage({ shopId, kind: "ai", operationId }).catch(() => {});
+    }
     return json({ error: e?.message || String(e) }, { status: 500 });
   }
 };

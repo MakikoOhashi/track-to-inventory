@@ -1,8 +1,8 @@
 // app/routes/api.usage.js
 import { data as json } from "react-router";
 import { authenticate } from "~/shopify.server";
-import { getUserUsage } from "~/lib/redis.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
+import { getUsageForDisplay } from "~/lib/usageGateway.server";
 
 export async function loader({ request }) {
   try {
@@ -30,8 +30,8 @@ export async function loader({ request }) {
       }, { status: 400 });
     }
     
-    // ストアIDを直接渡して使用状況を取得
-    const usage = await getUserUsage(shopId);
+    // ストアIDを直接渡して使用状況を取得（USAGE_D1_MODE に従う）
+    const usage = await getUsageForDisplay(shopId);
     
     return json({ 
       success: true, 

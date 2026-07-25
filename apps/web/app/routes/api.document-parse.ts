@@ -1,7 +1,10 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
 import { parseDocumentFile, validateDocumentParseFile } from "~/lib/documentParse.server";
-import { checkAndIncrementOCR } from "~/lib/redis.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
+import {
+  refundOcrOrAiUsage,
+  reserveOcrOrAiUsage,
+} from "~/lib/usageGateway.server";
 import { authenticate } from "~/shopify.server";
 import { normalizeShopDomain } from "~/utils/shopDomain";
 
@@ -88,8 +91,10 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ error: mapped.message }, { status: mapped.status });
   }
 
+  let operationId: string | undefined;
   try {
-    await checkAndIncrementOCR(shop);
+    const reserved = await reserveOcrOrAiUsage({ shopId: shop, kind: "ocr" });
+    operationId = reserved.operationId;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (message === "OCR_LIMIT_EXCEEDED") {
@@ -114,6 +119,9 @@ export async function action({ request }: ActionFunctionArgs) {
       result: parsed.result,
     });
   } catch (error) {
+    if (operationId) {
+      await refundOcrOrAiUsage({ shopId: shop, kind: "ocr", operationId }).catch(() => {});
+    }
     const message = error instanceof Error ? error.message : "";
     if (/API key/i.test(message) || /GEMINI_API_KEY/i.test(message)) {
       return json(

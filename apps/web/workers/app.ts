@@ -42,6 +42,7 @@ function applyCloudflareEnvToProcess(env: Env) {
     "INVSYNC_LEDGER_MODE",
     "D1_LEDGER_MODE",
     "SESSION_D1_MODE",
+    "USAGE_D1_MODE",
   ] as const;
 
   for (const key of envKeys) {

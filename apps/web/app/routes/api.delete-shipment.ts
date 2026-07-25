@@ -1,8 +1,11 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
-import { checkDeleteLimit, incrementDeleteCount } from "~/lib/redis.server";
 import { requireAdminShop } from "~/lib/requireAdminShop.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
 import { createSupabaseAdminClient } from "~/lib/supabase.server";
+import {
+  checkDeleteUsageLimit,
+  recordDeleteUsage,
+} from "~/lib/usageGateway.server";
 
 /**
  * Delete shipment for authenticated shop only (shop_id + si_number).
@@ -60,7 +63,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     try {
-      await checkDeleteLimit(shopId, 2);
+      await checkDeleteUsageLimit(shopId, 2);
     } catch {
       return json({ error: "DELETE_LIMIT_EXCEEDED" }, { status: 403 });
     }
@@ -76,7 +79,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     try {
-      await incrementDeleteCount(shopId);
+      await recordDeleteUsage({ shopId });
     } catch {
       // count failure must not undo delete
     }

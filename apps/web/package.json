@@ -38,6 +38,7 @@
     "test:session:l44a": "npm run d1:migrate:local && npx tsx scripts/session-l44a-primary-tests.mts",
     "test:session:l45": "npm run d1:migrate:local && npx tsx scripts/session-l45-d1-only-tests.mts",
     "test:usage:l51": "npm run d1:migrate:local && npx tsx scripts/usage-l51-quota-tests.mts",
+    "test:usage:l53": "npm run d1:migrate:local && npx tsx scripts/usage-l53-gateway-tests.mts",
     "compare:session:l44a": "npx tsx --env-file=.env.local scripts/session-l44a-readonly-compare.mts",
     "seed:d1:sessions:dry": "npx tsx --env-file=.env.local scripts/seed-sessions-to-d1.mts --dry-run --remote",
     "seed:d1:sessions:apply": "npx tsx --env-file=.env.local scripts/seed-sessions-to-d1.mts --apply --remote",
