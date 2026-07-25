@@ -40,7 +40,9 @@
     "test:usage:l51": "npm run d1:migrate:local && npx tsx scripts/usage-l51-quota-tests.mts",
     "compare:session:l44a": "npx tsx --env-file=.env.local scripts/session-l44a-readonly-compare.mts",
     "seed:d1:sessions:dry": "npx tsx --env-file=.env.local scripts/seed-sessions-to-d1.mts --dry-run --remote",
-    "seed:d1:sessions:apply": "npx tsx --env-file=.env.local scripts/seed-sessions-to-d1.mts --apply --remote"
+    "seed:d1:sessions:apply": "npx tsx --env-file=.env.local scripts/seed-sessions-to-d1.mts --apply --remote",
+    "seed:d1:usage:l52:dry": "npx tsx --env-file=.env.local scripts/usage-l52-seed-reconcile.mts --dry-run --remote",
+    "seed:d1:usage:l52:apply": "npx tsx --env-file=.env.local scripts/usage-l52-seed-reconcile.mts --apply --remote"
   },
   "type": "module",
   "engines": {
