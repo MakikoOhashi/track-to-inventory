@@ -14,7 +14,7 @@
     "SHOPIFY_SESSION_STORAGE": "upstash",
     "INVSYNC_LEDGER_MODE": "shadow",
     "D1_LEDGER_MODE": "shadow",
-    "SESSION_D1_MODE": "dual_write"
+    "SESSION_D1_MODE": "d1_only"
   },
   "d1_databases": [
     {
