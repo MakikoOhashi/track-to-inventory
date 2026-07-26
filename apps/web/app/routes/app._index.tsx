@@ -240,12 +240,10 @@ export default function Index() {
   useEffect(() => {
     if (!hasMounted || !shop) return;
 
-    // SSRがタイムアウトや一時失敗で空になった場合の保険として、
-    // クライアント側でも一度だけ明示的に再取得する。
-    if (initialShipments.length === 0) {
-      fetchShipments(shop);
-    }
-  }, [hasMounted, shop, initialShipments.length]);
+    // Exercise the authenticated API once after SSR. A transient failure keeps
+    // the successfully rendered SSR data visible.
+    fetchShipments(shop);
+  }, [hasMounted, shop]);
 
   useEffect(() => {
     if (shopifyProducts.length > 0) {
