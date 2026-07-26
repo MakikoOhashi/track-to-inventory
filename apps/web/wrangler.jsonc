@@ -14,7 +14,8 @@
     "INVSYNC_LEDGER_MODE": "shadow",
     "D1_LEDGER_MODE": "shadow",
     "D1_SHIPMENTS_MODE": "shadow",
-    "D1_SHIPMENTS_READ_MODE": "supabase",
+    "D1_SHIPMENTS_READ_MODE": "d1",
+    "D1_SHIPMENTS_READ_SHOP_ALLOWLIST": "luckywifi-0.myshopify.com",
     "D1_SHIPMENTS_WRITE_MODE": "shadow"
   },
   "d1_databases": [
