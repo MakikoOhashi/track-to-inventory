@@ -1,6 +1,6 @@
 //app/routes/app._index.tsx
 
-import React, { useEffect, useState, useRef, MouseEvent } from 'react';
+import React, { useEffect, useState, useRef, MouseEvent } from "react";
 import {
   Page,
   Card,
@@ -17,29 +17,37 @@ import {
   Box,
   Layout,
   Tooltip,
-} from '@shopify/polaris';
-import { QuestionCircleIcon } from '@shopify/polaris-icons';
+} from "@shopify/polaris";
+import { QuestionCircleIcon } from "@shopify/polaris-icons";
 
-import CustomModal from '../components/Modal';
-import StatusCard from '../components/StatusCard';
-import StatusTable from '../components/StatusTable';
+import CustomModal from "../components/Modal";
+import StatusCard from "../components/StatusCard";
+import StatusTable from "../components/StatusTable";
 import OCRUploader from "../components/OCRUploader";
-import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
-import StartGuide from '~/components/StartGuide';
-import { useAppBridge } from '@shopify/app-bridge-react';
-import { shopifyAuthenticatedFetch } from '~/lib/shopifyAuthenticatedFetch.client';
+import LanguageSwitcher from "../components/LanguageSwitcher.jsx";
+import StartGuide from "~/components/StartGuide";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import { shopifyAuthenticatedFetch } from "~/lib/shopifyAuthenticatedFetch.client";
 
-import type { Shipment,ShipmentItem } from '../../types/Shipment';
+import type { Shipment, ShipmentItem } from "../../types/Shipment";
 
-
-import { data as json, type LoaderFunctionArgs, useLoaderData } from "react-router";
+import {
+  data as json,
+  type LoaderFunctionArgs,
+  useLoaderData,
+} from "react-router";
 import { useTranslation } from "react-i18next";
 import { i18n } from "~/utils/i18n.server";
 import { makeLocaleCookie } from "~/utils/locale";
 
 import { unauthenticated, authenticate } from "~/shopify.server";
-import { createSupabaseAdminClient } from "~/lib/supabase.server";
+import { shipmentsReadGateway } from "~/lib/d1ShipmentsReadGateway.server";
+import type { SupabaseShipmentRow } from "~/lib/d1/shipmentsBackfill.server";
 import { normalizeShopDomain } from "~/utils/shopDomain";
+import {
+  scheduleShipmentsShadowTask,
+  shadowCompareListAfterRead,
+} from "~/lib/d1ShipmentsShadow.server";
 
 type StatusTableProps = {
   shipments: Shipment[];
@@ -79,23 +87,29 @@ async function loadShopifyProductsForShop(shop: string) {
 
   const { admin } = await unauthenticated.admin(shop);
   const response = await admin.graphql(query, { variables: { first: 50 } });
-  const jsonResponse = await response.json() as any;
+  const jsonResponse = (await response.json()) as any;
 
-  const products = (jsonResponse.data?.products?.edges || []).map(({ node }: any) => ({
-    id: node.id,
-    title: node.title,
-    variants: (node.variants?.edges || []).map(({ node: v }: any) => ({
-      id: v.id,
-      title: v.title,
-      sku: v.sku,
-      selectedOptions: v.selectedOptions || [],
-    })),
-  }));
+  const products = (jsonResponse.data?.products?.edges || []).map(
+    ({ node }: any) => ({
+      id: node.id,
+      title: node.title,
+      variants: (node.variants?.edges || []).map(({ node: v }: any) => ({
+        id: v.id,
+        title: v.title,
+        sku: v.sku,
+        selectedOptions: v.selectedOptions || [],
+      })),
+    }),
+  );
 
   return products;
 }
 
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  fallback: T,
+): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeoutPromise = new Promise<T>((resolve) => {
     timeoutId = setTimeout(() => resolve(fallback), timeoutMs);
@@ -107,7 +121,6 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: 
     if (timeoutId) clearTimeout(timeoutId);
   }
 }
-
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
@@ -127,30 +140,33 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       throw new Response("Unauthorized", { status: 401 });
     }
 
-    let shipments = [];
+    let shipments: Shipment[] = [];
     let shopifyProducts: any[] = [];
     try {
-      const supabase = createSupabaseAdminClient();
-      const { data, error } = await withTimeout(
-        supabase
-          .from('shipments')
-          .select('*')
-          .eq('shop_id', shop),
-        5000,
-        { data: null, error: null } as any,
-      );
+      const result = await withTimeout(shipmentsReadGateway.list(shop), 5000, {
+        data: [],
+        source: "supabase_fallback",
+      } as const);
 
-      if (error) {
-        shipments = [];
-      } else if (data) {
-        shipments = data;
+      shipments = result.data as unknown as Shipment[];
+      if (result.source === "supabase") {
+        scheduleShipmentsShadowTask(() =>
+          shadowCompareListAfterRead({
+            shopId: shop,
+            primaryRows: shipments as unknown as SupabaseShipmentRow[],
+          }),
+        );
       }
     } catch (error) {
       shipments = [];
     }
 
     try {
-      shopifyProducts = await withTimeout(loadShopifyProductsForShop(shop), 5000, []);
+      shopifyProducts = await withTimeout(
+        loadShopifyProductsForShop(shop),
+        5000,
+        [],
+      );
     } catch (error) {
       shopifyProducts = [];
     }
@@ -164,32 +180,46 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 };
 
-
 export default function Index() {
-  const { shop, shipments: initialShipments, locale: initialLocale, shopifyProducts: initialShopifyProducts } = useLoaderData<typeof loader>();
+  const {
+    shop,
+    shipments: initialShipments,
+    locale: initialLocale,
+    shopifyProducts: initialShopifyProducts,
+  } = useLoaderData<typeof loader>();
   const { t, i18n: i18nInstance } = useTranslation();
   const shopify = useAppBridge();
   const [hasMounted, setHasMounted] = useState(false);
 
   // 状態管理
   const [shipments, setShipments] = useState<Shipment[]>(initialShipments);
-  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
+  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(
+    null,
+  );
   const [shopId, setShopId] = useState<string>(shop || "");
   const [shopIdInput, setShopIdInput] = useState<string>(shop || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [shopifyProducts, setShopifyProducts] = useState<any[]>(initialShopifyProducts || []);
+  const [shopifyProducts, setShopifyProducts] = useState<any[]>(
+    initialShopifyProducts || [],
+  );
   const [shopifyProductsLoading, setShopifyProductsLoading] = useState(false);
   const [shopifyProductsError, setShopifyProductsError] = useState("");
   const [showStartGuide, setShowStartGuide] = useState(false);
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
-  const [sectionViewMode, setSectionViewMode] = useState<'overview' | 'details' | 'ocr'>('overview');
-  const [detailViewMode, setDetailViewMode] = useState<'product' | 'status' | 'search'>('product');
-  const [productStatsSort, setProductStatsSort] = useState<'name-asc' | 'name-desc'>('name-asc');
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  const [sectionViewMode, setSectionViewMode] = useState<
+    "overview" | "details" | "ocr"
+  >("overview");
+  const [detailViewMode, setDetailViewMode] = useState<
+    "product" | "status" | "search"
+  >("product");
+  const [productStatsSort, setProductStatsSort] = useState<
+    "name-asc" | "name-desc"
+  >("name-asc");
   const [siQuery, setSiQuery] = useState("");
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
   const [popupPos, setPopupPos] = useState<PopupPos>({ x: 0, y: 0 });
-  const [locale, setLocale] = useState<string>(initialLocale || 'ja');
+  const [locale, setLocale] = useState<string>(initialLocale || "ja");
   const popupTimeout = useRef<NodeJS.Timeout | null>(null);
   const guideRef = useRef<HTMLDivElement | null>(null);
 
@@ -202,8 +232,8 @@ export default function Index() {
             : "";
 
         return [variant.id, `${product.title}${variantSuffix}`];
-      })
-    )
+      }),
+    ),
   ) as Record<string, string>;
 
   // 定数
@@ -242,30 +272,30 @@ export default function Index() {
     if (!showStartGuide) return;
 
     window.setTimeout(() => {
-      guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      guideRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 60);
   }, [showStartGuide]);
-  
+
   // ガイド関連
-    const handleDismissGuide = () => {
-      setShowStartGuide(false);
-    localStorage.setItem('startGuideDismissed', 'true');
-    };
-  
+  const handleDismissGuide = () => {
+    setShowStartGuide(false);
+    localStorage.setItem("startGuideDismissed", "true");
+  };
+
   const handleShowGuide = () => setShowStartGuide(true);
 
-  const handleGuideNavigate = (target: 'overview' | 'details' | 'ocr') => {
+  const handleGuideNavigate = (target: "overview" | "details" | "ocr") => {
     const targetConfig = {
-      overview: { section: 'overview' as const, anchorId: 'card-edit' },
-      details: { section: 'details' as const, anchorId: 'detail-section' },
-      ocr: { section: 'ocr' as const, anchorId: 'ocr-section' },
+      overview: { section: "overview" as const, anchorId: "card-edit" },
+      details: { section: "details" as const, anchorId: "detail-section" },
+      ocr: { section: "ocr" as const, anchorId: "ocr-section" },
     }[target];
 
     setSectionViewMode(targetConfig.section);
 
     window.setTimeout(() => {
       const el = document.getElementById(targetConfig.anchorId);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 80);
   };
 
@@ -273,7 +303,7 @@ export default function Index() {
   const handleLanguageChange = (newLanguage: string) => {
     i18nInstance.changeLanguage(newLanguage);
     // 言語設定をlocalStorageに保存
-    localStorage.setItem('i18nextLng', newLanguage);
+    localStorage.setItem("i18nextLng", newLanguage);
     document.cookie = makeLocaleCookie(newLanguage);
     // 状態を更新して再レンダリングをトリガー
     setLocale(newLanguage);
@@ -285,7 +315,7 @@ export default function Index() {
     setError(null);
 
     try {
-      const res = await shopifyAuthenticatedFetch(shopify, '/api/shipments');
+      const res = await shopifyAuthenticatedFetch(shopify, "/api/shipments");
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
@@ -295,10 +325,12 @@ export default function Index() {
         setShopId(data.shop);
       }
     } catch (err) {
-      if (err instanceof Error && err.message === 'SESSION_TOKEN_UNAVAILABLE') {
-        setError(t('ocrUploader.authFailed') || 'Authentication failed');
+      if (err instanceof Error && err.message === "SESSION_TOKEN_UNAVAILABLE") {
+        setError(t("ocrUploader.authFailed") || "Authentication failed");
       } else {
-        setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
+        setError(
+          err instanceof Error ? err.message : "データの取得に失敗しました",
+        );
       }
       setShipments([]);
     } finally {
@@ -310,7 +342,7 @@ export default function Index() {
   const handleModalClose = () => {
     setSelectedShipment(null);
     if (shopId) {
-    fetchShipments(shopId); // ← 閉じたあともshopIdで絞り込んだデータを取得
+      fetchShipments(shopId); // ← 閉じたあともshopIdで絞り込んだデータを取得
     }
   };
 
@@ -322,23 +354,27 @@ export default function Index() {
     .filter(
       (s) =>
         !siQuery ||
-        (s.si_number && s.si_number.toLowerCase().startsWith(siQuery.toLowerCase()))
+        (s.si_number &&
+          s.si_number.toLowerCase().startsWith(siQuery.toLowerCase())),
     )
     .slice(0, 10);
   // ステータスごとグループ化関数
   const getStatusStats = (shipments: Shipment[]): StatusStats => {
     const stats: StatusStats = {};
-    
+
     shipments.forEach((s) => {
       const translatedStatus = getStatusLabel(s.status);
       if (!stats[translatedStatus]) stats[translatedStatus] = [];
       stats[translatedStatus].push(s);
     });
-    
+
     return stats;
   };
 
-  const handleProductMouseEnter = (e: MouseEvent<HTMLElement>, name: string) => {
+  const handleProductMouseEnter = (
+    e: MouseEvent<HTMLElement>,
+    name: string,
+  ) => {
     if (popupTimeout.current) clearTimeout(popupTimeout.current);
     const rect = e.currentTarget.getBoundingClientRect();
     let x = rect.left;
@@ -359,12 +395,11 @@ export default function Index() {
     setPopupPos({ x, y });
   };
 
-  
   const handleProductMouseLeave = () => {
-        // すぐ消さず、200ms後に消す（ポップアップに入るチャンスを与える）
-        popupTimeout.current = setTimeout(() => {
-          setHoveredProduct(null);
-        }, 200);
+    // すぐ消さず、200ms後に消す（ポップアップに入るチャンスを与える）
+    popupTimeout.current = setTimeout(() => {
+      setHoveredProduct(null);
+    }, 200);
   };
 
   const handlePopupMouseEnter = () => {
@@ -372,53 +407,55 @@ export default function Index() {
   };
 
   const handlePopupMouseLeave = () => {
-      setHoveredProduct(null);
+    setHoveredProduct(null);
   };
 
   // 商品別統計の取得とソート
   const getProductStats = (
     shipments: Shipment[],
-    sort: 'name-asc' | 'name-desc' = 'name-asc'
+    sort: "name-asc" | "name-desc" = "name-asc",
   ): [string, number][] => {
     const productMap = new Map<string, number>();
-    
-    shipments.forEach(shipment => {
-      (shipment.items || []).forEach(item => {
-        const name = item.name || 'Unknown';
+
+    shipments.forEach((shipment) => {
+      (shipment.items || []).forEach((item) => {
+        const name = item.name || "Unknown";
         const quantity = Number(item.quantity) || 0;
         productMap.set(name, (productMap.get(name) || 0) + quantity);
       });
     });
 
     const result = Array.from(productMap.entries());
-    
+
     // 自然順序ソート（数字を含む文字列を正しくソート）
-    const naturalSort = (a: string, b: string, order: 'asc' | 'desc') => {
+    const naturalSort = (a: string, b: string, order: "asc" | "desc") => {
       const aParts = a.match(/(\d+|\D+)/g) || [];
       const bParts = b.match(/(\d+|\D+)/g) || [];
-      
+
       const maxLength = Math.max(aParts.length, bParts.length);
-      
+
       for (let i = 0; i < maxLength; i++) {
-        const aPart = aParts[i] || '';
-        const bPart = bParts[i] || '';
-        
+        const aPart = aParts[i] || "";
+        const bPart = bParts[i] || "";
+
         const aIsNum = !isNaN(Number(aPart));
         const bIsNum = !isNaN(Number(bPart));
-        
-      if (aIsNum && bIsNum) {
+
+        if (aIsNum && bIsNum) {
           const diff = Number(aPart) - Number(bPart);
-          if (diff !== 0) return order === 'asc' ? diff : -diff;
+          if (diff !== 0) return order === "asc" ? diff : -diff;
         } else {
           const diff = aPart.localeCompare(bPart);
-          if (diff !== 0) return order === 'asc' ? diff : -diff;
+          if (diff !== 0) return order === "asc" ? diff : -diff;
         }
       }
-      
+
       return 0;
     };
 
-    return result.sort(([a], [b]) => naturalSort(a, b, sort === 'name-asc' ? 'asc' : 'desc'));
+    return result.sort(([a], [b]) =>
+      naturalSort(a, b, sort === "name-asc" ? "asc" : "desc"),
+    );
   };
 
   // OCR保存成功時の処理
@@ -429,30 +466,30 @@ export default function Index() {
   };
 
   const statusAliases: Record<string, string> = {
-    "SI発行済": "siIssued",
+    SI発行済: "siIssued",
     "SI Issued": "siIssued",
-    "siIssued": "siIssued",
-    "船積スケジュール確定": "scheduleConfirmed",
+    siIssued: "siIssued",
+    船積スケジュール確定: "scheduleConfirmed",
     "Shipping Schedule Confirmed": "scheduleConfirmed",
-    "scheduleConfirmed": "scheduleConfirmed",
-    "船積中": "shipping",
-    "Shipping": "shipping",
-    "shipping": "shipping",
-    "輸入通関中": "customsClearance",
+    scheduleConfirmed: "scheduleConfirmed",
+    船積中: "shipping",
+    Shipping: "shipping",
+    shipping: "shipping",
+    輸入通関中: "customsClearance",
     "Import Customs Clearance": "customsClearance",
-    "customsClearance": "customsClearance",
-    "倉庫着": "warehouseArrival",
+    customsClearance: "customsClearance",
+    倉庫着: "warehouseArrival",
     "Warehouse Arrival": "warehouseArrival",
-    "warehouseArrival": "warehouseArrival",
-    "商品同期": "productSync",
+    warehouseArrival: "warehouseArrival",
+    商品同期: "productSync",
     "Product Sync": "productSync",
-    "productSync": "productSync",
-    "同期済み": "synced",
-    "Synced": "synced",
-    "synced": "synced",
-    "未設定": "notSet",
+    productSync: "productSync",
+    同期済み: "synced",
+    Synced: "synced",
+    synced: "synced",
+    未設定: "notSet",
     "Not Set": "notSet",
-    "notSet": "notSet",
+    notSet: "notSet",
   };
 
   const statusOrder = [
@@ -470,23 +507,24 @@ export default function Index() {
 
   const getStatusLabel = (status?: string | null) => {
     const statusKey = getStatusKey(status);
-    if (statusKey === "productSync") return t('status.productSync');
-    if (statusKey === "notSet") return t('status.notSet');
+    if (statusKey === "productSync") return t("status.productSync");
+    if (statusKey === "notSet") return t("status.notSet");
     return t(`modal.status.${statusKey}`);
   };
 
   const renderProductNameCell = (item?: ShipmentItem) => {
-    const docName = item?.name || t('message.unknown');
-    const shopifyLabel =
-      item?.variant_id ? shopifyVariantLabelMap[item.variant_id] : undefined;
+    const docName = item?.name || t("message.unknown");
+    const shopifyLabel = item?.variant_id
+      ? shopifyVariantLabelMap[item.variant_id]
+      : undefined;
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
         <span>{docName}</span>
-        <span style={{ color: '#6d7175', fontSize: '0.85rem' }}>
+        <span style={{ color: "#6d7175", fontSize: "0.85rem" }}>
           {shopifyLabel
-            ? t('message.shopifyProductAssigned', { name: shopifyLabel })
-            : t('message.shopifyProductUnassigned')}
+            ? t("message.shopifyProductAssigned", { name: shopifyLabel })
+            : t("message.shopifyProductUnassigned")}
         </span>
       </div>
     );
@@ -499,92 +537,105 @@ export default function Index() {
       const aEta = a.eta ? new Date(a.eta).getTime() : Infinity;
       const bEta = b.eta ? new Date(b.eta).getTime() : Infinity;
       return aEta - bEta;
-    })    
+    })
     .slice(0, 2);
-    
+
   // Polaris用タブ
   const tabs = [
-    { id: 'search', content: t('tabs.search') },
-    { id: 'product', content: t('tabs.product') },
-    { id: 'status', content: t('tabs.status') },
+    { id: "search", content: t("tabs.search") },
+    { id: "product", content: t("tabs.product") },
+    { id: "status", content: t("tabs.status") },
   ];
   const sectionTabs = [
     {
-      id: 'ocr',
+      id: "ocr",
       content: (
-        <Tooltip content={t('tabs.ocrHelp')}>
-          <span>{t('tabs.ocr')}</span>
+        <Tooltip content={t("tabs.ocrHelp")}>
+          <span>{t("tabs.ocr")}</span>
         </Tooltip>
       ),
     },
     {
-      id: 'overview',
+      id: "overview",
       content: (
-        <Tooltip content={t('tabs.overviewHelp')}>
-          <span>{t('tabs.overview')}</span>
+        <Tooltip content={t("tabs.overviewHelp")}>
+          <span>{t("tabs.overview")}</span>
         </Tooltip>
       ),
     },
     {
-      id: 'details',
+      id: "details",
       content: (
-        <Tooltip content={t('tabs.detailsHelp')}>
-          <span>{t('tabs.details')}</span>
+        <Tooltip content={t("tabs.detailsHelp")}>
+          <span>{t("tabs.details")}</span>
         </Tooltip>
       ),
     },
   ];
 
   const filteredAndSortedShipments = shipments
-  .filter(s => (s.items || []).some(item => item.name === hoveredProduct))
-  .sort((a, b) => {
-    // まずstatus順
-    const statusDiff =
-      statusOrder.indexOf(getStatusKey(a.status)) -
-      statusOrder.indexOf(getStatusKey(b.status));
-    if (statusDiff !== 0) return statusDiff;
-    // 同じstatusならETA順（undefinedならInfinityで一番後ろへ）
-    const aEta = a.eta ? new Date(a.eta).getTime() : Infinity;
-    const bEta = b.eta ? new Date(b.eta).getTime() : Infinity;
-    return aEta - bEta;
-  });
-
-    const rows = filteredAndSortedShipments.map(s => {
-      const item = (s.items || []).find(item => item.name === hoveredProduct);
-      return [
-        <span
-          style={{ color: "#2a5bd7", cursor: "pointer", textDecoration: "underline" }}
-          onClick={() => setSelectedShipment(s)}
-          tabIndex={0}
-          onKeyDown={e => { if (e.key === 'Enter') setSelectedShipment(s); }}
-          title={t('message.clickForDetails')}
-          key={s.si_number}
-          role="button"
-        >
-          {s.si_number}
-        </span>,
-        renderProductNameCell(item),
-        item?.quantity || 0,
-        getStatusLabel(s.status)
-      ];
+    .filter((s) => (s.items || []).some((item) => item.name === hoveredProduct))
+    .sort((a, b) => {
+      // まずstatus順
+      const statusDiff =
+        statusOrder.indexOf(getStatusKey(a.status)) -
+        statusOrder.indexOf(getStatusKey(b.status));
+      if (statusDiff !== 0) return statusDiff;
+      // 同じstatusならETA順（undefinedならInfinityで一番後ろへ）
+      const aEta = a.eta ? new Date(a.eta).getTime() : Infinity;
+      const bEta = b.eta ? new Date(b.eta).getTime() : Infinity;
+      return aEta - bEta;
     });
 
-    
+  const rows = filteredAndSortedShipments.map((s) => {
+    const item = (s.items || []).find((item) => item.name === hoveredProduct);
+    return [
+      <span
+        style={{
+          color: "#2a5bd7",
+          cursor: "pointer",
+          textDecoration: "underline",
+        }}
+        onClick={() => setSelectedShipment(s)}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") setSelectedShipment(s);
+        }}
+        title={t("message.clickForDetails")}
+        key={s.si_number}
+        role="button"
+      >
+        {s.si_number}
+      </span>,
+      renderProductNameCell(item),
+      item?.quantity || 0,
+      getStatusLabel(s.status),
+    ];
+  });
 
   // --- JSX ---
   if (!hasMounted) {
     return (
       <Page
-        title={t('title.shipmentsByOwner')}
-        primaryAction={<LanguageSwitcher value={locale || 'ja'} onChange={handleLanguageChange} />}
+        title={t("title.shipmentsByOwner")}
+        primaryAction={
+          <LanguageSwitcher
+            value={locale || "ja"}
+            onChange={handleLanguageChange}
+          />
+        }
       >
         <Layout>
           <Layout.Section>
             <BlockStack gap="400">
               <Card>
                 <BlockStack gap="300">
-                  <Text as="h2" variant="headingLg">{t('title.upcomingArrivals')}</Text>
-                  <Text as="p" variant="bodyMd">{t('message.loading') || 'Loading...'}</Text>
+                  <Text as="h2" variant="headingLg">
+                    {t("title.upcomingArrivals")}
+                  </Text>
+                  <Text as="p" variant="bodyMd">
+                    {t("message.loading") || "Loading..."}
+                  </Text>
                 </BlockStack>
               </Card>
             </BlockStack>
@@ -595,19 +646,20 @@ export default function Index() {
   }
 
   return (
-  
-      <Page
-        title={t('title.shipmentsByOwner')}
-       
-        primaryAction={<LanguageSwitcher value={locale || 'ja'} onChange={handleLanguageChange} />}
-      >
-     
-     <Layout>
+    <Page
+      title={t("title.shipmentsByOwner")}
+      primaryAction={
+        <LanguageSwitcher
+          value={locale || "ja"}
+          onChange={handleLanguageChange}
+        />
+      }
+    >
+      <Layout>
         {/* メインコンテンツエリア */}
         <Layout.Section>
           <BlockStack gap="600">
-
-        {/* <Card>
+            {/* <Card>
         <BlockStack>
           
           <TextField
@@ -622,354 +674,422 @@ export default function Index() {
 
           </BlockStack> 
         </Card> */}
-       
-        
 
-        {/* StartGuide本体 */}
-      {showStartGuide && (
-        <div ref={guideRef}>
-          <StartGuide onDismiss={handleDismissGuide} onNavigate={handleGuideNavigate} />
-        </div>
-      )}
+            {/* StartGuide本体 */}
+            {showStartGuide && (
+              <div ref={guideRef}>
+                <StartGuide
+                  onDismiss={handleDismissGuide}
+                  onNavigate={handleGuideNavigate}
+                />
+              </div>
+            )}
 
-     {/* ガイドが非表示ならヘルプボタンを右上に表示 */}
-     {!showStartGuide && (
-            <Box paddingBlockEnd="200">
-              <InlineStack align="end">
-                <Button
-                  icon={QuestionCircleIcon}
-                  onClick={handleShowGuide}
-                  variant="plain"
-                  size="large"
-                  accessibilityLabel={t('button.showGuide')}
-                >
-                  {t('button.showGuide')}
-                </Button>
-              </InlineStack>
-            </Box>
-          )}
-
-        <ButtonGroup variant="segmented">
-          {sectionTabs.map((tab) => (
-            <Button
-              key={tab.id}
-              pressed={sectionViewMode === tab.id}
-              onClick={() => setSectionViewMode(tab.id as 'overview' | 'details' | 'ocr')}
-            >
-              {tab.content}
-            </Button>
-          ))}
-        </ButtonGroup>
-
-        {sectionViewMode === 'overview' && (
-        <Card>
-        
-          <BlockStack gap="400"> 
-          <Text as="h2" variant="headingLg" id="card-edit">{t('title.upcomingArrivals')}</Text>
-          {/* <Text as="p" variant="bodyMd" tone="subdued">{t('message.upcomingArrivals')}</Text>
-         */}
-        {shipments.length === 0 ? (
-            <Banner tone="info">{t('message.noData')}</Banner>
-          ) : (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {upcomingShipments.map((s) => (
-            <li key={s.si_number} style={{ cursor: 'pointer', marginBottom: '0.5rem' }}>
-            <span onClick={() => setSelectedShipment(s)}>
-              {s.si_number} - <strong>ETA:</strong> {s.eta}
-            </span>
-            </li>
-          ))}
-        </ul>)
-          }
-          </BlockStack>
-       
-      {/* 表示切り替えボタン */}
-      
-       <BlockStack gap="500">
-        
-        <Text as="h2" variant="headingLg">{t('title.arrivalStatus')}</Text>
-        {/* ▼▼▼ ここが変更点 ▼▼▼ */}
-        <ButtonGroup variant="segmented">
-          <Button
-            pressed={viewMode === 'card'}
-            onClick={() => setViewMode('card')}
-          >
-            {t('button.cardView')}
-          </Button>
-          <Button
-            pressed={viewMode === 'table'}
-            onClick={() => setViewMode('table')}
-          >
-            {t('button.tableView')}
-          </Button>
-        </ButtonGroup>
-
-      <Divider />
-      {/* 表示形式に応じて切り替え */}
-      
-      {viewMode === 'card' ? (
-        <InlineStack gap="400" wrap>
-          {shipments.map((s) => (
-             <StatusCard
-             key={s.si_number}
-             {...s}
-             onSelectShipment={() => setSelectedShipment(s)} // 追加
-           />
-          ))}
-        </InlineStack>
-      ) : (
-        <StatusTable 
-        shipments={shipments} 
-        onSelectShipment={(shipment) => setSelectedShipment(shipment)}
-        />
-      )}
-      
-      </BlockStack>
-      </Card>
-      )}
-
-
-      
-      
-
-{/* 詳細表示　　セクション */}
-{sectionViewMode === 'details' && (
-<Card>
-  <BlockStack gap="500">
-
-  <Text as="h2" variant="headingLg" id="detail-section">{t('title.detailedInfo')}</Text>
-
-  {/* デバッグ情報 */}
-  {process.env.NODE_ENV === 'development' && (
-    <Banner tone="info">
-      <p>デバッグ情報:</p>
-      <p>Shipments数: {shipments.length}</p>
-      <p>現在の言語: {locale}</p>
-      <p>DetailViewMode: {detailViewMode}</p>
-      </Banner>
-  )}
-
-                <ButtonGroup variant="segmented">
-                  {tabs.map((tab) => (
-                    <Button
-                      key={tab.id}
-                      pressed={detailViewMode === tab.id}
-                      onClick={() => setDetailViewMode(tab.id as 'product' | 'status' | 'search')}
-                    >
-                      {tab.content}
-                    </Button>
-                  ))}
-                </ButtonGroup>
-
-
-
-  {/* ←この下にトグルで統計表を追加 */}
-  <Divider />
-
-      <BlockStack gap="500">
-      <div style={{ maxWidth: "700px", margin: "0 auto", paddingTop: 32 }}>
-       {/* 商品別 */}
-       {detailViewMode === 'product' && (
-      <BlockStack gap="400">
-      <InlineStack align="space-between">
-      <Text as="h3" variant="headingMd">{t('title.productArrivals')}</Text>
-          
-        <Button
-          onClick={() =>
-
-            setProductStatsSort(sort =>
-              sort === 'name-asc' ? 'name-desc' : 'name-asc'
-            )
-          }
-          size="slim"
-          variant="plain"
-        >
-          {productStatsSort === 'name-asc' ?t('button.productNameAsc') : t('button.productNameDesc')}
-        </Button>
-      </InlineStack>
-
-        <DataTable
-            columnContentTypes={['text', 'numeric']}
-            headings={[t('label.productName'), t('label.totalQuantity')]}
-            rows={getProductStats(shipments, productStatsSort).map(([name, qty]) => [
-              <span
-              key={name}
-              onMouseEnter={e => handleProductMouseEnter(e, name)}
-              onMouseLeave={handleProductMouseLeave}
-              style={{ cursor: "pointer", textDecoration: "underline" }}
-            >
-              {name}
-            </span>,
-                qty
-            ])}
-          />
-       </BlockStack>
-      )}
-     
-      
-
-     {/* ステータスごとのチャート */}
-     {detailViewMode === 'status' && (
-    <BlockStack gap="500">
-    <Text as="h3" variant="headingMd">{t('title.statusChart')}</Text>
-    
-      {statusOrder.map((statusKey) => {
-        const statusLabel = getStatusLabel(statusKey);
-        const shipmentsForStatus = getStatusStats(shipments)[statusLabel] || [];
-        
-        const rows = shipmentsForStatus.flatMap((s) => {
-          const items =
-            s.items && s.items.length > 0
-              ? s.items
-              : [{ name: t('message.unknown'), quantity: '-' as const }];
-
-          return items.map((item, index) => [
-            <span
-              style={{ color: "#2a5bd7", cursor: "pointer", textDecoration: "underline" }}
-              onClick={() => setSelectedShipment(s)}
-              tabIndex={0}
-              onKeyDown={e => { if (e.key === 'Enter') setSelectedShipment(s); }}
-              title={t('message.clickForDetails')}
-              key={`${s.si_number}-${item.name || 'unknown'}-${index}`}
-            >
-              {s.si_number}
-            </span>,
-            renderProductNameCell(item),
-            item.quantity ?? '-',
-            getStatusLabel(s.status)
-          ]);
-        });
-        
-        return rows.length > 0 ?(
-          <Box key={statusKey} paddingBlock="400">
-            <BlockStack gap="300">
-            <Text as="h4" variant="headingMd">{statusLabel}</Text>
-            <DataTable
-              columnContentTypes={['text', 'text', 'numeric', 'text']}
-              headings={[t('label.siNumber'), t('label.productName'), t('label.quantity'), t('label.status')]}
-              rows={rows}
-            />
-          </BlockStack>
-          </Box>
-        ): (
-          <Box key={statusKey} paddingBlock="400">
-            <Text as="h4" variant="headingMd">{statusLabel}</Text>
-            <Banner tone="info">{t('status.noData')}</Banner>
-          </Box>
-        );
-        })}
-      </BlockStack>
-        )}
-
-
-
-        {/* SI番号で検索 */}
-        {detailViewMode === 'search' && (
-            <BlockStack gap="400">
-              <Text as="h3" variant="headingMd">{t('title.siSearch')}</Text>
-              <Box maxWidth="400px">
-              <TextField
-                label={t('label.siNumber')}
-                value={siQuery}
-                onChange={setSiQuery}
-                autoComplete="off"
-                placeholder={t('placeholder.siNumber')}
-                clearButton
-                onClearButtonClick={() => setSiQuery('')}
-              />
-              </Box>
-
-              {siQuery && (
-                <>
-
-              <DataTable
-                columnContentTypes={['text', 'text', 'text']}
-                headings={[t('label.siNumber'), t('label.eta'), t('label.supplier')]}
-                rows={filteredShipments.map((s, idx) => [
-                  <span
-                    style={{ color: "#2a5bd7", cursor: "pointer", textDecoration: "underline" }}
-                    onClick={() => setSelectedShipment(s)}
-                    key={s.si_number}
-                    tabIndex={0}
-                    onKeyDown={e => { if (e.key === 'Enter') setSelectedShipment(s); }}
-                    title={t('message.clickForDetails')}
+            {/* ガイドが非表示ならヘルプボタンを右上に表示 */}
+            {!showStartGuide && (
+              <Box paddingBlockEnd="200">
+                <InlineStack align="end">
+                  <Button
+                    icon={QuestionCircleIcon}
+                    onClick={handleShowGuide}
+                    variant="plain"
+                    size="large"
+                    accessibilityLabel={t("button.showGuide")}
                   >
-                    {s.si_number}
-                  </span>,
-                  s.eta,
-                  s.supplier_name
-                ])}
-              />
-              {filteredShipments.length === 0 && (
-                <Banner tone="info">{t('message.noMatchingSi')}</Banner>
-              )}
-            </>
+                    {t("button.showGuide")}
+                  </Button>
+                </InlineStack>
+              </Box>
+            )}
+
+            <ButtonGroup variant="segmented">
+              {sectionTabs.map((tab) => (
+                <Button
+                  key={tab.id}
+                  pressed={sectionViewMode === tab.id}
+                  onClick={() =>
+                    setSectionViewMode(tab.id as "overview" | "details" | "ocr")
+                  }
+                >
+                  {tab.content}
+                </Button>
+              ))}
+            </ButtonGroup>
+
+            {sectionViewMode === "overview" && (
+              <Card>
+                <BlockStack gap="400">
+                  <Text as="h2" variant="headingLg" id="card-edit">
+                    {t("title.upcomingArrivals")}
+                  </Text>
+                  {/* <Text as="p" variant="bodyMd" tone="subdued">{t('message.upcomingArrivals')}</Text>
+                   */}
+                  {shipments.length === 0 ? (
+                    <Banner tone="info">{t("message.noData")}</Banner>
+                  ) : (
+                    <ul style={{ listStyle: "none", padding: 0 }}>
+                      {upcomingShipments.map((s) => (
+                        <li
+                          key={s.si_number}
+                          style={{ cursor: "pointer", marginBottom: "0.5rem" }}
+                        >
+                          <span onClick={() => setSelectedShipment(s)}>
+                            {s.si_number} - <strong>ETA:</strong> {s.eta}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </BlockStack>
+
+                {/* 表示切り替えボタン */}
+
+                <BlockStack gap="500">
+                  <Text as="h2" variant="headingLg">
+                    {t("title.arrivalStatus")}
+                  </Text>
+                  {/* ▼▼▼ ここが変更点 ▼▼▼ */}
+                  <ButtonGroup variant="segmented">
+                    <Button
+                      pressed={viewMode === "card"}
+                      onClick={() => setViewMode("card")}
+                    >
+                      {t("button.cardView")}
+                    </Button>
+                    <Button
+                      pressed={viewMode === "table"}
+                      onClick={() => setViewMode("table")}
+                    >
+                      {t("button.tableView")}
+                    </Button>
+                  </ButtonGroup>
+
+                  <Divider />
+                  {/* 表示形式に応じて切り替え */}
+
+                  {viewMode === "card" ? (
+                    <InlineStack gap="400" wrap>
+                      {shipments.map((s) => (
+                        <StatusCard
+                          key={s.si_number}
+                          {...s}
+                          onSelectShipment={() => setSelectedShipment(s)} // 追加
+                        />
+                      ))}
+                    </InlineStack>
+                  ) : (
+                    <StatusTable
+                      shipments={shipments}
+                      onSelectShipment={(shipment) =>
+                        setSelectedShipment(shipment)
+                      }
+                    />
+                  )}
+                </BlockStack>
+              </Card>
+            )}
+
+            {/* 詳細表示　　セクション */}
+            {sectionViewMode === "details" && (
+              <Card>
+                <BlockStack gap="500">
+                  <Text as="h2" variant="headingLg" id="detail-section">
+                    {t("title.detailedInfo")}
+                  </Text>
+
+                  {/* デバッグ情報 */}
+                  {process.env.NODE_ENV === "development" && (
+                    <Banner tone="info">
+                      <p>デバッグ情報:</p>
+                      <p>Shipments数: {shipments.length}</p>
+                      <p>現在の言語: {locale}</p>
+                      <p>DetailViewMode: {detailViewMode}</p>
+                    </Banner>
+                  )}
+
+                  <ButtonGroup variant="segmented">
+                    {tabs.map((tab) => (
+                      <Button
+                        key={tab.id}
+                        pressed={detailViewMode === tab.id}
+                        onClick={() =>
+                          setDetailViewMode(
+                            tab.id as "product" | "status" | "search",
+                          )
+                        }
+                      >
+                        {tab.content}
+                      </Button>
+                    ))}
+                  </ButtonGroup>
+
+                  {/* ←この下にトグルで統計表を追加 */}
+                  <Divider />
+
+                  <BlockStack gap="500">
+                    <div
+                      style={{
+                        maxWidth: "700px",
+                        margin: "0 auto",
+                        paddingTop: 32,
+                      }}
+                    >
+                      {/* 商品別 */}
+                      {detailViewMode === "product" && (
+                        <BlockStack gap="400">
+                          <InlineStack align="space-between">
+                            <Text as="h3" variant="headingMd">
+                              {t("title.productArrivals")}
+                            </Text>
+
+                            <Button
+                              onClick={() =>
+                                setProductStatsSort((sort) =>
+                                  sort === "name-asc"
+                                    ? "name-desc"
+                                    : "name-asc",
+                                )
+                              }
+                              size="slim"
+                              variant="plain"
+                            >
+                              {productStatsSort === "name-asc"
+                                ? t("button.productNameAsc")
+                                : t("button.productNameDesc")}
+                            </Button>
+                          </InlineStack>
+
+                          <DataTable
+                            columnContentTypes={["text", "numeric"]}
+                            headings={[
+                              t("label.productName"),
+                              t("label.totalQuantity"),
+                            ]}
+                            rows={getProductStats(
+                              shipments,
+                              productStatsSort,
+                            ).map(([name, qty]) => [
+                              <span
+                                key={name}
+                                onMouseEnter={(e) =>
+                                  handleProductMouseEnter(e, name)
+                                }
+                                onMouseLeave={handleProductMouseLeave}
+                                style={{
+                                  cursor: "pointer",
+                                  textDecoration: "underline",
+                                }}
+                              >
+                                {name}
+                              </span>,
+                              qty,
+                            ])}
+                          />
+                        </BlockStack>
+                      )}
+
+                      {/* ステータスごとのチャート */}
+                      {detailViewMode === "status" && (
+                        <BlockStack gap="500">
+                          <Text as="h3" variant="headingMd">
+                            {t("title.statusChart")}
+                          </Text>
+
+                          {statusOrder.map((statusKey) => {
+                            const statusLabel = getStatusLabel(statusKey);
+                            const shipmentsForStatus =
+                              getStatusStats(shipments)[statusLabel] || [];
+
+                            const rows = shipmentsForStatus.flatMap((s) => {
+                              const items =
+                                s.items && s.items.length > 0
+                                  ? s.items
+                                  : [
+                                      {
+                                        name: t("message.unknown"),
+                                        quantity: "-" as const,
+                                      },
+                                    ];
+
+                              return items.map((item, index) => [
+                                <span
+                                  style={{
+                                    color: "#2a5bd7",
+                                    cursor: "pointer",
+                                    textDecoration: "underline",
+                                  }}
+                                  onClick={() => setSelectedShipment(s)}
+                                  tabIndex={0}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter")
+                                      setSelectedShipment(s);
+                                  }}
+                                  title={t("message.clickForDetails")}
+                                  key={`${s.si_number}-${item.name || "unknown"}-${index}`}
+                                >
+                                  {s.si_number}
+                                </span>,
+                                renderProductNameCell(item),
+                                item.quantity ?? "-",
+                                getStatusLabel(s.status),
+                              ]);
+                            });
+
+                            return rows.length > 0 ? (
+                              <Box key={statusKey} paddingBlock="400">
+                                <BlockStack gap="300">
+                                  <Text as="h4" variant="headingMd">
+                                    {statusLabel}
+                                  </Text>
+                                  <DataTable
+                                    columnContentTypes={[
+                                      "text",
+                                      "text",
+                                      "numeric",
+                                      "text",
+                                    ]}
+                                    headings={[
+                                      t("label.siNumber"),
+                                      t("label.productName"),
+                                      t("label.quantity"),
+                                      t("label.status"),
+                                    ]}
+                                    rows={rows}
+                                  />
+                                </BlockStack>
+                              </Box>
+                            ) : (
+                              <Box key={statusKey} paddingBlock="400">
+                                <Text as="h4" variant="headingMd">
+                                  {statusLabel}
+                                </Text>
+                                <Banner tone="info">
+                                  {t("status.noData")}
+                                </Banner>
+                              </Box>
+                            );
+                          })}
+                        </BlockStack>
+                      )}
+
+                      {/* SI番号で検索 */}
+                      {detailViewMode === "search" && (
+                        <BlockStack gap="400">
+                          <Text as="h3" variant="headingMd">
+                            {t("title.siSearch")}
+                          </Text>
+                          <Box maxWidth="400px">
+                            <TextField
+                              label={t("label.siNumber")}
+                              value={siQuery}
+                              onChange={setSiQuery}
+                              autoComplete="off"
+                              placeholder={t("placeholder.siNumber")}
+                              clearButton
+                              onClearButtonClick={() => setSiQuery("")}
+                            />
+                          </Box>
+
+                          {siQuery && (
+                            <>
+                              <DataTable
+                                columnContentTypes={["text", "text", "text"]}
+                                headings={[
+                                  t("label.siNumber"),
+                                  t("label.eta"),
+                                  t("label.supplier"),
+                                ]}
+                                rows={filteredShipments.map((s, idx) => [
+                                  <span
+                                    style={{
+                                      color: "#2a5bd7",
+                                      cursor: "pointer",
+                                      textDecoration: "underline",
+                                    }}
+                                    onClick={() => setSelectedShipment(s)}
+                                    key={s.si_number}
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter")
+                                        setSelectedShipment(s);
+                                    }}
+                                    title={t("message.clickForDetails")}
+                                  >
+                                    {s.si_number}
+                                  </span>,
+                                  s.eta,
+                                  s.supplier_name,
+                                ])}
+                              />
+                              {filteredShipments.length === 0 && (
+                                <Banner tone="info">
+                                  {t("message.noMatchingSi")}
+                                </Banner>
+                              )}
+                            </>
+                          )}
+                        </BlockStack>
+                      )}
+                    </div>
+                  </BlockStack>
+                </BlockStack>
+              </Card>
+            )}
+
+            {/* ここにOCRアップローダーを追加 - shopIdを渡す */}
+            {sectionViewMode === "ocr" && hasMounted && (
+              <>
+                <div id="ocr-section" />
+                <OCRUploader
+                  shopId={shop}
+                  onSaveSuccess={handleOcrSaveSuccess}
+                />
+              </>
             )}
           </BlockStack>
-
-          )}
-          </div> 
-          </BlockStack>  
-                 
-          </BlockStack>
-          </Card>
-)}
-
-
-       {/* ここにOCRアップローダーを追加 - shopIdを渡す */}
-       {sectionViewMode === 'ocr' && hasMounted && (
-        <>
-          <div id="ocr-section" />
-          <OCRUploader 
-            shopId={shop} 
-            onSaveSuccess={handleOcrSaveSuccess}
-          />
-        </>
-       )}
-          </BlockStack>
         </Layout.Section>
-        </Layout>
+      </Layout>
 
-     {/* ポップアップ */}
-     {hoveredProduct && (
-      <div
-        style={{
-          position: "fixed",
-          top: popupPos.y,
-          left: popupPos.x,
-          background: "#fff",
-          border: "1px solid #e1e3e5",
-          borderRadius: "8px",
-          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-          padding: "16px",
-          zIndex: 99999,
-          minWidth: `${POPUP_WIDTH}px`,
-          maxWidth: `${POPUP_WIDTH}px`,
-          maxHeight: `${POPUP_HEIGHT}px`,
-          overflowY: "auto",
-          fontSize: "14px"
-        }}
-        onMouseEnter={handlePopupMouseEnter}
-        onMouseLeave={handlePopupMouseLeave}
-      >
-        {/* <Text as="p" variant="bodyMd" fontWeight="semibold">
+      {/* ポップアップ */}
+      {hoveredProduct && (
+        <div
+          style={{
+            position: "fixed",
+            top: popupPos.y,
+            left: popupPos.x,
+            background: "#fff",
+            border: "1px solid #e1e3e5",
+            borderRadius: "8px",
+            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+            padding: "16px",
+            zIndex: 99999,
+            minWidth: `${POPUP_WIDTH}px`,
+            maxWidth: `${POPUP_WIDTH}px`,
+            maxHeight: `${POPUP_HEIGHT}px`,
+            overflowY: "auto",
+            fontSize: "14px",
+          }}
+          onMouseEnter={handlePopupMouseEnter}
+          onMouseLeave={handlePopupMouseLeave}
+        >
+          {/* <Text as="p" variant="bodyMd" fontWeight="semibold">
           {t('message.siListWith', { productName: hoveredProduct })}
         </Text> */}
-        <Box paddingBlockStart="0">
-          <DataTable
-            columnContentTypes={['text', 'text', 'numeric', 'text']}
-            headings={[
-              t('label.siNumber'),
-              t('label.productName'),
-              t('label.quantity'),
-              t('label.status')
-            ]}
-            rows={rows}
-          />
-        </Box>
-      </div>
-    )}
-  <Box paddingBlockEnd="1200" />
+          <Box paddingBlockStart="0">
+            <DataTable
+              columnContentTypes={["text", "text", "numeric", "text"]}
+              headings={[
+                t("label.siNumber"),
+                t("label.productName"),
+                t("label.quantity"),
+                t("label.status"),
+              ]}
+              rows={rows}
+            />
+          </Box>
+        </div>
+      )}
+      <Box paddingBlockEnd="1200" />
 
       {/* モーダル表示 */}
       {hasMounted && selectedShipment && (

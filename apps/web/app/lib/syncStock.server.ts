@@ -12,6 +12,11 @@ import {
   resolveStaleProcessing,
   type LedgerRow,
 } from "~/lib/syncLedger.server";
+import {
+  scheduleShipmentsShadowTask,
+  shadowCompareGetAfterRead,
+  shadowWriteShipmentMirror,
+} from "~/lib/d1ShipmentsShadow.server";
 
 export type SyncStockItemInput = {
   sync_item_id?: string;
@@ -167,7 +172,7 @@ async function loadShipmentForSync(params: {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("shipments")
-    .select("shop_id, items")
+    .select("*")
     .eq("si_number", params.siNumber)
     .eq("shop_id", params.shop)
     .maybeSingle();
@@ -178,6 +183,14 @@ async function loadShipmentForSync(params: {
   if (!data) {
     throw new SyncStockError("NOT_FOUND", "出荷データが見つかりません", 404);
   }
+
+  scheduleShipmentsShadowTask(() =>
+    shadowCompareGetAfterRead({
+      shopId: params.shop,
+      siNumber: params.siNumber,
+      primaryRow: data,
+    }),
+  );
 
   const items = Array.isArray(data.items) ? ([...data.items] as ShipmentLineItem[]) : [];
 
@@ -227,15 +240,25 @@ async function loadShipmentForSync(params: {
   }
 
   if (mutated) {
-    const { error: updateError } = await supabase
+    const { data: updatedShipment, error: updateError } = await supabase
       .from("shipments")
       .update({ items })
       .eq("si_number", params.siNumber)
-      .eq("shop_id", params.shop);
+      .eq("shop_id", params.shop)
+      .select("*")
+      .single();
 
     if (updateError) {
       throw new SyncStockError("DB_ERROR", "sync_item_idの保存に失敗しました", 500);
     }
+
+    scheduleShipmentsShadowTask(() =>
+      shadowWriteShipmentMirror({
+        operation: "update",
+        shopId: params.shop,
+        row: updatedShipment,
+      }),
+    );
   }
 
   return { items };

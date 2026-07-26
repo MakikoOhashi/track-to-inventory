@@ -28,28 +28,33 @@ Inbound Tracking（旧称: Track to Inventory）は、Shopifyストアの入荷�
 ## 🚀 主な機能
 
 ### 📦 入荷管理
+
 - **SI番号追跡**: 船荷証券（SI）のステータス管理
 - **入荷予定管理**: ETD/ETAによる入荷スケジュール管理
 - **ステータス管理**: SI発行済みから倉庫着まで6段階のステータス
 - **商品別管理**: 積載商品の詳細管理
 
 ### 🔍 OCR機能
+
 - **画像・PDF対応**: インボイスやパッキングリストから自動テキスト抽出
 - **AI補完**: Gemini APIによる未入力項目の自動補完（日本語文脈にも対応）
 - **手動入力**: OCRを使わない直接入力も可能
 - **使用制限**: プラン別の月間使用回数制限（正本は Cloudflare D1）
 
 ### 🔄 Shopify同期
+
 - **在庫同期**: 入荷情報をShopify在庫と自動同期
 - **商品マッピング**: Shopify variant IDとの連携
 - **リアルタイム更新**: 入荷状況の即座反映
 
 ### 📁 ファイル管理
+
 - **関連ファイル**: インボイス、パッキングリスト、SI等の管理
 - **プレビュー機能**: アップロードしたファイルの表示
 - **セキュア保存**: 安全なファイルストレージ
 
 ### 🌐 多言語対応
+
 - **日本語・英語**: 完全な多言語サポート
 - **動的切り替え**: リアルタイム言語変更
 
@@ -57,7 +62,7 @@ Inbound Tracking（旧称: Track to Inventory）は、Shopifyストアの入荷�
 
 ### 📁 アプリケーション構造
 
-``` 
+```
 track-to-inventory/
 ├── apps/
 │   └── web/                 # Shopify Embedded App（Cloudflare Workers）
@@ -77,23 +82,38 @@ track-to-inventory/
 ### 🔧 主要コンポーネント
 
 #### 1. **認証システム**
+
 - `apps/web/app/shopify.server.ts`: Shopify OAuth認証とセッション管理
 - セッション正本: Cloudflare D1（`SESSION_D1_MODE` 廃止・D1 固定。旧 Redis session 互換経路は撤去済み）
 - セキュアなHMAC検証とShopify API統合
 
 #### 2. **データモデル**
+
 - **Supabase (PostgreSQL)**: shipments 等の業務データとファイル Storage
 - **Cloudflare D1**: Shopify セッション、利用量・plan、在庫同期 ledger の shadow 比較用テーブル
 - **Upstash Redis**: inventory sync ledger / Notion 接続など（**session・usage・plan の正本ではない**。旧 usage/plan キーは削除済み。旧 session キーは別 Stage で削除予定）
+- **Notion 接続メタデータ**: D1 repository（`notionMetadata.server.ts`）と migration `0003` は L8.1 まで実装済みだが、**ユーザー向け Notion 連携未実装のため L8 系列はここで保留**。ランタイム正本は引き続き Redis（`notionConnection.server.ts`）。詳細は [`docs/d1-r2-redesign.md` §8.1](docs/d1-r2-redesign.md)
 - **データフロー**: Shopify Admin → Cloudflare Workers → Supabase / D1（＋必要に応じて Redis）
+
+##### Shipments（L9.3 shadow）
+
+- `D1_SHIPMENTS_MODE=off`: D1比較・mirrorなし
+- `D1_SHIPMENTS_MODE=shadow`: Supabase primaryのままread比較・成功後write mirror
+- `D1_SHIPMENTS_READ_MODE=supabase|d1`: user-facing readの正本。未設定・不正値は`supabase`
+- `D1_SHIPMENTS_WRITE_MODE=off|shadow`: write mirror。未設定時はlegacy
+  `D1_SHIPMENTS_MODE=shadow|d1`を`shadow`として扱い、現行挙動を維持
+- D1 readエラー時だけSupabaseへfallbackする。正常な空結果ではfallbackしない
+- read rollbackは`D1_SHIPMENTS_READ_MODE=supabase`へ戻す。write primaryは引き続きSupabase
+- 2026-07-26から本番shadow観測中（Supabase primary）
+- 本番primary flip、Supabase削除、D1からのback-syncは未実施
 
 ##### Usage / plan（D1 正本）
 
-| テーブル | 役割 |
-|----------|------|
-| `shop_plans` | ショップの plan（`free` / `basic` / `pro`）。Shopify Billing の `activeSubscriptions` を正として upsert。古い observation で新しい行を上書きしない |
-| `usage_counters` | 月次カウンタのデノーマライズ（`shop_id` + `kind` + `period_ym`）。正本は reserved 行の COUNT |
-| `usage_operations` | operation_id 付き reserve / refund 台帳。OCR・AI・delete の二重加算・二重返却を防ぐ |
+| テーブル           | 役割                                                                                                                                               |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shop_plans`       | ショップの plan（`free` / `basic` / `pro`）。Shopify Billing の `activeSubscriptions` を正として upsert。古い observation で新しい行を上書きしない |
+| `usage_counters`   | 月次カウンタのデノーマライズ（`shop_id` + `kind` + `period_ym`）。正本は reserved 行の COUNT                                                       |
+| `usage_operations` | operation_id 付き reserve / refund 台帳。OCR・AI・delete の二重加算・二重返却を防ぐ                                                                |
 
 - **period_ym**: UTC の `YYYY-MM`（移行中もこの形式を維持）
 - **kind**: `ocr` / `ai` / `delete`
@@ -102,6 +122,7 @@ track-to-inventory/
 - かつての `SESSION_D1_MODE`（off / shadow / dual_write / d1_primary / d1_only）も **廃止**。Shopify session も D1 固定
 
 #### 3. **APIエンドポイント**
+
 - `apps/web/app/routes/api.shipments.ts`: 入荷情報のCRUD操作
 - `apps/web/app/routes/api.document-parse.ts`: Gemini による書類解析（OCR 利用は D1 reserve / 失敗時 refund）
 - `apps/web/app/routes/api.ai-parse.ts`: Gemini APIによるデータ補完（AI 利用は D1）
@@ -112,6 +133,7 @@ track-to-inventory/
 - `apps/web/app/routes/api.get-file-url.ts`: 署名付きURL発行
 
 #### 4. **UIコンポーネント**
+
 - **StatusCard**: 視覚的なステータスカード表示
 - **StatusTable**: テーブル形式のデータ表示
 - **OCRUploader**: 画像/PDFアップロードとOCR処理
@@ -120,6 +142,7 @@ track-to-inventory/
 - **StartGuide**: 初期ガイド表示
 
 #### 5. **メインビュー**
+
 - `apps/web/app/routes/app._index.tsx`: ダッシュボードとメインインターフェース
 - カード/テーブル表示切り替え
 - 商品別/ステータス別/検索別表示モード
@@ -129,12 +152,14 @@ track-to-inventory/
 ### 🏗️ アーキテクチャ設計
 
 #### 1. **セキュリティ設計**
+
 - Shopify OAuth 2.0認証
 - HMACリクエスト検証
 - セッションベースのアクセス制御
 - 環境変数による機密情報管理
 
 #### 2. **データフロー**
+
 ```
 Shopify Admin → Cloudflare Workers (apps/web)
                     ├─ Supabase … shipments / files
@@ -143,9 +168,12 @@ Shopify Admin → Cloudflare Workers (apps/web)
 ```
 
 #### 3. **デプロイ方針**
+
 - **本体**: Shopify Embedded App と API は `apps/web`（Cloudflare Workers + Wrangler）
 - **意図**: 埋め込み UI・認証・課金・利用枠を同一 Worker 上で運用する
+
 #### 4. **ステータス管理**
+
 - 6段階の入荷ステータス:
   1. SI発行済み
   2. 船積スケジュール確定
@@ -155,6 +183,7 @@ Shopify Admin → Cloudflare Workers (apps/web)
   6. 同期済み
 
 #### 5. **OCR処理フロー**
+
 ```
 画像/PDFアップロード → Gemini 書類解析 → テキスト抽出 →
 （任意）AI補完 → Supabase保存 → Shopify同期
@@ -162,6 +191,7 @@ Shopify Admin → Cloudflare Workers (apps/web)
 ```
 
 #### 6. **多言語サポート**
+
 - 日本語/英語切り替え
 - react-i18nextによる動的翻訳
 - ローカルストレージによる言語設定保持
@@ -188,7 +218,6 @@ Shopify Admin → Cloudflare Workers (apps/web)
 - HMACリクエスト検証
 - データアクセス制御
 - エラーハンドリングとログ記録
-
 
 ## 🛠️ 技術スタック
 
@@ -311,6 +340,7 @@ npm run build
 ### 2. 入荷情報の登録
 
 #### OCRを使用した自動入力
+
 1. 「画像アップロード & OCR」セクションに移動
 2. インボイスやパッキングリストの画像/PDFをアップロード
 3. 「OCR実行」ボタンをクリック
@@ -318,6 +348,7 @@ npm run build
 5. 内容を確認して「この内容で登録」をクリック
 
 #### 手動入力
+
 1. 「手動でSI情報を入力」ボタンをクリック
 2. 必要な情報を直接入力
 3. 「この内容で登録」をクリック
@@ -362,22 +393,24 @@ npm run build
 npx wrangler deploy
 ```
 
-
 ## 🐛 トラブルシューティング
 
 ### よくある問題
 
 #### OCRが動作しない
+
 - ファイル形式が対応しているか確認
 - ファイルサイズが10MB以下か確認
 - プランの使用制限に達していないか確認
 
 #### Shopify同期が失敗する
+
 - 商品の「数量を追跡する」が有効になっているか確認
 - 商品の「配送が必要な商品です」が有効になっているか確認
 - Shopify variant IDが正しく設定されているか確認
 
 #### 認証エラーが発生する
+
 - アプリを再インストール
 - 環境変数が正しく設定されているか確認
 
@@ -411,7 +444,6 @@ npm run dev
 ---
 
 **Inbound Tracking** (formerly **Track to Inventory**) - Shopify入荷前管理を効率化するための最適なソリューション
-
 
 ---
 

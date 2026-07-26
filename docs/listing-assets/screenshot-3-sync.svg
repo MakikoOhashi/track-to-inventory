@@ -1,0 +1,19 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="900" fill="#F4F7F9"/>
+  <rect x="70" y="60" width="1460" height="780" rx="36" fill="white"/>
+  <rect x="70" y="60" width="1460" height="780" rx="36" stroke="#D8E0E6" stroke-width="2"/>
+  <text x="120" y="150" fill="#113247" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Inbound Tracking</text>
+  <text x="120" y="240" fill="#101828" font-family="Arial, Helvetica, sans-serif" font-size="60" font-weight="700">Sync received stock</text>
+  <text x="120" y="300" fill="#5D7380" font-family="Arial, Helvetica, sans-serif" font-size="28">Match products and update stock when shipments arrive.</text>
+  <rect x="120" y="360" width="1360" height="390" rx="28" fill="#EEF4F8" stroke="#D8E0E6"/>
+  <rect x="180" y="430" width="540" height="250" rx="20" fill="white" stroke="#D8E0E6"/>
+  <text x="220" y="490" fill="#113247" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">Inbound item</text>
+  <text x="220" y="550" fill="#101828" font-family="Arial, Helvetica, sans-serif" font-size="24">Demo packing fabric No#16780</text>
+  <text x="220" y="600" fill="#4F6472" font-family="Arial, Helvetica, sans-serif" font-size="22">Quantity: 10</text>
+  <rect x="800" y="430" width="540" height="250" rx="20" fill="white" stroke="#D8E0E6"/>
+  <text x="840" y="490" fill="#113247" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">Mapped product</text>
+  <text x="840" y="550" fill="#101828" font-family="Arial, Helvetica, sans-serif" font-size="24">Example T-Shirt / Small</text>
+  <text x="840" y="600" fill="#4F6472" font-family="Arial, Helvetica, sans-serif" font-size="22">Ready to update received quantity</text>
+  <circle cx="760" cy="555" r="22" fill="#DBE8EF"/>
+  <path d="M730 555H790" stroke="#86A3B5" stroke-width="6" stroke-linecap="round"/>
+</svg>

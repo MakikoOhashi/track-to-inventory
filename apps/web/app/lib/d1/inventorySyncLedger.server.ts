@@ -53,6 +53,7 @@ export function mapLedgerRow(raw: LedgerRaw | null | undefined): InventorySyncLe
   };
 }
 
+/** Maps an existing row to claim action when insert/reclaim CAS did not win (Supabase RPC parity). */
 function actionFromStatus(row: InventorySyncLedgerRow): LedgerClaimResult {
   switch (row.status) {
     case "succeeded":
@@ -65,7 +66,8 @@ function actionFromStatus(row: InventorySyncLedgerRow): LedgerClaimResult {
       return { action: "terminal", row };
     case "pending":
     case "failed_retryable":
-      return { action: "error", error_code: "UNEXPECTED_RETRYABLE_STATE", row };
+      // Supabase returns in_progress when reclaim UPDATE loses the race.
+      return { action: "in_progress", row };
     default:
       return { action: "error", error_code: "UNKNOWN_STATUS", row };
   }
@@ -112,6 +114,27 @@ export type InventorySyncLedgerRepository = {
     errorCode?: string;
     errorMessage?: string;
   }) => Promise<FinalizeResult>;
+  listForShipment: (params: {
+    shopId: string;
+    siNumber: string;
+  }) => Promise<InventorySyncLedgerListRow[]>;
+};
+
+/** Public list shape aligned with Supabase listLedgerForShipment / api.sync-stock GET. */
+export type InventorySyncLedgerListRow = {
+  shop_id: string;
+  si_number: string;
+  item_key: string;
+  variant_id: string;
+  delta_quantity: number;
+  status: LedgerStatus;
+  attempt_count: number;
+  started_at: string | null;
+  completed_at: string | null;
+  shopify_adjustment_id: string | null;
+  error_code: string | null;
+  error_message: string | null;
+  idempotency_key: string;
 };
 
 export function createInventorySyncLedgerRepository(
@@ -516,6 +539,43 @@ export function createInventorySyncLedgerRepository(
     }
   }
 
+  async function listForShipment(params: {
+    shopId: string;
+    siNumber: string;
+  }): Promise<InventorySyncLedgerListRow[]> {
+    try {
+      const result = await db
+        .prepare(
+          `SELECT shop_id, si_number, item_key, variant_id, delta_quantity, status,
+                  attempt_count, started_at, completed_at, shopify_adjustment_id,
+                  error_code, error_message, idempotency_key
+           FROM inventory_sync_ledger
+           WHERE shop_id = ? AND si_number = ?
+           ORDER BY created_at ASC`,
+        )
+        .bind(params.shopId, params.siNumber)
+        .all<LedgerRaw>();
+
+      return (result.results ?? []).map((raw) => ({
+        shop_id: String(raw.shop_id ?? ""),
+        si_number: String(raw.si_number ?? ""),
+        item_key: String(raw.item_key ?? ""),
+        variant_id: String(raw.variant_id ?? ""),
+        delta_quantity: Number(raw.delta_quantity),
+        status: raw.status as LedgerStatus,
+        attempt_count: Number(raw.attempt_count ?? 0),
+        started_at: emptyToNull(raw.started_at),
+        completed_at: emptyToNull(raw.completed_at),
+        shopify_adjustment_id: emptyToNull(raw.shopify_adjustment_id),
+        error_code: emptyToNull(raw.error_code),
+        error_message: emptyToNull(raw.error_message),
+        idempotency_key: String(raw.idempotency_key ?? ""),
+      }));
+    } catch (error) {
+      throw classifyD1Error(error);
+    }
+  }
+
   return {
     findByIdempotencyKey,
     findSucceeded,
@@ -523,5 +583,6 @@ export function createInventorySyncLedgerRepository(
     finalizeSucceeded,
     finalizeFailure,
     markAmbiguous,
+    listForShipment,
   };
 }

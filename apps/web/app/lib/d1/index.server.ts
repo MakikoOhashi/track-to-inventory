@@ -25,7 +25,7 @@ export {
   createInventorySyncLedgerRepository,
   mapLedgerRow,
 } from "./inventorySyncLedger.server";
-export type { InventorySyncLedgerRepository } from "./inventorySyncLedger.server";
+export type { InventorySyncLedgerRepository, InventorySyncLedgerListRow } from "./inventorySyncLedger.server";
 export {
   createShopifySessionRepository,
   serializeSessionPayload,
@@ -48,3 +48,55 @@ export type {
   RefundUsageResult,
   UsageSnapshot,
 } from "./usageQuota.server";
+export {
+  createNotionConnectionRepository,
+  createNotionOAuthStateRepository,
+  createNotionProvisionLockRepository,
+} from "./notionMetadata.server";
+export type {
+  NotionConnectionRecord,
+  NotionConnectionRepository,
+  NotionConnectionStatus,
+  NotionOAuthStateRecord,
+  NotionOAuthStateRepository,
+  NotionProvisionLockRecord,
+  NotionProvisionLockRepository,
+  ProvisionLockAcquireResult,
+} from "./notionMetadata.server";
+export {
+  createShipmentsRepository,
+  normalizeShipmentForCompare,
+  ShipmentDuplicateError,
+} from "./shipments.server";
+export type {
+  ShipmentCreateInput,
+  ShipmentUpdateInput,
+  ShipmentsRepository,
+  SupabaseCompatibleShipment,
+} from "./shipments.server";
+export {
+  d1RowsToSupabaseItems,
+  supabaseItemsToD1Rows,
+  buildDeterministicItemId,
+  fingerprintD1ItemRows,
+  parseItemQuantity,
+  ShipmentItemValidationError,
+  KNOWN_SUPABASE_ITEM_KEYS,
+} from "./shipmentItemsCompat.server";
+export type {
+  D1ShipmentItemRow,
+  SupabaseItemsParseOptions,
+} from "./shipmentItemsCompat.server";
+export {
+  mirrorDeleteAllShipmentsOnD1,
+  mirrorDeleteShipmentOnD1,
+  mirrorSupabaseRowToD1,
+  supabaseRowToRepoInput,
+  validateSupabaseItemsForBackfill,
+  withBackfillUpsert,
+} from "./shipmentsBackfill.server";
+export type {
+  BackfillUpsertResult,
+  ShipmentsBackfillRepository,
+  SupabaseShipmentRow,
+} from "./shipmentsBackfill.server";

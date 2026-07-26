@@ -3,6 +3,11 @@ import { checkSILimit } from "~/lib/usageGateway.server";
 import { requireAdminShop } from "~/lib/requireAdminShop.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
 import { createSupabaseAdminClient } from "~/lib/supabase.server";
+import {
+  scheduleShipmentsShadowTask,
+  shadowCompareGetAfterRead,
+  shadowWriteShipmentMirror,
+} from "~/lib/d1ShipmentsShadow.server";
 
 type ShipmentItem = {
   name: string;
@@ -44,7 +49,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     let otherUrl: string | null;
 
     if (contentType?.includes("application/json")) {
-      const body = await request.json();
+      const body = (await request.json()) as { shipment?: Record<string, any> };
       const shipment = body.shipment;
       if (!shipment) {
         return json(
@@ -93,7 +98,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const supabase = createSupabaseAdminClient();
     const { data: existingShipment, error: checkError } = await supabase
       .from("shipments")
-      .select("si_number")
+      .select("*")
       .eq("si_number", siNumber)
       .eq("shop_id", shopId)
       .maybeSingle();
@@ -104,6 +109,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         { status: 500 },
       );
     }
+
+    scheduleShipmentsShadowTask(() =>
+      shadowCompareGetAfterRead({
+        shopId,
+        siNumber,
+        primaryRow: existingShipment,
+      }),
+    );
 
     if (existingShipment) {
       return json(
@@ -172,6 +185,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         { status: 500 },
       );
     }
+
+    scheduleShipmentsShadowTask(() =>
+      shadowWriteShipmentMirror({
+        operation: "create",
+        shopId,
+        row: result,
+      }),
+    );
 
     return json({
       success: true,

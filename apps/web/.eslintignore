@@ -1,7 +1,8 @@
 node_modules
 build
+dist
 public/build
 shopify-app-remix
 */*.yml
 .shopify
-apps/web/scripts/**/*.mts
+scripts/**/*.mts

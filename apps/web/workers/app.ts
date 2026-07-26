@@ -15,7 +15,9 @@ type AssetBinding = {
 };
 
 let buildPromise: Promise<ServerBuild> | undefined;
-let requestHandlerPromise: Promise<ReturnType<typeof createRequestHandler>> | undefined;
+let requestHandlerPromise:
+  | Promise<ReturnType<typeof createRequestHandler>>
+  | undefined;
 
 function applyCloudflareEnvToProcess(env: Env) {
   const processEnv = process.env as Record<string, string | undefined>;
@@ -40,10 +42,14 @@ function applyCloudflareEnvToProcess(env: Env) {
     "TOKEN_ENCRYPTION_KEY",
     "INVSYNC_LEDGER_MODE",
     "D1_LEDGER_MODE",
+    "D1_SHIPMENTS_MODE",
+    "D1_SHIPMENTS_READ_MODE",
+    "D1_SHIPMENTS_WRITE_MODE",
   ] as const;
+  const stringEnv = env as unknown as Record<string, unknown>;
 
   for (const key of envKeys) {
-    const value = env[key];
+    const value = stringEnv[key];
     if (typeof value === "string") {
       processEnv[key] = value;
     }
@@ -57,7 +63,10 @@ async function getRequestHandler(env: Env) {
 
   buildPromise ??= import("../build/server/index.js");
   requestHandlerPromise ??= buildPromise.then((build) =>
-    createRequestHandler(build, process.env.NODE_ENV === "production" ? "production" : "development"),
+    createRequestHandler(
+      build,
+      process.env.NODE_ENV === "production" ? "production" : "development",
+    ),
   );
 
   return requestHandlerPromise;
@@ -84,9 +93,12 @@ export default {
           return assetResponse;
         }
 
-        return new Response(`Asset not found: ${new URL(request.url).pathname}`, {
-          status: 404,
-        });
+        return new Response(
+          `Asset not found: ${new URL(request.url).pathname}`,
+          {
+            status: 404,
+          },
+        );
       }
 
       const handleRequest = await getRequestHandler(env);

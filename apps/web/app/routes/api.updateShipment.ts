@@ -2,6 +2,10 @@ import { data as json, type ActionFunctionArgs } from "react-router";
 import { requireAdminShop } from "~/lib/requireAdminShop.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
 import { createSupabaseAdminClient } from "~/lib/supabase.server";
+import {
+  scheduleShipmentsShadowTask,
+  shadowWriteShipmentMirror,
+} from "~/lib/d1ShipmentsShadow.server";
 
 /**
  * Update shipment for authenticated shop only.
@@ -103,6 +107,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         { status: 404 },
       );
     }
+
+    scheduleShipmentsShadowTask(() =>
+      shadowWriteShipmentMirror({
+        operation: "update",
+        shopId,
+        row: data[0],
+      }),
+    );
 
     return json({ data });
   } catch {

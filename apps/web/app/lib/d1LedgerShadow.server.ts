@@ -1,6 +1,7 @@
 /**
- * D1 inventory ledger shadow (Stage L2).
- * Never influences Shopify mutation authorization.
+ * D1 inventory ledger shadow (Stage L2 / L7.1).
+ * Performs **actual D1 writes** (claim / finalize / markAmbiguous) for parity comparison;
+ * not read-only simulation. Never influences Shopify mutation authorization.
  * Failures are logged as comparison categories only.
  */
 

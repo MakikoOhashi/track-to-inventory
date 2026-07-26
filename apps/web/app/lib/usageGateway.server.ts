@@ -18,6 +18,10 @@ import {
   type UsageKind,
   type UserPlan,
 } from "~/lib/d1/index.server";
+import {
+  scheduleShipmentsShadowTask,
+  shadowCompareCountAfterRead,
+} from "~/lib/d1ShipmentsShadow.server";
 
 export type UsageReserveKind = "ocr" | "ai";
 
@@ -155,7 +159,11 @@ async function fetchSiCount(shopId: string): Promise<number> {
       .select("*", { count: "exact", head: true })
       .eq("shop_id", shopId);
     if (error) return 0;
-    return count || 0;
+    const primaryCount = count || 0;
+    scheduleShipmentsShadowTask(() =>
+      shadowCompareCountAfterRead({ shopId, primaryCount }),
+    );
+    return primaryCount;
   } catch {
     return 0;
   }

@@ -9,6 +9,10 @@ import {
 } from "~/lib/shipmentFileStorage.server";
 import { createSupabaseAdminClient } from "~/lib/supabase.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
+import {
+  scheduleShipmentsShadowTask,
+  shadowWriteShipmentMirror,
+} from "~/lib/d1ShipmentsShadow.server";
 
 const COMMON_EXTS = ["png", "jpg", "jpeg", "gif", "webp", "pdf", "txt"] as const;
 
@@ -118,11 +122,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
   }
 
-  const { error: dbError } = await supabase
+  const { data: updatedShipment, error: dbError } = await supabase
     .from("shipments")
     .update({ [columnKey]: null })
     .eq("si_number", siNumber)
-    .eq("shop_id", auth.shop);
+    .eq("shop_id", auth.shop)
+    .select("*")
+    .single();
 
   if (dbError) {
     return json(
@@ -130,6 +136,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       { status: 500 },
     );
   }
+
+  scheduleShipmentsShadowTask(() =>
+    shadowWriteShipmentMirror({
+      operation: "update",
+      shopId: auth.shop,
+      row: updatedShipment,
+    }),
+  );
 
   return json({
     success: true,

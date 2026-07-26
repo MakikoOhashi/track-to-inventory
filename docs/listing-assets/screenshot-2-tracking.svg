@@ -1,0 +1,19 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="900" fill="#F4F7F9"/>
+  <rect x="70" y="60" width="1460" height="780" rx="36" fill="white"/>
+  <rect x="70" y="60" width="1460" height="780" rx="36" stroke="#D8E0E6" stroke-width="2"/>
+  <text x="120" y="150" fill="#113247" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Inbound Tracking</text>
+  <text x="120" y="240" fill="#101828" font-family="Arial, Helvetica, sans-serif" font-size="60" font-weight="700">Track inbound status</text>
+  <text x="120" y="300" fill="#5D7380" font-family="Arial, Helvetica, sans-serif" font-size="28">Follow shipment status, expected arrivals, and product-level schedules in one place.</text>
+  <rect x="120" y="360" width="1360" height="390" rx="28" fill="#EEF4F8" stroke="#D8E0E6"/>
+  <rect x="170" y="420" width="1240" height="90" rx="20" fill="white" stroke="#D8E0E6"/>
+  <rect x="210" y="447" width="140" height="36" rx="18" fill="#DDF0E4"/>
+  <text x="236" y="472" fill="#16603A" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">SI Issued</text>
+  <text x="410" y="475" fill="#101828" font-family="Arial, Helvetica, sans-serif" font-size="24">SK123-202507</text>
+  <text x="1110" y="475" fill="#4F6472" font-family="Arial, Helvetica, sans-serif" font-size="24">ETA: 2026-04-20</text>
+  <rect x="170" y="535" width="1240" height="160" rx="20" fill="white" stroke="#D8E0E6"/>
+  <text x="210" y="590" fill="#113247" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">Product-level schedule</text>
+  <rect x="210" y="620" width="1120" height="12" rx="6" fill="#D8E0E6"/>
+  <rect x="210" y="620" width="430" height="12" rx="6" fill="#113247"/>
+  <text x="210" y="675" fill="#4F6472" font-family="Arial, Helvetica, sans-serif" font-size="22">Demo sheet fabric No#18540   240 pcs</text>
+</svg>

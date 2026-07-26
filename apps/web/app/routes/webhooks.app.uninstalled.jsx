@@ -2,6 +2,10 @@ import { authenticate } from "~/shopify.server";
 import sessionStorage from "../sessionStorage.server";
 import { createSupabaseAdminClient } from "~/lib/supabase.server";
 import { deleteNotionConnection } from "~/lib/notionConnection.server";
+import {
+  scheduleShipmentsShadowTask,
+  shadowWriteShipmentMirror,
+} from "~/lib/d1ShipmentsShadow.server";
 
 export const action = async ({ request }) => {
   const supabase = createSupabaseAdminClient();
@@ -76,6 +80,12 @@ export const action = async ({ request }) => {
 
       if (deleteShipmentsError) {
       } else {
+        scheduleShipmentsShadowTask(() =>
+          shadowWriteShipmentMirror({
+            operation: "delete_all",
+            shopId: shop,
+          }),
+        );
       }
 
     } catch (error) {

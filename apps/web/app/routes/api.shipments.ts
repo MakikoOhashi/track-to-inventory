@@ -1,7 +1,11 @@
 import { data as json, type LoaderFunctionArgs } from "react-router";
 import { requireAdminShop } from "~/lib/requireAdminShop.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
-import { createSupabaseAdminClient } from "~/lib/supabase.server";
+import { shipmentsReadGateway } from "~/lib/d1ShipmentsReadGateway.server";
+import {
+  scheduleShipmentsShadowTask,
+  shadowCompareListAfterRead,
+} from "~/lib/d1ShipmentsShadow.server";
 
 /**
  * List shipments for the authenticated shop only.
@@ -20,20 +24,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   try {
-    const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase
-      .from("shipments")
-      .select("*")
-      .eq("shop_id", auth.shop);
-
-    if (error) {
-      return json(
-        { error: ja ? "データベースエラーが発生しました" : "Database error" },
-        { status: 500 },
+    const result = await shipmentsReadGateway.list(auth.shop);
+    const shipments = result.data;
+    if (result.source === "supabase") {
+      scheduleShipmentsShadowTask(() =>
+        shadowCompareListAfterRead({
+          shopId: auth.shop,
+          primaryRows: shipments,
+        }),
       );
     }
-
-    return json({ shipments: data || [], shop: auth.shop });
+    return json({ shipments, shop: auth.shop });
   } catch {
     return json(
       { error: ja ? "認証に失敗しました" : "Authentication failed" },
