@@ -324,18 +324,17 @@ export default function Index() {
           err instanceof Error ? err.message : "データの取得に失敗しました",
         );
       }
-      setShipments([]);
+      // A transient session/API failure must not make persisted shipments look
+      // deleted. Keep the last successfully loaded tenant-scoped data visible.
     } finally {
       setLoading(false);
     }
   };
 
-  // --- 修正3: fetchData（全件取得関数）を削除し、handleModalCloseでshopIdで再取得 ---
+  // Closing a read-only modal must not trigger a refresh. Mutations use the
+  // separate onUpdated callback below.
   const handleModalClose = () => {
     setSelectedShipment(null);
-    if (shopId) {
-      fetchShipments(shopId); // ← 閉じたあともshopIdで絞り込んだデータを取得
-    }
   };
 
   const handleInputChange = (value: string) => setShopIdInput(value);
