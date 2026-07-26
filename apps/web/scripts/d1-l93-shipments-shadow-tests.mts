@@ -25,13 +25,16 @@ import {
 import {
   getD1ShipmentsMode,
   getD1ShipmentsReadMode,
+  getD1ShipmentsReadShopAllowlist,
   getD1ShipmentsWriteMode,
+  isD1ShipmentsReadEnabledForShop,
   isD1ShipmentsPrimaryEnabled,
   isD1ShipmentsShadowActive,
 } from "../app/lib/d1ShipmentsMode.server.ts";
 import { createShipmentsReadGateway } from "../app/lib/d1ShipmentsReadGateway.server.ts";
 import { createShipmentsRepository } from "../app/lib/d1/shipments.server.ts";
 import type { SupabaseShipmentRow } from "../app/lib/d1/shipmentsBackfill.server.ts";
+import { normalizeShopDomain } from "../app/utils/shopDomain.ts";
 
 const webRoot = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 const SHOP_A = "l93-a.myshopify.com";
@@ -253,6 +256,8 @@ async function runReadGatewayTests() {
   const b = row({ id: "read-b", shop_id: SHOP_B, si_number: "READ-B" });
   let supabaseCalls = 0;
   let d1Calls = 0;
+  const supabaseShopCalls: string[] = [];
+  const d1ShopCalls: string[] = [];
   const fallbackLogs: Array<Record<string, unknown>> = [];
   const rows = new Map([
     [SHOP_A, [a]],
@@ -260,42 +265,72 @@ async function runReadGatewayTests() {
   ]);
   const source = (kind: "supabase" | "d1") => ({
     async list(shopId: string) {
-      kind === "supabase" ? supabaseCalls++ : d1Calls++;
+      if (kind === "supabase") {
+        supabaseCalls++;
+        supabaseShopCalls.push(shopId);
+      } else {
+        d1Calls++;
+        d1ShopCalls.push(shopId);
+      }
       return rows.get(shopId) ?? [];
     },
     async get(shopId: string, id: string) {
-      kind === "supabase" ? supabaseCalls++ : d1Calls++;
+      if (kind === "supabase") {
+        supabaseCalls++;
+        supabaseShopCalls.push(shopId);
+      } else {
+        d1Calls++;
+        d1ShopCalls.push(shopId);
+      }
       return (rows.get(shopId) ?? []).find((entry) => entry.id === id);
     },
     async count(shopId: string) {
-      kind === "supabase" ? supabaseCalls++ : d1Calls++;
+      if (kind === "supabase") {
+        supabaseCalls++;
+        supabaseShopCalls.push(shopId);
+      } else {
+        d1Calls++;
+        d1ShopCalls.push(shopId);
+      }
       return (rows.get(shopId) ?? []).length;
     },
   });
 
   const defaultGateway = createShipmentsReadGateway({
-    readMode: () => "supabase",
+    isD1ReadEnabledForShop: () => false,
     supabase: source("supabase"),
     d1: source("d1"),
+    log: () => undefined,
   });
   assert.equal((await defaultGateway.list(SHOP_A)).source, "supabase");
   assert.equal(supabaseCalls, 1);
   assert.equal(d1Calls, 0);
 
   const d1Gateway = createShipmentsReadGateway({
-    readMode: () => "d1",
+    isD1ReadEnabledForShop: (shop) => shop === SHOP_A,
     supabase: source("supabase"),
     d1: source("d1"),
+    log: () => undefined,
   });
+  const d1List = await d1Gateway.list(` ${SHOP_A.toUpperCase()}. `);
+  assert.equal(d1List.source, "d1");
   assert.deepEqual(
-    (await d1Gateway.list(SHOP_A)).data.map((entry) => entry.id),
+    d1List.data.map((entry) => entry.id),
     ["read-a"],
   );
   assert.equal((await d1Gateway.get(SHOP_A, "read-b")).data, undefined);
   assert.equal((await d1Gateway.count(SHOP_A)).data, 1);
+  assert.equal((await d1Gateway.list(SHOP_B)).source, "supabase");
+  assert.deepEqual(
+    (await d1Gateway.list(SHOP_B)).data.map((entry) => entry.id),
+    ["read-b"],
+    "allowlist-external shop must stay tenant-scoped to Supabase",
+  );
+  assert.ok(d1ShopCalls.every((shop) => shop === SHOP_A));
+  assert.ok(!d1List.data.some((entry) => entry.shop_id === SHOP_B));
 
   const emptyGateway = createShipmentsReadGateway({
-    readMode: () => "d1",
+    isD1ReadEnabledForShop: (shop) => shop === SHOP_A,
     supabase: source("supabase"),
     d1: {
       async list() {
@@ -308,6 +343,7 @@ async function runReadGatewayTests() {
         return 0;
       },
     },
+    log: () => undefined,
   });
   const beforeEmptyFallback = supabaseCalls;
   assert.deepEqual((await emptyGateway.list(SHOP_A)).data, []);
@@ -320,7 +356,7 @@ async function runReadGatewayTests() {
   );
 
   const fallbackGateway = createShipmentsReadGateway({
-    readMode: () => "d1",
+    isD1ReadEnabledForShop: (shop) => shop === SHOP_A,
     supabase: source("supabase"),
     d1: {
       async list() {
@@ -342,16 +378,42 @@ async function runReadGatewayTests() {
   assert.equal((await fallbackGateway.get(SHOP_A, "read-b")).data, undefined);
   assert.equal((await fallbackGateway.count(SHOP_A)).data, 1);
   assert.deepEqual(
-    fallbackLogs.map((entry) => entry.operation),
+    fallbackLogs
+      .filter((entry) => entry.type === "shipments_d1_read_fallback")
+      .map((entry) => entry.operation),
     ["list", "get", "count"],
   );
   assert.ok(
-    fallbackLogs.every(
-      (entry) =>
-        entry.type === "shipments_d1_read_fallback" &&
-        typeof entry.shop_id === "string" &&
-        typeof entry.error_class === "string",
+    fallbackLogs
+      .filter((entry) => entry.type === "shipments_d1_read_fallback")
+      .every(
+        (entry) =>
+          entry.type === "shipments_d1_read_fallback" &&
+          typeof entry.shop_id === "string" &&
+          typeof entry.error_class === "string",
+      ),
+  );
+  assert.deepEqual(
+    fallbackLogs
+      .filter((entry) => entry.type === "shipments_read_source")
+      .map((entry) => entry.source),
+    ["supabase_fallback", "supabase_fallback", "supabase_fallback"],
+  );
+  assert.ok(
+    supabaseShopCalls.slice(-3).every((shop) => shop === SHOP_A),
+    "fallback must use the same authenticated tenant",
+  );
+
+  const queryWithOtherShop = new Request(
+    `https://example.test/app?shop=${SHOP_B}`,
+  );
+  assert.equal(queryWithOtherShop.url.includes(SHOP_B), true);
+  assert.deepEqual(
+    (await d1Gateway.list(normalizeShopDomain(SHOP_A))).data.map(
+      (entry) => entry.id,
     ),
+    ["read-a"],
+    "query shop must not replace the authenticated shop passed to the gateway",
   );
 }
 
@@ -380,6 +442,71 @@ async function main() {
     "supabase",
   );
   assert.equal(getD1ShipmentsReadMode({ D1_SHIPMENTS_READ_MODE: "d1" }), "d1");
+  assert.deepEqual(
+    [
+      ...getD1ShipmentsReadShopAllowlist({
+        D1_SHIPMENTS_READ_SHOP_ALLOWLIST: ` ${SHOP_A.toUpperCase()}. , ${SHOP_B}, invalid.example.com, ,`,
+      }),
+    ],
+    [SHOP_A, SHOP_B],
+  );
+  assert.equal(
+    getD1ShipmentsReadShopAllowlist({
+      D1_SHIPMENTS_READ_SHOP_ALLOWLIST: "",
+    }).size,
+    0,
+  );
+  assert.equal(getD1ShipmentsReadShopAllowlist({}).size, 0);
+  assert.equal(
+    isD1ShipmentsReadEnabledForShop(SHOP_A, {
+      D1_SHIPMENTS_READ_MODE: "d1",
+      D1_SHIPMENTS_READ_SHOP_ALLOWLIST: SHOP_A,
+    }),
+    true,
+  );
+  assert.equal(
+    isD1ShipmentsReadEnabledForShop(SHOP_A, {
+      D1_SHIPMENTS_READ_MODE: "supabase",
+      D1_SHIPMENTS_READ_SHOP_ALLOWLIST: SHOP_A,
+    }),
+    false,
+  );
+  assert.equal(
+    isD1ShipmentsReadEnabledForShop(SHOP_A, {
+      D1_SHIPMENTS_READ_MODE: "d1",
+      D1_SHIPMENTS_READ_SHOP_ALLOWLIST: "",
+    }),
+    false,
+  );
+  assert.equal(
+    isD1ShipmentsReadEnabledForShop(`prefix-${SHOP_A}`, {
+      D1_SHIPMENTS_READ_MODE: "d1",
+      D1_SHIPMENTS_READ_SHOP_ALLOWLIST: SHOP_A,
+    }),
+    false,
+    "partial or similar domains must not match",
+  );
+  assert.equal(
+    isD1ShipmentsReadEnabledForShop(SHOP_A, {
+      D1_SHIPMENTS_READ_MODE: "d1",
+      D1_SHIPMENTS_READ_SHOP_ALLOWLIST: `prefix-${SHOP_A}`,
+    }),
+    false,
+    "allowlist matching must be exact",
+  );
+  assert.equal(
+    isD1ShipmentsPrimaryEnabled({
+      D1_SHIPMENTS_READ_MODE: "d1",
+      D1_SHIPMENTS_READ_SHOP_ALLOWLIST: SHOP_A,
+    }),
+    true,
+  );
+  assert.equal(
+    isD1ShipmentsPrimaryEnabled({
+      D1_SHIPMENTS_READ_MODE: "d1",
+    }),
+    false,
+  );
   assert.equal(
     getD1ShipmentsWriteMode({ D1_SHIPMENTS_MODE: "shadow" }),
     "shadow",

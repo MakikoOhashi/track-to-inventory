@@ -7,7 +7,7 @@ const SHOP_DOMAIN_PATTERN = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/;
 export function normalizeShopDomain(shop: string | null | undefined): string {
   if (typeof shop !== "string") return "";
 
-  const normalized = shop.trim().toLowerCase();
+  const normalized = shop.trim().toLowerCase().replace(/\.+$/, "");
   return SHOP_DOMAIN_PATTERN.test(normalized) ? normalized : "";
 }
 

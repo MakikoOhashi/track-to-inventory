@@ -44,6 +44,7 @@ function applyCloudflareEnvToProcess(env: Env) {
     "D1_LEDGER_MODE",
     "D1_SHIPMENTS_MODE",
     "D1_SHIPMENTS_READ_MODE",
+    "D1_SHIPMENTS_READ_SHOP_ALLOWLIST",
     "D1_SHIPMENTS_WRITE_MODE",
   ] as const;
   const stringEnv = env as unknown as Record<string, unknown>;

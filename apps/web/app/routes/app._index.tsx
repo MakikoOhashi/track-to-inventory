@@ -40,10 +40,10 @@ import { useTranslation } from "react-i18next";
 import { i18n } from "~/utils/i18n.server";
 import { makeLocaleCookie } from "~/utils/locale";
 
-import { unauthenticated, authenticate } from "~/shopify.server";
+import { unauthenticated } from "~/shopify.server";
 import { shipmentsReadGateway } from "~/lib/d1ShipmentsReadGateway.server";
+import { requireAdminShop } from "~/lib/requireAdminShop.server";
 import type { SupabaseShipmentRow } from "~/lib/d1/shipmentsBackfill.server";
-import { normalizeShopDomain } from "~/utils/shopDomain";
 import {
   scheduleShipmentsShadowTask,
   shadowCompareListAfterRead,
@@ -124,21 +124,13 @@ async function withTimeout<T>(
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
-    const url = new URL(request.url);
     const locale = await i18n.getLocale(request);
 
-    // Prefer session shop; query shop is display fallback only (not for data auth).
-    let shop = "";
-    try {
-      const auth = await authenticate.admin(request);
-      shop = normalizeShopDomain(auth.session.shop);
-    } catch {
-      shop = normalizeShopDomain(url.searchParams.get("shop") || "");
-    }
-
-    if (!shop) {
-      throw new Response("Unauthorized", { status: 401 });
-    }
+    // Tenant identity always comes from the authenticated Shopify session.
+    // Query/body/header shop values must never select a read tenant.
+    const auth = await requireAdminShop(request);
+    if (!auth.ok) throw new Response("Unauthorized", { status: auth.status });
+    const shop = auth.shop;
 
     let shipments: Shipment[] = [];
     let shopifyProducts: any[] = [];

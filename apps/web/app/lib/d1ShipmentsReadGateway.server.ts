@@ -5,7 +5,7 @@ import {
   createShipmentsRepository,
 } from "~/lib/d1/index.server";
 import type { SupabaseCompatibleShipment } from "~/lib/d1/shipments.server";
-import { getD1ShipmentsReadMode } from "~/lib/d1ShipmentsMode.server";
+import { isD1ShipmentsReadEnabledForShop } from "~/lib/d1ShipmentsMode.server";
 import { createSupabaseAdminClient } from "~/lib/supabase.server";
 import { normalizeShopDomain } from "~/utils/shopDomain";
 
@@ -24,7 +24,7 @@ type SupabaseReads = {
 type D1Reads = SupabaseReads;
 
 export type ShipmentsReadGatewayDependencies = {
-  readMode?: () => "supabase" | "d1";
+  isD1ReadEnabledForShop?: (shopId: string) => boolean;
   supabase?: SupabaseReads;
   d1?: D1Reads;
   log?: (entry: Record<string, unknown>) => void;
@@ -84,7 +84,9 @@ export function createShipmentsReadGateway(
 ) {
   const supabase = dependencies.supabase ?? defaultSupabaseReads();
   const d1 = dependencies.d1 ?? defaultD1Reads();
-  const readMode = dependencies.readMode ?? (() => getD1ShipmentsReadMode());
+  const isD1ReadEnabledForShop =
+    dependencies.isD1ReadEnabledForShop ??
+    ((shopId) => isD1ShipmentsReadEnabledForShop(shopId));
   const log =
     dependencies.log ?? ((entry) => console.log(JSON.stringify(entry)));
 
@@ -96,11 +98,22 @@ export function createShipmentsReadGateway(
   ): Promise<{ data: T; source: ShipmentsReadSource }> {
     const shop = normalizeShopDomain(shopId);
     if (!shop) throw new Error("Invalid shop_id");
-    if (readMode() !== "d1") {
-      return { data: await supabaseRead(), source: "supabase" };
+    const startedAt = Date.now();
+    const complete = (data: T, source: ShipmentsReadSource) => {
+      log({
+        type: "shipments_read_source",
+        shop_id: safeShopId(shop),
+        operation,
+        source,
+        duration_ms: Date.now() - startedAt,
+      });
+      return { data, source };
+    };
+    if (!isD1ReadEnabledForShop(shop)) {
+      return complete(await supabaseRead(), "supabase");
     }
     try {
-      return { data: await d1Read(), source: "d1" };
+      return complete(await d1Read(), "d1");
     } catch (error) {
       const classified = classifyD1Error(error);
       log({
@@ -109,7 +122,7 @@ export function createShipmentsReadGateway(
         operation,
         error_class: classified.classification,
       });
-      return { data: await supabaseRead(), source: "supabase_fallback" };
+      return complete(await supabaseRead(), "supabase_fallback");
     }
   }
 
