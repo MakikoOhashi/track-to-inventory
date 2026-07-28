@@ -18,6 +18,8 @@ import {
   type D1ExistingSafe,
 } from "./lib/sessionSeedCore.mts";
 
+process.env.TOKEN_ENCRYPTION_KEY ??= "auth1b-local-test-key-32-bytes!!";
+
 function makeOffline(shop: string, id?: string) {
   const sessionId = id ?? `offline_${shop}`;
   return new Session({
@@ -75,7 +77,10 @@ async function main() {
   assert.equal(hashMiss.ok, false);
 
   // shop mismatch
-  const other = makeOffline("other.myshopify.com", `offline_other.myshopify.com`);
+  const other = makeOffline(
+    "other.myshopify.com",
+    `offline_other.myshopify.com`,
+  );
   // Force same hash collision unlikely — use target hash of other but target shop wrong
   const shopMiss = selectL41Candidate({
     newSessions: [{ id: other.id, payload: payloadOf(other) }],
@@ -164,13 +169,19 @@ async function main() {
 
   // Production target hash constant still matches audit expectation shape
   assert.equal(L41_TARGET_ID_HASH.length, 16);
-  assert.equal(createHash("sha256").update("x").digest("hex").slice(0, 16).length, 16);
+  assert.equal(
+    createHash("sha256").update("x").digest("hex").slice(0, 16).length,
+    16,
+  );
 
   // local D1 insert-only round-trip (dry-run write 0 is script-level; here apply local)
   const proxy = await getPlatformProxy({ persist: true });
   try {
     const db = (proxy.env as { TTI_DB: D1Database }).TTI_DB;
-    await db.prepare("DELETE FROM shopify_sessions WHERE shop = ?").bind(shop).run();
+    await db
+      .prepare("DELETE FROM shopify_sessions WHERE shop = ?")
+      .bind(shop)
+      .run();
     const repo = createShopifySessionRepository(db);
     await repo.storeSession(offline);
     const loaded = await repo.loadSession(offline.id);
@@ -181,8 +192,17 @@ async function main() {
       loaded!,
       payloadOf(loaded!).entries.map(([k]) => String(k)),
     );
-    assert.equal(fp, sessionFingerprint(offline, payloadOf(offline).entries.map(([k]) => String(k))));
-    await db.prepare("DELETE FROM shopify_sessions WHERE shop = ?").bind(shop).run();
+    assert.equal(
+      fp,
+      sessionFingerprint(
+        offline,
+        payloadOf(offline).entries.map(([k]) => String(k)),
+      ),
+    );
+    await db
+      .prepare("DELETE FROM shopify_sessions WHERE shop = ?")
+      .bind(shop)
+      .run();
   } finally {
     await proxy.dispose();
   }

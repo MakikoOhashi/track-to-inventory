@@ -8,30 +8,52 @@
  */
 
 import { Session } from "@shopify/shopify-api";
+import {
+  decryptSessionSecrets,
+  encryptSessionSecrets,
+  entriesWithSessionSecrets,
+  sessionTokenFingerprint,
+  withoutSessionSecrets,
+} from "~/lib/shopifySessionSecrets.server";
 import { D1_MIGRATION_VERSION, nowIso } from "./client.server";
 import { classifyD1Error } from "./errors.server";
-import type {
-  ShopifySessionPayload,
-  ShopifySessionRow,
-} from "./types.server";
+import type { ShopifySessionPayload, ShopifySessionRow } from "./types.server";
 
 type SessionRaw = Record<string, unknown>;
 
 const DELETED_PAYLOAD_JSON = '{"deleted":true,"entries":[]}';
 export const SESSION_MIGRATION_SOURCE_DELETED = "deleted";
 
-function mapSessionRow(raw: SessionRaw | null | undefined): ShopifySessionRow | undefined {
+function mapSessionRow(
+  raw: SessionRaw | null | undefined,
+): ShopifySessionRow | undefined {
   if (!raw) return undefined;
   return {
     id: String(raw.id ?? ""),
     shop: String(raw.shop ?? ""),
     payload_json: String(raw.payload_json ?? ""),
+    token_ciphertext:
+      raw.token_ciphertext == null || raw.token_ciphertext === ""
+        ? null
+        : String(raw.token_ciphertext),
+    token_expires_at:
+      raw.token_expires_at == null || raw.token_expires_at === ""
+        ? null
+        : String(raw.token_expires_at),
+    token_fingerprint:
+      raw.token_fingerprint == null || raw.token_fingerprint === ""
+        ? null
+        : String(raw.token_fingerprint),
+    token_generation: Number(raw.token_generation ?? 0),
     is_online: Number(raw.is_online ?? 0),
-    expires_at: raw.expires_at == null || raw.expires_at === ""
-      ? null
-      : String(raw.expires_at),
-    migration_source: raw.migration_source == null ? null : String(raw.migration_source),
-    migration_version: raw.migration_version == null ? null : String(raw.migration_version),
+    expires_at:
+      raw.expires_at == null || raw.expires_at === ""
+        ? null
+        : String(raw.expires_at),
+    migration_source:
+      raw.migration_source == null ? null : String(raw.migration_source),
+    migration_version:
+      raw.migration_version == null ? null : String(raw.migration_version),
     created_at: String(raw.created_at ?? ""),
     updated_at: String(raw.updated_at ?? ""),
   };
@@ -50,9 +72,11 @@ export function isDeletedSessionRow(
 }
 
 /** Same shape as Redis UpstashSessionStorage payload. */
-export function serializeSessionPayload(session: Session): ShopifySessionPayload {
+export function serializeSessionPayload(
+  session: Session,
+): ShopifySessionPayload {
   return {
-    entries: session.toPropertyArray(true),
+    entries: withoutSessionSecrets(session.toPropertyArray(true)),
     shop: session.shop,
     expiresAt: session.expires?.getTime(),
   };
@@ -60,8 +84,12 @@ export function serializeSessionPayload(session: Session): ShopifySessionPayload
 
 export function deserializeSessionPayload(
   payload: ShopifySessionPayload,
+  secrets?: { accessToken: string; refreshToken?: string },
 ): Session {
-  return Session.fromPropertyArray(payload.entries, true);
+  const entries = secrets
+    ? entriesWithSessionSecrets(payload.entries, secrets)
+    : payload.entries;
+  return Session.fromPropertyArray(entries, true);
 }
 
 function isExpired(expiresAt: string | null, nowMs: number): boolean {
@@ -124,6 +152,30 @@ const STORE_UPSERT_WHERE = `excluded.updated_at > shopify_sessions.updated_at
 
 const DELETE_UPSERT_WHERE = `excluded.updated_at >= shopify_sessions.updated_at`;
 
+/**
+ * The Shopify library can refresh the same offline session concurrently.
+ * Newer token expiry wins; an identical token tuple is an idempotent retry.
+ * A late response with an older expiry, or a different tuple at equal expiry,
+ * cannot overwrite the stored refresh-token rotation.
+ */
+const TOKEN_ROTATION_CAS_WHERE = `(
+               shopify_sessions.is_online != 0
+               OR excluded.is_online != 0
+               OR (
+                 shopify_sessions.token_expires_at IS NULL
+                 AND excluded.token_expires_at IS NULL
+               )
+               OR (
+                 shopify_sessions.token_expires_at IS NULL
+                 AND excluded.token_expires_at IS NOT NULL
+               )
+               OR excluded.token_expires_at > shopify_sessions.token_expires_at
+               OR (
+                 excluded.token_expires_at = shopify_sessions.token_expires_at
+                 AND excluded.token_fingerprint = shopify_sessions.token_fingerprint
+               )
+             )`;
+
 export function createShopifySessionRepository(
   db: D1Database,
 ): ShopifySessionRepository {
@@ -132,33 +184,49 @@ export function createShopifySessionRepository(
     options?: SessionWriteOptions,
   ): Promise<boolean> {
     const payload = serializeSessionPayload(session);
+    const tokenCiphertext = await encryptSessionSecrets(session);
+    const tokenFingerprint = sessionTokenFingerprint(session);
     const ts = options?.updatedAt || nowIso();
     const expiresAt =
       session.isOnline && session.expires
         ? session.expires.toISOString()
         : null;
+    const tokenExpiresAt = session.expires?.toISOString() ?? null;
 
     try {
       const result = await db
         .prepare(
           `INSERT INTO shopify_sessions (
-             id, shop, payload_json, is_online, expires_at,
+             id, shop, payload_json, token_ciphertext, token_expires_at,
+             token_fingerprint, token_generation, is_online, expires_at,
              migration_source, migration_version, created_at, updated_at
-           ) VALUES (?, ?, ?, ?, ?, 'runtime', ?, ?, ?)
+           ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, 'runtime', ?, ?, ?)
            ON CONFLICT(id) DO UPDATE SET
              shop = excluded.shop,
              payload_json = excluded.payload_json,
+             token_ciphertext = excluded.token_ciphertext,
+             token_expires_at = excluded.token_expires_at,
+             token_fingerprint = excluded.token_fingerprint,
+             token_generation = CASE
+               WHEN excluded.token_fingerprint = shopify_sessions.token_fingerprint
+                 THEN shopify_sessions.token_generation
+               ELSE shopify_sessions.token_generation + 1
+             END,
              is_online = excluded.is_online,
              expires_at = excluded.expires_at,
              migration_source = excluded.migration_source,
              migration_version = excluded.migration_version,
              updated_at = excluded.updated_at
-           WHERE ${STORE_UPSERT_WHERE}`,
+           WHERE (${STORE_UPSERT_WHERE})
+             AND ${TOKEN_ROTATION_CAS_WHERE}`,
         )
         .bind(
           session.id,
           session.shop,
           JSON.stringify(payload),
+          tokenCiphertext,
+          tokenExpiresAt,
+          tokenFingerprint,
           session.isOnline ? 1 : 0,
           expiresAt,
           D1_MIGRATION_VERSION,
@@ -199,7 +267,10 @@ export function createShopifySessionRepository(
 
       let session: Session;
       try {
-        session = deserializeSessionPayload(payload);
+        const secrets = row.token_ciphertext
+          ? await decryptSessionSecrets(row.token_ciphertext)
+          : undefined;
+        session = deserializeSessionPayload(payload, secrets);
       } catch {
         return { status: "invalid", reason: "session_deserialize", row };
       }
@@ -222,7 +293,11 @@ export function createShopifySessionRepository(
       // Known migration versions only (L1 runtime / seed).
       const ver = row.migration_version || "";
       if (ver && ver !== D1_MIGRATION_VERSION && !/^l4\.1/.test(ver)) {
-        return { status: "invalid", reason: "unsupported_migration_version", row };
+        return {
+          status: "invalid",
+          reason: "unsupported_migration_version",
+          row,
+        };
       }
 
       return { status: "live", session, row };
@@ -255,6 +330,12 @@ export function createShopifySessionRepository(
            ) VALUES (?, ?, ?, 0, NULL, ?, ?, ?, ?)
            ON CONFLICT(id) DO UPDATE SET
              payload_json = excluded.payload_json,
+             token_ciphertext = NULL,
+             token_expires_at = NULL,
+             token_fingerprint = NULL,
+             -- Tombstoning invalidates authentication but is not a token
+             -- rotation; reinstall should create generation 1.
+             token_generation = shopify_sessions.token_generation,
              is_online = 0,
              expires_at = NULL,
              migration_source = excluded.migration_source,
@@ -302,7 +383,12 @@ export function createShopifySessionRepository(
         try {
           const payload = JSON.parse(row.payload_json) as ShopifySessionPayload;
           if (!payload?.entries) continue;
-          sessions.push(deserializeSessionPayload(payload));
+          const secrets = row.token_ciphertext
+            ? await decryptSessionSecrets(row.token_ciphertext)
+            : undefined;
+          const session = deserializeSessionPayload(payload, secrets);
+          if (!session.accessToken) continue;
+          sessions.push(session);
         } catch {
           // skip corrupt payload
         }

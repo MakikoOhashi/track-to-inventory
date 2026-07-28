@@ -21,6 +21,8 @@ import {
   storeSessionD1Only,
 } from "../app/lib/sessionD1Only.server.ts";
 
+process.env.TOKEN_ENCRYPTION_KEY ??= "auth1b-local-test-key-32-bytes!!";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const webRoot = join(__dirname, "..");
 const SHOP = "l60-test.myshopify.com";
@@ -301,7 +303,10 @@ async function main() {
       }),
       undefined,
     );
-    assert.equal(await storeSessionD1Only({ session, db: makeErrorDb() }), false);
+    assert.equal(
+      await storeSessionD1Only({ session, db: makeErrorDb() }),
+      false,
+    );
 
     // --- delete + equal-ts tombstone priority ---
     await rawDb

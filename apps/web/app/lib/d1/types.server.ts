@@ -69,6 +69,10 @@ export type ShopifySessionRow = {
   id: string;
   shop: string;
   payload_json: string;
+  token_ciphertext: string | null;
+  token_expires_at: string | null;
+  token_fingerprint: string | null;
+  token_generation: number;
   is_online: number;
   expires_at: string | null;
   migration_source: string | null;

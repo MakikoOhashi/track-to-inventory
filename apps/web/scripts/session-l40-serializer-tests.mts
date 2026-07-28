@@ -13,6 +13,9 @@ import {
   serializeSessionPayload,
 } from "../app/lib/d1/shopifySessions.server.ts";
 import type { ShopifySessionPayload } from "../app/lib/d1/types.server.ts";
+import { sessionSecretsFromSession } from "../app/lib/shopifySessionSecrets.server.ts";
+
+process.env.TOKEN_ENCRYPTION_KEY ??= "auth1b-local-test-key-32-bytes!!";
 
 function makeOffline(shop = "audit-test.myshopify.com") {
   return new Session({
@@ -58,7 +61,11 @@ async function main() {
   const payload = serializeSessionPayload(offline);
   assert.ok(Array.isArray(payload.entries));
   assert.equal(payload.shop, offline.shop);
-  const round1 = deserializeSessionPayload(payload);
+  assert.ok(!JSON.stringify(payload).includes(offline.accessToken!));
+  const round1 = deserializeSessionPayload(
+    payload,
+    sessionSecretsFromSession(offline),
+  );
   compareSessionFields(offline, round1);
 
   // Redis-compatible re-serialize (as sessionStorage does)
@@ -77,10 +84,16 @@ async function main() {
   const again = Session.fromPropertyArray(backToRedis.entries, true);
   compareSessionFields(offline, again);
 
-  const online = makeOnline("audit-test.myshopify.com", new Date(Date.now() + 3_600_000));
+  const online = makeOnline(
+    "audit-test.myshopify.com",
+    new Date(Date.now() + 3_600_000),
+  );
   const onlinePayload = serializeSessionPayload(online);
   assert.ok(onlinePayload.expiresAt);
-  const onlineRound = deserializeSessionPayload(onlinePayload);
+  const onlineRound = deserializeSessionPayload(
+    onlinePayload,
+    sessionSecretsFromSession(online),
+  );
   compareSessionFields(online, onlineRound);
   assert.ok(onlineRound.expires instanceof Date);
 
@@ -118,7 +131,10 @@ async function main() {
   try {
     const db = (proxy.env as { TTI_DB: D1Database }).TTI_DB;
     assert.ok(db);
-    await db.prepare("DELETE FROM shopify_sessions WHERE shop = ?").bind(offline.shop).run();
+    await db
+      .prepare("DELETE FROM shopify_sessions WHERE shop = ?")
+      .bind(offline.shop)
+      .run();
 
     const repo = createShopifySessionRepository(db);
     assert.equal(await repo.storeSession(offline), true);
@@ -150,7 +166,10 @@ async function main() {
     await repo.deleteSession(offline.id);
     await repo.deleteSession(online.id);
     await repo.deleteSession(expired.id);
-    await db.prepare("DELETE FROM shopify_sessions WHERE shop = ?").bind(offline.shop).run();
+    await db
+      .prepare("DELETE FROM shopify_sessions WHERE shop = ?")
+      .bind(offline.shop)
+      .run();
 
     console.log(
       JSON.stringify({

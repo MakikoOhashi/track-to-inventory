@@ -16,6 +16,9 @@ import {
   D1RepositoryError,
   serializeSessionPayload,
 } from "../app/lib/d1/index.server.ts";
+import { sessionSecretsFromSession } from "../app/lib/shopifySessionSecrets.server.ts";
+
+process.env.TOKEN_ENCRYPTION_KEY ??= "auth1b-local-test-key-32-bytes!!";
 
 async function resetLedger(db: D1Database) {
   await db.prepare("DELETE FROM inventory_sync_ledger").run();
@@ -245,7 +248,10 @@ async function main() {
     const shop = "demo.myshopify.com";
     const offline = makeOfflineSession("offline_demo.myshopify.com", shop);
     const payload = serializeSessionPayload(offline);
-    const roundTrip = deserializeSessionPayload(payload);
+    const roundTrip = deserializeSessionPayload(
+      payload,
+      sessionSecretsFromSession(offline),
+    );
     assert.equal(roundTrip.id, offline.id);
     assert.equal(roundTrip.shop, offline.shop);
     assert.equal(roundTrip.accessToken, offline.accessToken);
@@ -280,7 +286,9 @@ async function main() {
     assert.equal(await sessions.loadSession(offline.id), undefined);
 
     // error classification helper
-    const fake = classifyD1Error(new Error("D1_ERROR: UNIQUE constraint failed"));
+    const fake = classifyD1Error(
+      new Error("D1_ERROR: UNIQUE constraint failed"),
+    );
     assert.ok(fake instanceof D1RepositoryError);
     assert.equal(fake.classification, "constraint");
     assert.equal(fake.retryable, false);
