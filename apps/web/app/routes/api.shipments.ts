@@ -1,11 +1,8 @@
 import { data as json, type LoaderFunctionArgs } from "react-router";
 import { requireAdminShop } from "~/lib/requireAdminShop.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
-import { shipmentsReadGateway } from "~/lib/d1ShipmentsReadGateway.server";
-import {
-  scheduleShipmentsShadowTask,
-  shadowCompareListAfterRead,
-} from "~/lib/d1ShipmentsShadow.server";
+import { getOptionalTtiDb } from "~/lib/cloudflareBindings.server";
+import { createShipmentsRepository } from "~/lib/d1/shipments.server";
 
 /**
  * List shipments for the authenticated shop only.
@@ -24,16 +21,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   try {
-    const result = await shipmentsReadGateway.list(auth.shop);
-    const shipments = result.data;
-    if (result.source === "supabase") {
-      scheduleShipmentsShadowTask(() =>
-        shadowCompareListAfterRead({
-          shopId: auth.shop,
-          primaryRows: shipments,
-        }),
-      );
-    }
+    const db = getOptionalTtiDb();
+    if (!db) throw new Error("TTI_DB binding missing");
+    const shipments = await createShipmentsRepository(db).listByShop(auth.shop);
     return json({ shipments, shop: auth.shop });
   } catch {
     return json(

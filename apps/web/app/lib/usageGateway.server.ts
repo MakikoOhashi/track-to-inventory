@@ -4,7 +4,7 @@
  * D1 is the sole authority for OCR / AI / delete / plan.
  * No Redis contact. No USAGE_D1_MODE flag.
  *
- * SI registration limits still use Supabase counts + D1 plan.
+ * SI registration limits use D1 counts + D1 plan.
  */
 
 import { randomUUID } from "node:crypto";
@@ -18,10 +18,7 @@ import {
   type UsageKind,
   type UserPlan,
 } from "~/lib/d1/index.server";
-import {
-  scheduleShipmentsShadowTask,
-  shadowCompareCountAfterRead,
-} from "~/lib/d1ShipmentsShadow.server";
+import { createShipmentsRepository } from "~/lib/d1/shipments.server";
 
 export type UsageReserveKind = "ocr" | "ai";
 
@@ -149,21 +146,7 @@ async function d1UpsertPlan(
 
 async function fetchSiCount(shopId: string): Promise<number> {
   try {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) return 0;
-    const { createClient } = await import("@supabase/supabase-js");
-    const supabase = createClient(url, key);
-    const { count, error } = await supabase
-      .from("shipments")
-      .select("*", { count: "exact", head: true })
-      .eq("shop_id", shopId);
-    if (error) return 0;
-    const primaryCount = count || 0;
-    scheduleShipmentsShadowTask(() =>
-      shadowCompareCountAfterRead({ shopId, primaryCount }),
-    );
-    return primaryCount;
+    return await createShipmentsRepository(requireDb()).countByShop(shopId);
   } catch {
     return 0;
   }
@@ -222,7 +205,7 @@ export async function recordDeleteUsage(params: {
   });
 }
 
-/** Usage display for /api/usage — D1 snapshot + Supabase SI. */
+/** Usage display for /api/usage — D1 snapshot + D1 shipment count. */
 export async function getUsageForDisplay(shopId: string): Promise<UsageDisplay> {
   const db = requireDb();
   const repo = createUsageQuotaRepository(db);
@@ -291,7 +274,7 @@ export async function getPlanViaGateway(shopId: string): Promise<UserPlan> {
 }
 
 /**
- * SI registration limit check (Supabase count + D1 plan).
+ * SI registration limit check (D1 count + D1 plan).
  * Kept here so plan is never read from Redis.
  */
 export async function checkSILimit(shopId: string): Promise<void> {

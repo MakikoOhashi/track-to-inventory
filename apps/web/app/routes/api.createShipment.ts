@@ -2,12 +2,8 @@ import { data as json, type ActionFunctionArgs } from "react-router";
 import { checkSILimit } from "~/lib/usageGateway.server";
 import { requireAdminShop } from "~/lib/requireAdminShop.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
-import { createSupabaseAdminClient } from "~/lib/supabase.server";
-import {
-  scheduleShipmentsShadowTask,
-  shadowCompareGetAfterRead,
-  shadowWriteShipmentMirror,
-} from "~/lib/d1ShipmentsShadow.server";
+import { getOptionalTtiDb } from "~/lib/cloudflareBindings.server";
+import { createShipmentsRepository, ShipmentDuplicateError } from "~/lib/d1/shipments.server";
 
 type ShipmentItem = {
   name: string;
@@ -95,30 +91,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
     siNumber = siNumber.trim();
 
-    const supabase = createSupabaseAdminClient();
-    const { data: existingShipment, error: checkError } = await supabase
-      .from("shipments")
-      .select("*")
-      .eq("si_number", siNumber)
-      .eq("shop_id", shopId)
-      .maybeSingle();
-
-    if (checkError) {
-      return json(
-        { error: ja ? "データベースエラーが発生しました" : "Database error" },
-        { status: 500 },
-      );
-    }
-
-    scheduleShipmentsShadowTask(() =>
-      shadowCompareGetAfterRead({
-        shopId,
-        siNumber,
-        primaryRow: existingShipment,
-      }),
-    );
-
-    if (existingShipment) {
+    const db = getOptionalTtiDb();
+    if (!db) throw new Error("TTI_DB binding missing");
+    const repo = createShipmentsRepository(db);
+    if (await repo.getByShopAndSi(shopId, siNumber)) {
       return json(
         {
           error: ja
@@ -160,39 +136,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       is_archived: false,
     };
 
-    const { data: result, error: shipmentError } = await supabase
-      .from("shipments")
-      .insert([shipmentData])
-      .select()
-      .single();
-
-    if (shipmentError) {
-      if (shipmentError.code === "23505") {
-        return json(
-          {
-            error: ja
-              ? "このSI番号は既に登録されています"
-              : "This SI number is already registered",
-          },
-          { status: 409 },
-        );
+    let result;
+    try {
+      result = await repo.create(shopId, shipmentData);
+    } catch (error) {
+      if (error instanceof ShipmentDuplicateError) {
+        return json({ error: ja ? "このSI番号は既に登録されています" : "This SI number is already registered" }, { status: 409 });
       }
-      return json(
-        {
-          error: ja ? "データの保存に失敗しました" : "Failed to save data",
-          details: shipmentError.message,
-        },
-        { status: 500 },
-      );
+      throw error;
     }
-
-    scheduleShipmentsShadowTask(() =>
-      shadowWriteShipmentMirror({
-        operation: "create",
-        shopId,
-        row: result,
-      }),
-    );
 
     return json({
       success: true,

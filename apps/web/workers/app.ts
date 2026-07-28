@@ -29,9 +29,6 @@ function applyCloudflareEnvToProcess(env: Env) {
     "DATABASE_URL",
     "UPSTASH_REDIS_REST_URL",
     "UPSTASH_REDIS_REST_TOKEN",
-    "SUPABASE_URL",
-    "SUPABASE_SERVICE_ROLE_KEY",
-    "SUPABASE_KEY",
     "GEMINI_API_KEY",
     "RESEND_API_KEY",
     "RECAPTCHA_SITE_KEY",
@@ -40,13 +37,6 @@ function applyCloudflareEnvToProcess(env: Env) {
     "NOTION_CLIENT_SECRET",
     "NOTION_REDIRECT_URI",
     "TOKEN_ENCRYPTION_KEY",
-    "AUTH2B_OPERATOR_CONFIRMATION",
-    "INVSYNC_LEDGER_MODE",
-    "D1_LEDGER_MODE",
-    "D1_SHIPMENTS_MODE",
-    "D1_SHIPMENTS_READ_MODE",
-    "D1_SHIPMENTS_READ_SHOP_ALLOWLIST",
-    "D1_SHIPMENTS_WRITE_MODE",
   ] as const;
   const stringEnv = env as unknown as Record<string, unknown>;
 

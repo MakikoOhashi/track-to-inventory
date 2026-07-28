@@ -1,4 +1,5 @@
-import { createSupabaseAdminClient } from "~/lib/supabase.server";
+import { getOptionalTtiDb } from "~/lib/cloudflareBindings.server";
+import { createShipmentsRepository } from "~/lib/d1/shipments.server";
 import {
   buildSyncIdempotencyKey,
   ensureSyncItemId,
@@ -12,11 +13,6 @@ import {
   resolveStaleProcessing,
   type LedgerRow,
 } from "~/lib/syncLedger.server";
-import {
-  scheduleShipmentsShadowTask,
-  shadowCompareGetAfterRead,
-  shadowWriteShipmentMirror,
-} from "~/lib/d1ShipmentsShadow.server";
 
 export type SyncStockItemInput = {
   sync_item_id?: string;
@@ -169,46 +165,27 @@ async function loadShipmentForSync(params: {
   shop: string;
   siNumber: string;
 }): Promise<{ items: ShipmentLineItem[] }> {
-  const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase
-    .from("shipments")
-    .select("*")
-    .eq("si_number", params.siNumber)
-    .eq("shop_id", params.shop)
-    .maybeSingle();
-
-  if (error) {
-    throw new SyncStockError("DB_ERROR", "データベースエラー", 500);
-  }
+  const db = getOptionalTtiDb();
+  if (!db) throw new SyncStockError("DB_ERROR", "データベースエラー", 500);
+  const repo = createShipmentsRepository(db);
+  const data = await repo.getByShopAndSi(params.shop, params.siNumber);
   if (!data) {
     throw new SyncStockError("NOT_FOUND", "出荷データが見つかりません", 404);
   }
-
-  scheduleShipmentsShadowTask(() =>
-    shadowCompareGetAfterRead({
-      shopId: params.shop,
-      siNumber: params.siNumber,
-      primaryRow: data,
-    }),
-  );
 
   const items = Array.isArray(data.items) ? ([...data.items] as ShipmentLineItem[]) : [];
 
   // Prefer reusing succeeded ledger item_keys when sync_item_id is missing,
   // so a later ID backfill cannot create a new idempotency key and re-adjust stock.
-  const { data: succeededRows } = await supabase
-    .from("inventory_sync_ledger")
-    .select("item_key, variant_id, delta_quantity")
-    .eq("shop_id", params.shop)
-    .eq("si_number", params.siNumber)
-    .eq("status", "succeeded");
+  const succeededRows = (await import("~/lib/syncLedger.server")).listLedgerForShipment({ shopId: params.shop, siNumber: params.siNumber });
+  const succeeded = (await succeededRows).filter((row) => row.status === "succeeded");
 
   const usedKeys = new Set(
     items
       .map((item) => (typeof item.sync_item_id === "string" ? item.sync_item_id.trim() : ""))
       .filter(Boolean),
   );
-  const reusable = (succeededRows || []).filter(
+  const reusable = succeeded.filter(
     (row) => row.item_key && !usedKeys.has(row.item_key),
   );
 
@@ -240,25 +217,11 @@ async function loadShipmentForSync(params: {
   }
 
   if (mutated) {
-    const { data: updatedShipment, error: updateError } = await supabase
-      .from("shipments")
-      .update({ items })
-      .eq("si_number", params.siNumber)
-      .eq("shop_id", params.shop)
-      .select("*")
-      .single();
-
-    if (updateError) {
+    try {
+      await repo.update(params.shop, params.siNumber, { items });
+    } catch {
       throw new SyncStockError("DB_ERROR", "sync_item_idの保存に失敗しました", 500);
     }
-
-    scheduleShipmentsShadowTask(() =>
-      shadowWriteShipmentMirror({
-        operation: "update",
-        shopId: params.shop,
-        row: updatedShipment,
-      }),
-    );
   }
 
   return { items };

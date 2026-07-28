@@ -1,11 +1,8 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
 import { requireAdminShop } from "~/lib/requireAdminShop.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
-import { createSupabaseAdminClient } from "~/lib/supabase.server";
-import {
-  scheduleShipmentsShadowTask,
-  shadowWriteShipmentMirror,
-} from "~/lib/d1ShipmentsShadow.server";
+import { getOptionalTtiDb } from "~/lib/cloudflareBindings.server";
+import { createShipmentsRepository, ShipmentDuplicateError } from "~/lib/d1/shipments.server";
 
 /**
  * Update shipment for authenticated shop only.
@@ -79,44 +76,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   };
 
   try {
-    const supabaseClient = createSupabaseAdminClient();
-    const { data, error } = await supabaseClient
-      .from("shipments")
-      .update(cleanedData)
-      .eq("si_number", siNumber)
-      .eq("shop_id", shopId)
-      .select();
-
-    if (error) {
-      if (error.code === "23505") {
-        return json(
-          {
-            error: ja
-              ? "このSI番号は既に登録されています"
-              : "This SI number is already registered",
-          },
-          { status: 409 },
-        );
+    const db = getOptionalTtiDb();
+    if (!db) throw new Error("TTI_DB binding missing");
+    let updated;
+    try {
+      updated = await createShipmentsRepository(db).update(shopId, siNumber, cleanedData);
+    } catch (error) {
+      if (error instanceof ShipmentDuplicateError) {
+        return json({ error: ja ? "このSI番号は既に登録されています" : "This SI number is already registered" }, { status: 409 });
       }
-      return json({ error: error.message }, { status: 500 });
+      throw error;
     }
-
-    if (!data || data.length === 0) {
+    if (!updated) {
       return json(
         { error: ja ? "出荷データが見つかりません" : "Shipment not found" },
         { status: 404 },
       );
     }
 
-    scheduleShipmentsShadowTask(() =>
-      shadowWriteShipmentMirror({
-        operation: "update",
-        shopId,
-        row: data[0],
-      }),
-    );
-
-    return json({ data });
+    return json({ data: [updated] });
   } catch {
     return json(
       {

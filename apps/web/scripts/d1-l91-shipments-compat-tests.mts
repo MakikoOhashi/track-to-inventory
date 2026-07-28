@@ -63,6 +63,7 @@ function supabaseFixture(overrides: Partial<SupabaseCompatibleShipment> = {}): O
 
 async function resetShipments(db: D1Database) {
   await db.batch([
+    db.prepare("DELETE FROM file_objects WHERE shipment_id IN (SELECT id FROM shipments)"),
     db.prepare("DELETE FROM shipment_items"),
     db.prepare("DELETE FROM shipments"),
     db.prepare("DELETE FROM shops WHERE shop_id LIKE 'l91-%'"),

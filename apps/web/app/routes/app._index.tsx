@@ -41,13 +41,9 @@ import { i18n } from "~/utils/i18n.server";
 import { makeLocaleCookie } from "~/utils/locale";
 
 import { unauthenticated } from "~/shopify.server";
-import { shipmentsReadGateway } from "~/lib/d1ShipmentsReadGateway.server";
+import { getOptionalTtiDb } from "~/lib/cloudflareBindings.server";
+import { createShipmentsRepository } from "~/lib/d1/shipments.server";
 import { requireAdminShop } from "~/lib/requireAdminShop.server";
-import type { SupabaseShipmentRow } from "~/lib/d1/shipmentsBackfill.server";
-import {
-  scheduleShipmentsShadowTask,
-  shadowCompareListAfterRead,
-} from "~/lib/d1ShipmentsShadow.server";
 
 type StatusTableProps = {
   shipments: Shipment[];
@@ -135,20 +131,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     let shipments: Shipment[] = [];
     let shopifyProducts: any[] = [];
     try {
-      const result = await withTimeout(shipmentsReadGateway.list(shop), 5000, {
-        data: [],
-        source: "supabase_fallback",
-      } as const);
-
-      shipments = result.data as unknown as Shipment[];
-      if (result.source === "supabase") {
-        scheduleShipmentsShadowTask(() =>
-          shadowCompareListAfterRead({
-            shopId: shop,
-            primaryRows: shipments as unknown as SupabaseShipmentRow[],
-          }),
-        );
-      }
+      const db = getOptionalTtiDb();
+      if (!db) throw new Error("TTI_DB binding missing");
+      shipments = (await createShipmentsRepository(db).listByShop(shop)) as unknown as Shipment[];
     } catch (error) {
       shipments = [];
     }
