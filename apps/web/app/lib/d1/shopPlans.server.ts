@@ -1,6 +1,6 @@
 /**
  * shop_plans repository (Stage L5.1).
- * Redis-free. Not wired to production routes.
+ * D1-backed repository. Not wired to production routes.
  *
  * Plan updates are gated by observed_at / updated_at so an older refresh
  * cannot overwrite a newer one.

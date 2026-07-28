@@ -1,8 +1,7 @@
 /**
  * D1-only Shopify session authority (Stage L6.0).
  *
- * D1 is the fixed session authority. Never contacts Redis. There is no mode
- * flag or Redis fallback anymore (the Redis compat path was removed in L6.0).
+ * D1 is the fixed session authority with no external fallback.
  */
 
 import { createHash } from "node:crypto";
@@ -215,7 +214,7 @@ export async function loadSessionD1Only(params: {
       failure_stage: fail.failure_stage,
       error_name: fail.error_name,
     });
-    // Safe miss — no Redis fallback, no throw (SessionStorage contract).
+    // Safe miss, no throw (SessionStorage contract).
     return undefined;
   }
 }

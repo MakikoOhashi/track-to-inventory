@@ -1,6 +1,6 @@
 /**
  * Shopify session repository for D1 (Stage L1 / L4.3).
- * Payload shape matches Redis SessionStorage (toPropertyArray / fromPropertyArray).
+ * Payload shape matches Shopify SessionStorage (toPropertyArray / fromPropertyArray).
  *
  * L4.3 dual-write:
  * - store uses idempotent upsert gated by updated_at (stale writers no-op)
@@ -71,7 +71,7 @@ export function isDeletedSessionRow(
   }
 }
 
-/** Same shape as Redis UpstashSessionStorage payload. */
+/** Same shape as Shopify SessionStorage payload. */
 export function serializeSessionPayload(
   session: Session,
 ): ShopifySessionPayload {

@@ -1,5 +1,5 @@
 /**
- * AES-256-GCM helpers for Notion tokens at rest in Redis.
+ * AES-256-GCM helpers for encrypted credentials at rest.
  * Key: Worker Secret TOKEN_ENCRYPTION_KEY (32 raw bytes, or base64 of 32 bytes).
  */
 

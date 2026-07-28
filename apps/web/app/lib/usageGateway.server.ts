@@ -2,7 +2,7 @@
  * Usage / plan gateway (Stage L5.5).
  *
  * D1 is the sole authority for OCR / AI / delete / plan.
- * No Redis contact. No USAGE_D1_MODE flag.
+ * No external usage store contact. No USAGE_D1_MODE flag.
  *
  * SI registration limits use D1 counts + D1 plan.
  */
@@ -275,7 +275,7 @@ export async function getPlanViaGateway(shopId: string): Promise<UserPlan> {
 
 /**
  * SI registration limit check (D1 count + D1 plan).
- * Kept here so plan is never read from Redis.
+ * Kept here so plan is always read from D1.
  */
 export async function checkSILimit(shopId: string): Promise<void> {
   const plan = await getPlanViaGateway(shopId);

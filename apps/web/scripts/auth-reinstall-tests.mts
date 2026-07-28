@@ -132,8 +132,6 @@ async function main() {
       .bind(SHOP, SHOP, SHOP, SHOP, SHIPMENT_ID, SHIPMENT_ID)
       .first<Record<string, unknown>>();
 
-    let notionCleanupCalls = 0;
-    let supabaseCalls = 0;
     await cleanupUninstall(SHOP, {
       findSessionsByShop: (shop) => repository.findSessionsByShop(shop),
       deleteSessions: async (ids) => {
@@ -142,12 +140,7 @@ async function main() {
         );
         return true;
       },
-      deleteNotionConnection: async () => {
-        notionCleanupCalls += 1;
-      },
     });
-    assert.equal(supabaseCalls, 0);
-    assert.equal(notionCleanupCalls, 1);
 
     const tombstone = await db
       .prepare(

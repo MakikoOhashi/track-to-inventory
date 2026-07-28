@@ -49,21 +49,6 @@ export type {
   UsageSnapshot,
 } from "./usageQuota.server";
 export {
-  createNotionConnectionRepository,
-  createNotionOAuthStateRepository,
-  createNotionProvisionLockRepository,
-} from "./notionMetadata.server";
-export type {
-  NotionConnectionRecord,
-  NotionConnectionRepository,
-  NotionConnectionStatus,
-  NotionOAuthStateRecord,
-  NotionOAuthStateRepository,
-  NotionProvisionLockRecord,
-  NotionProvisionLockRepository,
-  ProvisionLockAcquireResult,
-} from "./notionMetadata.server";
-export {
   createShipmentsRepository,
   normalizeShipmentForCompare,
   ShipmentDuplicateError,

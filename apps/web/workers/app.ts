@@ -27,15 +27,10 @@ function applyCloudflareEnvToProcess(env: Env) {
     "SHOPIFY_APP_URL",
     "SCOPES",
     "DATABASE_URL",
-    "UPSTASH_REDIS_REST_URL",
-    "UPSTASH_REDIS_REST_TOKEN",
     "GEMINI_API_KEY",
     "RESEND_API_KEY",
     "RECAPTCHA_SITE_KEY",
     "RECAPTCHA_SECRET_KEY",
-    "NOTION_CLIENT_ID",
-    "NOTION_CLIENT_SECRET",
-    "NOTION_REDIRECT_URI",
     "TOKEN_ENCRYPTION_KEY",
   ] as const;
   const stringEnv = env as unknown as Record<string, unknown>;

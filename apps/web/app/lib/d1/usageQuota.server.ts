@@ -9,7 +9,7 @@
  *
  * Refund: CAS reserved→refunded, then re-sync count. Double refund is idempotent.
  *
- * No Redis. Not wired to production routes.
+ * D1-backed usage repository. Not wired to production routes.
  */
 
 import { D1_MIGRATION_VERSION, nowIso } from "./client.server";

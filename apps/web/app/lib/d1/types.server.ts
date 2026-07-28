@@ -58,7 +58,7 @@ export type FinalizeResult = {
   row?: InventorySyncLedgerRow;
 };
 
-/** Matches Redis StoredSessionPayload (session.toPropertyArray). */
+/** Matches the Shopify StoredSessionPayload shape. */
 export type ShopifySessionPayload = {
   entries: [string, string | number | boolean][];
   shop: string;

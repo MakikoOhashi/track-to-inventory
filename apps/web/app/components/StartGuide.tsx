@@ -7,8 +7,7 @@ import {
   Button,
   Box,
   Badge,
-  Divider,
-  Link
+  Divider
 } from '@shopify/polaris';
 import { XIcon, UploadIcon, ViewIcon, EditIcon } from '@shopify/polaris-icons';
 import { useTranslation } from 'react-i18next';
@@ -94,10 +93,6 @@ const ImportCargoGuide = ({
                       >
                         {t('startGuide.step1.button')}
                       </Button>
-                      <div style={{ width: 8, display: 'inline-block' }} />
-                      <Link url="https://quiet-thrill-c13.notion.site/Track-To-Inventory-User-Guide-211c3eba44cb803dbc79f9a485bc8342" target="_blank">
-                        {t('startGuide.tutorial')}
-                      </Link>
                     </Box>
                   </BlockStack>
                 </InlineStack>
@@ -130,10 +125,6 @@ const ImportCargoGuide = ({
                       >
                         {t('startGuide.step2.button')}
                       </Button>
-                      <div style={{ width: 8, display: 'inline-block' }} />
-                      <Link url="https://quiet-thrill-c13.notion.site/Track-To-Inventory-User-Guide-211c3eba44cb803dbc79f9a485bc8342" target="_blank">
-                        {t('startGuide.tutorial')}
-                      </Link>
                     </Box>
                   </BlockStack>
                 </InlineStack>
@@ -165,10 +156,6 @@ const ImportCargoGuide = ({
                       >
                         {t('startGuide.step3.button')}
                       </Button>
-                      <div style={{ width: 8, display: 'inline-block' }} />
-                      <Link url="https://quiet-thrill-c13.notion.site/Track-To-Inventory-User-Guide-211c3eba44cb803dbc79f9a485bc8342" target="_blank">
-                        {t('startGuide.tutorial')}
-                      </Link>
                     </Box>
                   </BlockStack>
                 </InlineStack>

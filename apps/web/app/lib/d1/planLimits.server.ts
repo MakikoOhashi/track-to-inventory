@@ -1,15 +1,15 @@
 /**
  * Plan limits and period helpers (Stage L5.1).
- * Pure module — no Redis / no D1. Shared by D1 usage service only.
+ * Pure module shared by the D1 usage service.
  *
- * period_ym: UTC YYYY-MM (migration continuity with Redis getCurrentMonth).
+ * period_ym: UTC YYYY-MM.
  */
 
 export type UserPlan = "free" | "basic" | "pro";
 
 export type UsageKind = "ai" | "ocr" | "delete";
 
-/** Matches historical Redis PLAN_LIMITS (+ delete=2 from api.delete-shipment). */
+/** Usage limits (+ delete=2 from api.delete-shipment). */
 export const PLAN_LIMITS: Record<
   UserPlan,
   { ai: number; ocr: number; delete: number }
@@ -27,7 +27,7 @@ export function normalizeUserPlan(raw: string | null | undefined): UserPlan {
   return "free";
 }
 
-/** UTC calendar month as YYYY-MM (same shape as legacy Redis monthly keys). */
+/** UTC calendar month as YYYY-MM. */
 export function utcPeriodYm(now: Date = new Date()): string {
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 }

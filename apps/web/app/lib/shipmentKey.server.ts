@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { normalizeShopDomain } from "~/utils/shopDomain";
 
 /**
- * Deterministic Shipment Key for Notion uniqueness (Stage J boundary).
+ * Deterministic shipment key for uniqueness.
  * Does not change Stage I item_key / idempotency_key rules.
  */
 export function buildShipmentKey(shopId: string, siNumber: string): string {

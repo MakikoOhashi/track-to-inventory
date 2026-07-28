@@ -10,12 +10,11 @@ import {
 /**
  * Shopify SessionStorage (Stage L6.0).
  *
- * D1 is the fixed session authority. The Redis session compatibility path
- * (mode flag / shadow / dual_write / d1_primary + Redis adapter) was
- * removed in L6.0. This file no longer touches Redis in any way.
+ * D1 is the fixed session authority. Legacy compatibility paths were removed
+ * in L6.0; this file has no external session fallback.
  *
- * Note: inventory sync ledger and Notion still use Redis elsewhere; those are
- * unaffected. Old Redis session keys are not deleted yet (separate stage).
+ * Inventory sessions are stored only in D1. Legacy external session keys are
+ * outside this runtime and are not read or written.
  */
 class ShopifySessionStorage implements SessionStorage {
   async storeSession(session: Session): Promise<boolean> {
