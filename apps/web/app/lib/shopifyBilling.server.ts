@@ -1,4 +1,5 @@
-import { GraphqlClient, Session } from "@shopify/shopify-api";
+import type { Session } from "@shopify/shopify-api";
+import { GraphqlClient } from "@shopify/shopify-api";
 import type { UserPlan } from "~/lib/d1/planLimits.server";
 import { getPlanViaGateway, persistUserPlan } from "./usageGateway.server";
 

@@ -1,10 +1,12 @@
-import i18n from 'i18next';
+import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 import ja from './locales/ja/common.json';
 import en from './locales/en/common.json';
 
-i18n
+// i18next's default instance exposes the plugin registration method.
+// eslint-disable-next-line import/no-named-as-default-member
+i18next
   .use(initReactI18next)
   .init({
     resources: {
@@ -21,4 +23,4 @@ i18n
     react: { useSuspense: false }, // 必要であれば
   });
 
-export default i18n;
+export default i18next;

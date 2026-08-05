@@ -1,5 +1,5 @@
 // app/components/Modal.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Modal,
@@ -26,13 +26,11 @@ const statusJaToKey = {
   "同期済み": "synced"
 };
 
-const statusKeyToJa = Object.fromEntries(Object.entries(statusJaToKey).map(([ja, key]) => [key, ja]));
-
 const CustomModal = ({
   shipment,
   onClose,
   onUpdated,
-  shopifyProducts = [],
+  shopifyProducts = /** @type {any[]} */ ([]),
   shopifyProductsLoading = false,
   shopifyProductsError = "",
   locale = "ja",
@@ -53,11 +51,7 @@ const CustomModal = ({
   const [formData, setFormData] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [signedUrlCache, setSignedUrlCache] = useState({});
-  const [selectedStatus, setSelectedStatus] = useState('');
-  const [selectedItems, setSelectedItems] = useState([]);
-  const [selectedFiles, setSelectedFiles] = useState([]);
 
   const getLocalizedApiError = useCallback((value) => {
     if (!value) return "";
@@ -109,15 +103,6 @@ const CustomModal = ({
       other_url: shipment.other_url || ''
     });
     
-    setSelectedStatus(shipment.status || '');
-    setSelectedItems(shipment.items || []);
-    setSelectedFiles({
-      invoice: shipment.invoice_url || '',
-      pl: shipment.pl_url || '',
-      si: shipment.si_url || '',
-      other: shipment.other_url || ''
-    });
-    
   }, [shipment]);
 
   // ファイルの署名付きURLを一括取得
@@ -153,7 +138,7 @@ const CustomModal = ({
     } catch (error) {
       // token failure: do not fall back to query shop or Render
     }
-  }, [formData?.si_number, formData?.invoice_url, formData?.pl_url, formData?.si_url, formData?.other_url, shopify]);
+  }, [formData, shopify]);
 
   // フォームデータが変更された時に署名付きURLを再取得
   useEffect(() => {
@@ -177,6 +162,7 @@ const CustomModal = ({
           return filePath;
         }
       } catch (error) {
+        // Fall through and treat the value as an unsigned path.
       }
     }
 
@@ -349,7 +335,6 @@ const CustomModal = ({
   const handleSave = async () => {
     if (!formData) return;
     
-    setSaving(true);
     try {
       // created_at, updated_atフィールドを除外してデータを準備
       const { created_at, updated_at, ...saveData } = formData;
@@ -398,8 +383,6 @@ const CustomModal = ({
       if (onUpdated) onUpdated();
     } catch (error) {
       alert(`保存に失敗しました: ${getLocalizedApiError(error.message)}`);
-    } finally {
-      setSaving(false);
     }
   };
 

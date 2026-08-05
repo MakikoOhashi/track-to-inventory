@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Card,
   BlockStack,
@@ -9,7 +9,7 @@ import {
   Badge,
   Divider
 } from '@shopify/polaris';
-import { XIcon, UploadIcon, ViewIcon, EditIcon } from '@shopify/polaris-icons';
+import { XIcon } from '@shopify/polaris-icons';
 import { useTranslation } from 'react-i18next';
 
 type GuideTarget = 'ocr' | 'details' | 'overview';

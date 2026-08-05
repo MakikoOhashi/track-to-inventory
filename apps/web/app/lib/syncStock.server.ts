@@ -583,9 +583,7 @@ export async function syncShipmentStock(params: {
     }
 
     if (claim.action === "in_progress" && claim.row) {
-      const resolved = await resolveStaleProcessing(claim.row, {
-        correlationId: claim.correlationId,
-      });
+      const resolved = await resolveStaleProcessing(claim.row);
       if (resolved.status === "ambiguous") {
         results.push(
           resultFromLedger(resolved, "manual-review-required", {

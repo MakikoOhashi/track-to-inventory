@@ -18,7 +18,7 @@ type PlanKey = keyof typeof planConfigs;
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     const { admin, session } = await authenticate.admin(request);
-    const { plan: planKey } = await request.json();
+    const { plan: planKey } = (await request.json()) as { plan?: string };
     const planConfig = planConfigs[planKey as PlanKey];
     if (!planConfig) return json({ error: "Invalid plan" }, { status: 400 });
 
@@ -37,10 +37,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       `);
       statusJson = await statusRes.json();
     } catch (error: any) {
-      if (error.graphQLErrors) {
-      }
-      if (error.response) {
-      }
+      console.error("Failed to fetch current Shopify plan", error);
       return json({ error: "Failed to fetch current plan from Shopify" }, { status: 500 });
     }
     const subs = statusJson?.data?.currentAppInstallation?.activeSubscriptions || [];
@@ -52,8 +49,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const mutation = `
       mutation appSubscriptionCreate {
         appSubscriptionCreate(
-          name: \"${planConfig.name}\",
-          returnUrl: \"${process.env.SHOPIFY_APP_URL}/billing/callback?shop=${session.shop}\",
+          name: "${planConfig.name}",
+          returnUrl: "${process.env.SHOPIFY_APP_URL}/billing/callback?shop=${session.shop}",
           test: null,
           lineItems: [{
             plan: {
@@ -75,15 +72,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       mutationJsonAny = mutationJson as any;
       // Shopify GraphQLの標準エラー配列を詳細に出力
       if (Array.isArray(mutationJsonAny.errors) && mutationJsonAny.errors.length > 0) {
+        return json({ error: "Shopify returned a GraphQL error" }, { status: 500 });
       }
       // 念のため全体も出力
       if (!mutationJsonAny.data || !mutationJsonAny.data.appSubscriptionCreate) {
+        return json({ error: "Invalid response from Shopify" }, { status: 500 });
       }
     } catch (error: any) {
-      if (error.graphQLErrors) {
-      }
-      if (error.response) {
-      }
+      console.error("Failed to create Shopify subscription", error);
       return json({ error: "Failed to create subscription on Shopify" }, { status: 500 });
     }
     const subscriptionData = mutationJsonAny?.data?.appSubscriptionCreate;

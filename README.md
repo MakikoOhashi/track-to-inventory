@@ -86,7 +86,9 @@ Notion OAuth／API route、Redis route、Render OCR API routeは存在しませ�
 
 ### Supabase
 
-Supabaseはruntime・production secretともに脱却済みです。shipment、item、ledger、sessionの本番正本はD1です。旧SupabaseテーブルとStorageのバックアップは削除せず、2026-08-04まで保留します。保留期間中はSupabase本体やStorageを削除しません。
+Supabaseはruntime・production secretともに脱却済みです。shipment、item、ledger、sessionの本番正本はD1です。旧Supabaseの`shipments`、`inventory_sync_ledger`テーブルとStorageの`shipment-files`バケットは、最終バックアップ取得後に削除済みです。
+
+最終バックアップはローカルの[`apps/supabase-backup-2026-08-04`](apps/supabase-backup-2026-08-04)に保存しています。内容は、SupabaseテーブルのJSON export（shipments 4行、inventory_sync_ledger 2行）、PostgRESTスキーマ、Storageメタデータ、およびStorageファイル4件（約3.37MB）です。バックアップには本番データ・ファイルが含まれるため、Git管理対象外です。
 
 ### Upstash Redis
 
@@ -134,4 +136,4 @@ npm run deploy:cf
 
 TrackToInventory is a Shopify Embedded App running as a single Cloudflare Worker with Cloudflare D1 as the sole production data authority. Sessions, shipments, shipment items, usage/plan records, and the inventory-sync ledger are stored in D1. OCR and AI parsing run in the Worker through Gemini, and inventory adjustments use the Shopify Admin GraphQL API with an idempotent D1 ledger.
 
-Render, Redis, Notion, and Supabase are not runtime dependencies. The Upstash database remains because it is shared with other projects, but this app no longer reads it. Legacy Supabase tables and Storage backups are retained until 2026-08-04 and are not used by production.
+Render, Redis, Notion, and Supabase are not runtime dependencies. The Upstash database remains because it is shared with other projects, but this app no longer reads it. Legacy Supabase tables and the `shipment-files` Storage bucket were deleted after the final local backup on 2026-08-04.

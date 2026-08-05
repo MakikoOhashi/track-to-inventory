@@ -21,6 +21,10 @@ database.sqlite
 .env.*
 !.env.example
 
+# Local Supabase final backup (contains production data/files)
+supabase-backup-*/
+apps/supabase-backup-*/
+
 
 
 

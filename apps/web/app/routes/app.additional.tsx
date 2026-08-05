@@ -8,7 +8,7 @@ import {
   Text,
   BlockStack,
 } from "@shopify/polaris";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 export default function AdditionalPage() {
   return (
@@ -33,7 +33,7 @@ export default function AdditionalPage() {
               <Text as="p" variant="bodyMd">
                 To create your own page and have it show up in the app
                 navigation, add a page inside <Code>app/routes</Code>. The navigation
-                will be automatically handled by Shopify's embedded app framework.
+                will be automatically handled by Shopify&apos;s embedded app framework.
               </Text>
             </BlockStack>
           </Card>

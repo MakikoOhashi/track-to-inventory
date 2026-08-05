@@ -4,5 +4,5 @@ import { startTransition } from "react";
 import "./i18n";
 
 startTransition(() => {
-  createRoot(document).render(<HydratedRouter />);
+  createRoot(document as unknown as Element).render(<HydratedRouter />);
 });

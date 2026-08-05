@@ -19,7 +19,8 @@ export async function loader({ request }) {
       try {
         const { session } = await authenticate.admin(request);
         shopId = session.shop;
-      } catch (authError) {
+      } catch {
+        // Fall through to the missing-shop response below.
       }
     }
 

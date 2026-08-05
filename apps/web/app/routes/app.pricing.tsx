@@ -42,12 +42,8 @@ function BillingButton({ billingUrl, children }: { billingUrl?: string, children
 }
 
 export default function Pricing() {
-  const { plan, error, shop } = useLoaderData<{ plan: string; error?: string; shop?: string }>();
+  const { shop } = useLoaderData<{ plan: string; error?: string; shop?: string }>();
   const { t, i18n } = useTranslation("common");
-
-  // エラーがある場合は表示
-  if (error) {
-  }
 
   // Shopify管理画面のアプリ課金ページURL（必要に応じてyour-app-handleを修正）
   const billingUrl = shop ? `https://admin.shopify.com/store/${shop.replace('.myshopify.com', '')}/charges/tracktoinventory/pricing_plans` : undefined;

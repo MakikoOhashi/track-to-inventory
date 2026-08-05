@@ -1,4 +1,5 @@
 import { createRequestHandler } from "react-router";
+import type { ServerBuild } from "react-router";
 import { runWithCloudflareEnv } from "../app/lib/cloudflareBindings.server";
 
 type CloudflareLoadContext = {
@@ -9,7 +10,6 @@ type CloudflareLoadContext = {
   };
 };
 
-type ServerBuild = typeof import("../build/server/index.js");
 type AssetBinding = {
   fetch(request: Request): Promise<Response>;
 };
@@ -48,10 +48,10 @@ function applyCloudflareEnvToProcess(env: Env) {
 async function getRequestHandler(env: Env) {
   applyCloudflareEnvToProcess(env);
 
-  buildPromise ??= import("../build/server/index.js");
-  requestHandlerPromise ??= buildPromise.then((build) =>
+  const build = (buildPromise ??= import("../build/server/index.js") as unknown as Promise<ServerBuild>);
+  requestHandlerPromise ??= build.then((serverBuild) =>
     createRequestHandler(
-      build,
+      serverBuild,
       process.env.NODE_ENV === "production" ? "production" : "development",
     ),
   );

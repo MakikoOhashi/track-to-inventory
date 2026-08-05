@@ -1,6 +1,7 @@
 //app/components/StatusTable.tsx
 
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next'; 
 import { Checkbox, DataTable, Text } from '@shopify/polaris';
 import type { Shipment } from "../../types/Shipment";
@@ -41,7 +42,7 @@ const StatusTable: React.FC<{ shipments: Shipment[]; onSelectShipment: (shipment
   const rows = filteredShipments.map((s) => {
     const statusKey = statusToKey[s.status ?? ""] || "notSet";
     return [
-      <Text as="span">
+      <Text as="span" key={s.si_number}>
         <span
           onClick={() => onSelectShipment(s)}
           style={{ cursor: 'pointer', textDecoration: 'underline' }}

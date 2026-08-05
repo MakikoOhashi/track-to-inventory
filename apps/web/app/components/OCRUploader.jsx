@@ -1,5 +1,5 @@
 //app/components/OCRUploader.jsx
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   DropZone,
@@ -7,16 +7,13 @@ import {
   Spinner,
   TextField,
   Button,
-  Banner,
-  Select,
-  Link,
 } from "@shopify/polaris";
 import { useTranslation } from "react-i18next";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { shopifyAuthenticatedFetch } from "~/lib/shopifyAuthenticatedFetch.client";
 
 export default function OCRUploader({ shopId, onSaveSuccess }) {
-  const { t, i18n } = useTranslation("common");
+  const { t } = useTranslation("common");
   const shopify = useAppBridge();
   const [file, setFile] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
@@ -24,7 +21,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   const [ocrTextEdited, setOcrTextEdited] = useState(""); // 編集可能なOCRテキスト
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState(null); 
+  const [, setAiResult] = useState(null);
   const [fields, setFields] = useState({
     si_number: "",
     supplier_name: "",
@@ -60,14 +57,8 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
   }, [t]);
 
    // クライアント判定（SSR対策）
-  useEffect(() => {
-    setIsClient(true);
-    // コンポーネント初期化時に使用状況を取得
-    fetchUsageInfo();
-  }, []);
-
     // 使用状況を取得する関数
-    const fetchUsageInfo = async () => {
+    const fetchUsageInfo = useCallback(async () => {
       try {
         const query = shopId ? `?shop_id=${encodeURIComponent(shopId)}` : "";
         const res = await fetch(`/api/usage${query}`, {
@@ -82,9 +73,15 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
           // APIレスポンスがokでない場合もエラー表示
           setOcrError(t("ocrUploader.usageInfoFail", { message: `status: ${res.status}` }));
         }
-      } catch (error) {
+      } catch {
+        // Usage is supplementary; the main OCR flow remains usable.
       }
-    };
+    }, [shopId, t]);
+
+  useEffect(() => {
+    setIsClient(true);
+    fetchUsageInfo();
+  }, [fetchUsageInfo]);
 
   const requestDocumentParse = useCallback(
     async (uploadedFile) => {
@@ -211,7 +208,7 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     } finally {
       setLoading(false);
     }
-  }, [file, requestDocumentParse, t]);
+  }, [file, requestDocumentParse, extractFields, t]);
    const handleOpenManualForm = () => {
     setShowManualForm(true);
     // フィールドをクリア（必要に応じて）
@@ -267,9 +264,10 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
     }
 
     // 正規表現で仮抽出
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   function extractFields(text) {
     return {
-      si_number: text.match(/(?:INV(?:OICE)?(?:\s*(?:NO\.?|#|:|：))?|INVOICE NO\.?)[\s:：#-]*([A-Z0-9\/\-]+)/i)?.[1] ?? "",
+      si_number: text.match(/(?:INV(?:OICE)?(?:\s*(?:NO\.?|#|:|：))?|INVOICE NO\.?)[\s:：#-]*([A-Z0-9/-]+)/i)?.[1] ?? "",
       supplier_name: text.match(/(?:SUPPLIER|SHIPPER)[:： ]*([^\n]+)/i)?.[1]?.trim() ?? "",
       transport_type: text.match(/(?:SHIPMENT PER|SHIPPED PER|TRANSPORT TYPE)[:： ]*([^\n]+)/i)?.[1]?.trim() ?? "",
       items: extractItems(text),
@@ -514,16 +512,6 @@ export default function OCRUploader({ shopId, onSaveSuccess }) {
       </Card>
     );
   }
-
-  // ステータスは英語キーで管理
-  const STATUS_OPTIONS = [
-    { label: t('modal.status.siIssued'), value: "siIssued" },
-    { label: t('modal.status.scheduleConfirmed'), value: "scheduleConfirmed" },
-    { label: t('modal.status.shipping'), value: "shipping" },
-    { label: t('modal.status.customsClearance'), value: "customsClearance" },
-    { label: t('modal.status.warehouseArrival'), value: "warehouseArrival" },
-    { label: t('modal.status.synced'), value: "synced" },
-  ];
 
   return (
     <Card sectioned>

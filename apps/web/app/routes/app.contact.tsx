@@ -1,5 +1,5 @@
 import { data as json, type LoaderFunctionArgs, type ActionFunctionArgs, useActionData, useLoaderData, useNavigation } from "react-router";
-import { Page, Card, Layout, Text, TextField, Button, DropZone, Banner, Box } from "@shopify/polaris";
+import { Page, Card, Layout, Text, TextField, Button, DropZone, Banner } from "@shopify/polaris";
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
@@ -56,7 +56,7 @@ export default function Contact() {
   const { t, i18n } = useTranslation("common");
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  const { shop, isAdmin, error } = useLoaderData<LoaderData>();
+  const { isAdmin } = useLoaderData<LoaderData>();
 
   // Polaris用state
   const [name, setName] = useState("");
@@ -73,7 +73,7 @@ export default function Contact() {
   );
 
   // 通常の<form>でonSubmitハンドラ
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = () => {
     // バリデーション入れたければここで
   };
 

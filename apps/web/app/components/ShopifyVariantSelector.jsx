@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Select, Spinner, Button, Text } from '@shopify/polaris';
 import { useTranslation } from 'react-i18next';
 import { fetchProductsWithVariants, getShopifyProductsCache } from "~/lib/shopifyProducts.client";
@@ -90,7 +90,7 @@ const ShopifyVariantSelector = ({ value, onChange, initialProductId = "", produc
     if (value !== selectedVariantId) {
       setSelectedVariantId(value || "");
     }
-  }, [value]);
+  }, [value, selectedVariantId]);
 
   // 選択されたバリアントが変更された時の処理
   useEffect(() => {

@@ -1,6 +1,6 @@
 // app/components/StatusCard.tsx
 
-import React from 'react';
+import type React from 'react';
 import { useTranslation } from 'react-i18next'; 
 import { Card, Text,BlockStack } from '@shopify/polaris';
 import type { Shipment } from "../../types/Shipment";

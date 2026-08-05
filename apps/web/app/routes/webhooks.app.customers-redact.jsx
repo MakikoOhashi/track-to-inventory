@@ -3,6 +3,7 @@ import { authenticate } from "~/shopify.server";
 export const action = async ({ request }) => {
   // Shopify Webhook認証 & ペイロード取得
   const payload = await authenticate.webhook(request);
+  void payload;
 
   // ログ出力
 

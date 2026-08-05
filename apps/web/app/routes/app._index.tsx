@@ -1,6 +1,7 @@
 //app/routes/app._index.tsx
 
-import React, { useEffect, useState, useRef, MouseEvent } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import type { MouseEvent } from "react";
 import {
   Page,
   Card,
@@ -12,11 +13,9 @@ import {
   Banner,
   InlineStack,
   Text,
-  Tabs,
   Divider,
   Box,
   Layout,
-  Tooltip,
 } from "@shopify/polaris";
 import { QuestionCircleIcon } from "@shopify/polaris-icons";
 
@@ -44,11 +43,6 @@ import { unauthenticated } from "~/shopify.server";
 import { getOptionalTtiDb } from "~/lib/cloudflareBindings.server";
 import { createShipmentsRepository } from "~/lib/d1/shipments.server";
 import { requireAdminShop } from "~/lib/requireAdminShop.server";
-
-type StatusTableProps = {
-  shipments: Shipment[];
-  onSelectShipment: (shipment: Shipment) => void;
-};
 
 type StatusStats = Record<string, Shipment[]>;
 
@@ -174,14 +168,7 @@ export default function Index() {
     null,
   );
   const [shopId, setShopId] = useState<string>(shop || "");
-  const [shopIdInput, setShopIdInput] = useState<string>(shop || "");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [shopifyProducts, setShopifyProducts] = useState<any[]>(
-    initialShopifyProducts || [],
-  );
-  const [shopifyProductsLoading, setShopifyProductsLoading] = useState(false);
-  const [shopifyProductsError, setShopifyProductsError] = useState("");
+  const shopifyProducts = (initialShopifyProducts || []) as any[];
   const [showStartGuide, setShowStartGuide] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [sectionViewMode, setSectionViewMode] = useState<
@@ -222,26 +209,20 @@ export default function Index() {
     setHasMounted(true);
   }, []);
 
+  // fetchShipments is declared below; this effect intentionally runs after mount.
   useEffect(() => {
     if (!hasMounted || !shop) return;
 
     // Exercise the authenticated API once after SSR. A transient failure keeps
     // the successfully rendered SSR data visible.
     fetchShipments(shop);
-  }, [hasMounted, shop]);
-
-  useEffect(() => {
-    if (shopifyProducts.length > 0) {
-      setShopifyProductsLoading(false);
-      setShopifyProductsError("");
-    }
-  }, [shopifyProducts.length]);
+  }, [hasMounted, shop]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (shopId && shopId !== shop) {
       fetchShipments(shopId);
     }
-  }, [shopId, shop]);
+  }, [shopId, shop]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!showStartGuide) return;
@@ -285,43 +266,38 @@ export default function Index() {
   };
 
   // データ取得関数（Bearer session shop のみ。query shop_id は送らない）
-  const fetchShipments = async (_shopIdValue?: string) => {
-    setLoading(true);
-    setError(null);
-
+  const fetchShipments = useCallback(async (_shopIdValue?: string) => {
     try {
       const res = await shopifyAuthenticatedFetch(shopify, "/api/shipments");
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
-      const data = await res.json();
+      const data = (await res.json()) as {
+        shipments?: Shipment[];
+        shop?: string;
+      };
       setShipments(data.shipments || []);
       if (data.shop) {
         setShopId(data.shop);
       }
     } catch (err) {
       if (err instanceof Error && err.message === "SESSION_TOKEN_UNAVAILABLE") {
-        setError(t("ocrUploader.authFailed") || "Authentication failed");
+        console.error(t("ocrUploader.authFailed") || "Authentication failed");
       } else {
-        setError(
+        console.error(
           err instanceof Error ? err.message : "データの取得に失敗しました",
         );
       }
       // A transient session/API failure must not make persisted shipments look
       // deleted. Keep the last successfully loaded tenant-scoped data visible.
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [shopify, t]);
 
   // Closing a read-only modal must not trigger a refresh. Mutations use the
   // separate onUpdated callback below.
   const handleModalClose = () => {
     setSelectedShipment(null);
   };
-
-  const handleInputChange = (value: string) => setShopIdInput(value);
-  const handleShopIdApply = () => setShopId(shopIdInput);
 
   // SI番号で検索用（前方一致・上位10件）
   const filteredShipments = shipments
@@ -524,25 +500,19 @@ export default function Index() {
     {
       id: "ocr",
       content: (
-        <Tooltip content={t("tabs.ocrHelp")}>
-          <span>{t("tabs.ocr")}</span>
-        </Tooltip>
+        t("tabs.ocr")
       ),
     },
     {
       id: "overview",
       content: (
-        <Tooltip content={t("tabs.overviewHelp")}>
-          <span>{t("tabs.overview")}</span>
-        </Tooltip>
+        t("tabs.overview")
       ),
     },
     {
       id: "details",
       content: (
-        <Tooltip content={t("tabs.detailsHelp")}>
-          <span>{t("tabs.details")}</span>
-        </Tooltip>
+        t("tabs.details")
       ),
     },
   ];
@@ -763,7 +733,7 @@ export default function Index() {
               </Card>
             )}
 
-            {/* 詳細表示　　セクション */}
+            {/* 詳細表示セクション */}
             {sectionViewMode === "details" && (
               <Card>
                 <BlockStack gap="500">
@@ -875,13 +845,13 @@ export default function Index() {
                               getStatusStats(shipments)[statusLabel] || [];
 
                             const rows = shipmentsForStatus.flatMap((s) => {
-                              const items =
+                              const items: ShipmentItem[] =
                                 s.items && s.items.length > 0
                                   ? s.items
                                   : [
                                       {
                                         name: t("message.unknown"),
-                                        quantity: "-" as const,
+                                        quantity: 0,
                                       },
                                     ];
 
@@ -904,7 +874,7 @@ export default function Index() {
                                   {s.si_number}
                                 </span>,
                                 renderProductNameCell(item),
-                                item.quantity ?? "-",
+                                item.quantity || "-",
                                 getStatusLabel(s.status),
                               ]);
                             });
@@ -1072,8 +1042,8 @@ export default function Index() {
           onClose={handleModalClose}
           onUpdated={() => fetchShipments(shop)}
           shopifyProducts={shopifyProducts}
-          shopifyProductsLoading={shopifyProductsLoading}
-          shopifyProductsError={shopifyProductsError}
+          shopifyProductsLoading={false}
+          shopifyProductsError=""
           locale={locale}
         />
       )}
