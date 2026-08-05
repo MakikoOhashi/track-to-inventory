@@ -15,10 +15,9 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "target": "ES2022",
-    "baseUrl": ".",
     "types": ["node", "wrangler"],
     "paths": {
-      "~/*": ["app/*"],
+      "~/*": ["./app/*"],
       "@track-to-inventory/shared": ["../../packages/shared/src/index.ts"],
       "@track-to-inventory/shared/*": ["../../packages/shared/src/*"]
     }
