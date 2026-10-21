@@ -1,38 +1,24 @@
 // app/routes/api.usage.js
 import { data as json } from "react-router";
-import { authenticate } from "~/shopify.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
 import { getUsageForDisplay } from "~/lib/usageGateway.server";
+import { assertRequestedShopMatches, requireAdminShop } from "~/lib/requireAdminShop.server";
 
 export async function loader({ request }) {
   try {
-    let shopId;
     const url = new URL(request.url);
     const locale = resolveRequestLocale(request);
     const ja = isJapaneseRequest(request, locale);
 
-    // 1. client fetch時はURLのshop_idを優先して、Cloudflare上のauth hangを避ける
-    shopId = url.searchParams.get('shop_id') || url.searchParams.get('shopId');
-
-    // 2. shop_idが無い場合だけShopify認証にフォールバック
-    if (!shopId) {
-      try {
-        const { session } = await authenticate.admin(request);
-        shopId = session.shop;
-      } catch {
-        // Fall through to the missing-shop response below.
-      }
+    const auth = await requireAdminShop(request);
+    if (!auth.ok) {
+      return json({ error: ja ? "認証に失敗しました" : "Authentication failed", usage: null }, { status: auth.status });
     }
-
-    if (!shopId) {
-      return json({ 
-        error: ja ? "shop_idが必要です" : "shop_id is required",
-        usage: null 
-      }, { status: 400 });
+    const requestedShop = url.searchParams.get("shop_id") || url.searchParams.get("shopId");
+    if (!assertRequestedShopMatches(auth.shop, requestedShop)) {
+      return json({ error: ja ? "店舗指定が認証情報と一致しません" : "Requested shop does not match the authenticated shop", usage: null }, { status: 403 });
     }
-    
-    // ストアIDを直接渡して使用状況を取得（D1）
-    const usage = await getUsageForDisplay(shopId);
+    const usage = await getUsageForDisplay(auth.shop);
     
     return json({ 
       success: true, 

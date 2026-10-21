@@ -20,6 +20,7 @@ import {
 } from "../app/lib/usageGateway.server.ts";
 import { createUsageQuotaRepository } from "../app/lib/d1/usageQuota.server.ts";
 import { utcPeriodYm } from "../app/lib/d1/planLimits.server.ts";
+import { assertRequestedShopMatches } from "../app/lib/requireAdminShop.server.ts";
 
 const SHOP = "l55-test.myshopify.com";
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -44,6 +45,19 @@ async function main() {
   const proxy = await getPlatformProxy({ persist: true });
   try {
     const env = proxy.env as Env;
+  const usageRouteSrc = readFileSync(join(webRoot, "app/routes/api.usage.js"), "utf8");
+  const aiRouteSrc = readFileSync(join(webRoot, "app/routes/api.ai-parse.ts"), "utf8");
+  assert.match(usageRouteSrc, /const auth = await requireAdminShop\(request\)/);
+  assert.match(aiRouteSrc, /const auth = await requireAdminShop\(request\)/);
+  assert.match(usageRouteSrc, /status: auth.status/);
+  assert.match(aiRouteSrc, /status: auth.status/);
+  assert.equal(assertRequestedShopMatches(SHOP, undefined), true);
+  assert.equal(assertRequestedShopMatches(SHOP, SHOP), true);
+  assert.equal(assertRequestedShopMatches(SHOP, "other.myshopify.com"), false);
+  assert.equal(assertRequestedShopMatches(SHOP, "invalid-shop"), false);
+  assert.match(usageRouteSrc, /getUsageForDisplay\(auth.shop\)/);
+  assert.match(aiRouteSrc, /reserveOcrOrAiUsage\(\{ shopId: auth.shop, kind: "ai" \}/);
+  assert.match(aiRouteSrc, /refundOcrOrAiUsage\(\{ shopId: auth.shop, kind: "ai", operationId \}/);
     const db = env.TTI_DB;
     assert.ok(db, "TTI_DB required");
 

@@ -1,6 +1,6 @@
 import { data as json, type ActionFunctionArgs } from "react-router";
 import { generateGeminiContent } from "~/lib/geminiClient";
-import { authenticate } from "~/shopify.server";
+import { assertRequestedShopMatches, requireAdminShop } from "~/lib/requireAdminShop.server";
 import { isJapaneseRequest, resolveRequestLocale } from "~/lib/requestLocale";
 import {
   refundOcrOrAiUsage,
@@ -8,12 +8,17 @@ import {
 } from "~/lib/usageGateway.server";
 
 type Fields = { [key: string]: string | string[] };
-type RequestBody = { text: string; fields: Fields };
+type RequestBody = { text: string; fields: Fields; shop_id?: string; shopId?: string };
 
 // POST専用API
 export const action = async ({ request }: ActionFunctionArgs) => {
   const locale = resolveRequestLocale(request);
   const ja = isJapaneseRequest(request, locale);
+
+  const auth = await requireAdminShop(request);
+  if (!auth.ok) {
+    return json({ error: ja ? "認証に失敗しました。アプリを再インストールしてください。" : "Authentication failed. Please reinstall the app.", type: "auth_error" }, { status: auth.status });
+  }
 
   let body: RequestBody;
   try {
@@ -23,6 +28,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   const { text, fields } = body || {};
+  const url = new URL(request.url);
+  const requestedShops = [url.searchParams.get("shop_id"), url.searchParams.get("shopId"), body?.shop_id, body?.shopId].filter(Boolean) as string[];
+  if (requestedShops.some((requestedShop) => !assertRequestedShopMatches(auth.shop, requestedShop))) {
+    return json({ error: ja ? "店舗指定が認証情報と一致しません" : "Requested shop does not match the authenticated shop", type: "auth_error" }, { status: 403 });
+  }
   if (!text) {
     return json({ error: ja ? "テキストがありません" : "Missing text" }, { status: 400 });
   }
@@ -38,20 +48,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
   
   // AI使用制限チェック（ここで回数制限＆カウント増加）
-  let shopId = "";
   let operationId: string | undefined;
   try {
-    const url = new URL(request.url);
-    const shopIdFromQuery = url.searchParams.get("shop_id") || "";
-    shopId = shopIdFromQuery;
-
-    if (!shopId) {
-      // query がない場合だけ Shopify 認証にフォールバック
-      const { session } = await authenticate.admin(request);
-      shopId = session.shop;
-    }
-
-    const reserved = await reserveOcrOrAiUsage({ shopId, kind: "ai" });
+    const reserved = await reserveOcrOrAiUsage({ shopId: auth.shop, kind: "ai" });
     operationId = reserved.operationId;
   } catch (error) {
     // 認証エラーの場合は401を返す
@@ -61,13 +60,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         : error instanceof Response
           ? `HTTP ${error.status}`
           : String(error);
-    if (errorMessage.includes("認証に失敗しました") || errorMessage.includes("shop_id parameter is required")) {
-      return json({ 
-        error: ja ? "認証に失敗しました。アプリを再インストールしてください。" : "Authentication failed. Please reinstall the app.",
-        type: "auth_error"
-      }, { status: 401 });
-    }
-    
     // 制限に達した場合は429エラーを返す
     return json(
       { 
@@ -139,8 +131,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ result: "{}" });
     }
   } catch (e: any) {
-    if (operationId && shopId) {
-      await refundOcrOrAiUsage({ shopId, kind: "ai", operationId }).catch(() => {});
+    if (operationId) {
+      await refundOcrOrAiUsage({ shopId: auth.shop, kind: "ai", operationId }).catch(() => {});
     }
     return json({ error: e?.message || String(e) }, { status: 500 });
   }

@@ -24,3 +24,8 @@ export async function requireAdminShop(request: Request): Promise<
     return { ok: false, status: 401 };
   }
 }
+export function assertRequestedShopMatches(authenticatedShop: string, requestedShop?: string | null): boolean {
+  if (!requestedShop) return true;
+  const normalizedRequested = normalizeShopDomain(requestedShop);
+  return Boolean(normalizedRequested) && normalizedRequested === authenticatedShop;
+}
