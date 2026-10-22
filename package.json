@@ -2,7 +2,7 @@
   "name": "track-to-inventory-monorepo",
   "private": true,
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "workspaces": [
     "apps/*",

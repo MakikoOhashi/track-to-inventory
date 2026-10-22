@@ -104,7 +104,7 @@ Notion連携は未提供で、画面、OAuth、API、cleanup、Redis処理を削
 
 ## 開発・確認
 
-必要環境はNode.js 20です。
+必要環境はNode.js 22です。
 
 ```bash
 npm install
