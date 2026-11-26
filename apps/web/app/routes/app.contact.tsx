@@ -39,13 +39,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
   }
   try {
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: "onboarding@resend.dev",
       to: "makiron19831014@gmail.com",
       subject: `お問い合わせ from ${name}`,
       text: `名前: ${name}\nメール: ${email}\n内容: ${message}`,
       attachments,
     });
+    if (error) {
+      console.error("[contact] Resend send failed:", error);
+      return json({ error: "Failed to send email." }, { status: 500 });
+    }
     return json({ ok: true });
   } catch (e: any) {
     return json({ error: "Failed to send email." }, { status: 500 });
